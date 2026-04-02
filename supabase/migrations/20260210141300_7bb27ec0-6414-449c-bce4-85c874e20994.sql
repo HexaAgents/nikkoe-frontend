@@ -1,0 +1,1 @@
+ALTER TABLE public.sales DROP COLUMN IF EXISTS channel_reference;

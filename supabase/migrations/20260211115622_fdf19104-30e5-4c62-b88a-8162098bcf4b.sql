@@ -1,0 +1,1 @@
+DROP VIEW IF EXISTS public.inventory_on_hand;

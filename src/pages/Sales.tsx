@@ -1,0 +1,126 @@
+import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { MainLayout } from "@/components/layout/MainLayout";
+import { DataTable } from "@/components/common/DataTable";
+import { useSales } from "@/hooks/useSales";
+import { AddSaleForm } from "@/components/sales/AddSaleForm";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+interface SaleWithRelations {
+  sale_id: number;
+  customer_name: string | null;
+  channel_id: number | null;
+  sold_at: string;
+  sold_by: string | null;
+  status: string;
+  note: string | null;
+  void_reason: string | null;
+  voided_at: string | null;
+  voided_by: string | null;
+  channels: { channel_id: number; channel_name: string } | null;
+  users: { user_id: string; name: string } | null;
+}
+
+export default function SalesPage() {
+  const navigate = useNavigate();
+  const [showVoided, setShowVoided] = useState(false);
+  const [showSalesHistory, setShowSalesHistory] = useState(false);
+  const { data: sales, isLoading } = useSales();
+
+  const filteredSales = useMemo(() => {
+    if (!sales) return [];
+    return showVoided ? sales : sales.filter((s) => s.status !== "VOIDED");
+  }, [sales, showVoided]);
+
+  const columns = [
+    {
+      key: "customer_name",
+      header: "Customer",
+      render: (sale: SaleWithRelations) => sale.customer_name || "—",
+    },
+    {
+      key: "channel",
+      header: "Channel",
+      render: (sale: SaleWithRelations) => sale.channels?.channel_name || "—",
+    },
+    {
+      key: "sold_at",
+      header: "Date/Time",
+      render: (sale: SaleWithRelations) => new Date(sale.sold_at).toLocaleString(),
+    },
+  ];
+
+  const handleRowClick = (sale: SaleWithRelations) => {
+    navigate(`/sales/${sale.sale_id}`);
+  };
+
+  return (
+    <MainLayout>
+      <div className="space-y-6 px-1 pt-2">
+        <h1 className="font-display text-[28px] font-normal text-foreground">Sales</h1>
+
+        <Card>
+          <CardHeader className="border-b pb-6">
+            <CardTitle className="text-lg font-bold">Add new sale</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <AddSaleForm variant="inline" />
+          </CardContent>
+        </Card>
+
+        <div className="pt-1">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setShowSalesHistory((prev) => !prev)}
+            aria-expanded={showSalesHistory}
+          >
+            {showSalesHistory ? "Hide recent sales" : "Show recent sales"}
+          </Button>
+        </div>
+
+        {showSalesHistory &&
+          (isLoading ? (
+            <Skeleton className="h-[400px] w-full" />
+          ) : (
+            <DataTable
+              data={filteredSales}
+              columns={columns}
+              searchPlaceholder="Search sales..."
+              searchKeys={["customer_name"]}
+              exportFilename="sales"
+              onRowClick={handleRowClick}
+              idKey="sale_id"
+              rowClassName={(sale) => (sale.status === "VOIDED" ? "text-destructive" : "")}
+              exportOptions={{ isVoided: (sale) => sale.status === "VOIDED" }}
+              exportColumns={[
+                { key: "customer_name", header: "Customer", render: (sale: SaleWithRelations) => sale.customer_name || "" },
+                { key: "channel", header: "Channel", render: (sale: SaleWithRelations) => sale.channels?.channel_name || "" },
+                { key: "sold_at", header: "Date/Time", render: (sale: SaleWithRelations) => new Date(sale.sold_at).toLocaleString() },
+                { key: "status", header: "Status" },
+                { key: "note", header: "Note" },
+                { key: "void_reason", header: "Void Reason" },
+                { key: "voided_at", header: "Voided At", render: (sale: SaleWithRelations) => (sale.voided_at ? new Date(sale.voided_at).toLocaleString() : "") },
+              ]}
+              toolbarExtra={
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="showVoided"
+                    checked={showVoided}
+                    onCheckedChange={(checked) => setShowVoided(checked === true)}
+                  />
+                  <Label htmlFor="showVoided" className="cursor-pointer text-sm text-muted-foreground">
+                    Show Voided
+                  </Label>
+                </div>
+              }
+            />
+          ))}
+      </div>
+    </MainLayout>
+  );
+}

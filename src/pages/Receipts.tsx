@@ -1,0 +1,139 @@
+import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { MainLayout } from "@/components/layout/MainLayout";
+import { DataTable } from "@/components/common/DataTable";
+import { useReceipts } from "@/hooks/useReceipts";
+import { AddReceiptForm } from "@/components/receipts/AddReceiptForm";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+interface ReceiptWithRelations {
+  receipt_id: string;
+  received_at: string;
+  status: string;
+  reference: string | null;
+  note: string | null;
+  supplier_id: string | null;
+  received_by: string | null;
+  void_reason: string | null;
+  voided_at: string | null;
+  voided_by: string | null;
+  suppliers: { supplier_id: string; supplier_name: string } | null;
+  users: { user_id: string; name: string } | null;
+}
+
+export default function ReceiptsPage() {
+  const navigate = useNavigate();
+  const [showVoided, setShowVoided] = useState(false);
+  const [showReceiptsHistory, setShowReceiptsHistory] = useState(false);
+  const { data: receipts, isLoading } = useReceipts();
+
+  const filteredReceipts = useMemo(() => {
+    if (!receipts) return [];
+    return showVoided ? receipts : receipts.filter((r) => r.status !== "VOIDED");
+  }, [receipts, showVoided]);
+
+  const columns = [
+    {
+      key: "received_at",
+      header: "Date/Time",
+      render: (receipt: ReceiptWithRelations) => new Date(receipt.received_at).toLocaleString(),
+    },
+    {
+      key: "supplier",
+      header: "Supplier",
+      render: (receipt: ReceiptWithRelations) => receipt.suppliers?.supplier_name || "—",
+    },
+    {
+      key: "reference",
+      header: "Reference",
+      render: (receipt: ReceiptWithRelations) => receipt.reference?.trim() || "—",
+    },
+  ];
+
+  const handleRowClick = (receipt: ReceiptWithRelations) => {
+    navigate(`/receipts/${receipt.receipt_id}`);
+  };
+
+  return (
+    <MainLayout>
+      <div className="space-y-6 px-1 pt-2">
+        <h1 className="font-display text-[28px] font-normal text-foreground">Receipts</h1>
+
+        <Card>
+          <CardHeader className="border-b pb-6">
+            <CardTitle>Add new receipt</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <AddReceiptForm variant="inline" />
+          </CardContent>
+        </Card>
+
+        <div className="pt-1">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setShowReceiptsHistory((prev) => !prev)}
+            aria-expanded={showReceiptsHistory}
+          >
+            {showReceiptsHistory ? "Hide recent receipts" : "Show recent receipts"}
+          </Button>
+        </div>
+
+        {showReceiptsHistory &&
+          (isLoading ? (
+            <Skeleton className="h-[400px] w-full" />
+          ) : (
+            <DataTable
+              data={filteredReceipts}
+              columns={columns}
+              searchPlaceholder="Search receipts..."
+              searchKeys={["reference", "note"]}
+              exportFilename="receipts"
+              exportColumns={[
+                {
+                  key: "received_at",
+                  header: "Date/Time",
+                  render: (r: ReceiptWithRelations) => new Date(r.received_at).toLocaleString(),
+                },
+                {
+                  key: "supplier",
+                  header: "Supplier",
+                  render: (r: ReceiptWithRelations) => r.suppliers?.supplier_name ?? "",
+                },
+                {
+                  key: "reference",
+                  header: "Reference",
+                  render: (r: ReceiptWithRelations) => r.reference?.trim() ?? "",
+                },
+                {
+                  key: "note",
+                  header: "Note",
+                  render: (r: ReceiptWithRelations) => r.note?.trim() ?? "",
+                },
+              ]}
+              onRowClick={handleRowClick}
+              idKey="receipt_id"
+              rowClassName={(receipt) => (receipt.status === "VOIDED" ? "text-destructive" : "")}
+              exportOptions={{ isVoided: (receipt) => receipt.status === "VOIDED" }}
+              toolbarExtra={
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="showVoidedReceipts"
+                    checked={showVoided}
+                    onCheckedChange={(checked) => setShowVoided(checked === true)}
+                  />
+                  <Label htmlFor="showVoidedReceipts" className="cursor-pointer text-sm text-muted-foreground">
+                    Show Voided
+                  </Label>
+                </div>
+              }
+            />
+          ))}
+      </div>
+    </MainLayout>
+  );
+}
