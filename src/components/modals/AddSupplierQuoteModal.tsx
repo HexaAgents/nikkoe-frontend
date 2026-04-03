@@ -16,8 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSuppliers } from "@/hooks/useSuppliers";
-import { useAddSupplierQuote } from "@/hooks/useSupplierQuotes";
+import { useSuppliers } from "@/hooks/queries";
+import { useAddSupplierQuote } from "@/hooks/mutations";
 
 interface AddSupplierQuoteModalProps {
   open: boolean;

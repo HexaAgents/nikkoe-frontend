@@ -25,6 +25,11 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
 export const api = {
   get: <T = unknown>(path: string) => apiFetch<T>(path),
 
+  getList: async <T = unknown>(path: string): Promise<T[]> => {
+    const res = await apiFetch<{ data: T[]; total: number }>(path);
+    return res.data;
+  },
+
   post: <T = unknown>(path: string, body: unknown) =>
     apiFetch<T>(path, { method: "POST", body: JSON.stringify(body) }),
 

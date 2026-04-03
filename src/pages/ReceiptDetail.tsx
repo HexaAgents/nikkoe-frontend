@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import posthog from "posthog-js";
+import { analytics } from "@/lib/analytics";
 import { ArrowLeft } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useReceipt, useReceiptLines, useVoidReceipt } from "@/hooks/useReceipts";
+import { useReceipt, useReceiptLines } from "@/hooks/queries";
+import { useVoidReceipt } from "@/hooks/mutations";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function ReceiptDetailPage() {
@@ -51,7 +52,7 @@ export default function ReceiptDetailPage() {
         voidedBy: user.id,
         reason: voidReason || undefined,
       });
-      posthog.capture("receipt_voided", {
+      analytics.track("receipt_voided", {
         receipt_id: receiptId,
         has_reason: !!voidReason,
       });

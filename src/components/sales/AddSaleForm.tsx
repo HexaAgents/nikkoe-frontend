@@ -1,8 +1,7 @@
 import { useState, useMemo } from "react";
-import posthog from "posthog-js";
+import { analytics } from "@/lib/analytics";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -24,31 +23,18 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { useAddSale, SaleLineInput } from "@/hooks/useSales";
-import { useChannels } from "@/hooks/useChannels";
-import { useCustomers, useAddCustomer } from "@/hooks/useCustomers";
-import { useItems } from "@/hooks/useItems";
-import { useLocations } from "@/hooks/useLocations";
-import { useInventoryOnHand } from "@/hooks/useInventoryOnHand";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2 } from "lucide-react";
-import { SearchablePartPicker } from "@/components/common/SearchablePartPicker";
-import { SearchableLocationPicker } from "@/components/common/SearchableLocationPicker";
+import { useAddSale, useAddCustomer } from "@/hooks/mutations";
+import type { SaleLineInput } from "@/types/domain.types";
+import { useChannels, useCustomers, useItems, useLocations, useInventoryOnHand } from "@/hooks/queries";
+import { PartLineCard } from "@/components/common/PartLineCard";
+import type { PartLine } from "@/components/common/PartLineCard";
 import { cn } from "@/lib/utils";
-
-interface PartLine {
-  item_id: string;
-  location_id: string;
-  quantity: string;
-  unit_price: string;
-  currency_code: string;
-}
 
 const emptyPart: PartLine = {
   item_id: "",
   location_id: "",
   quantity: "",
-  unit_price: "",
+  price: "",
   currency_code: "£",
 };
 
@@ -56,9 +42,7 @@ export type AddSaleFormVariant = "inline" | "dialog";
 
 export interface AddSaleFormProps {
   variant?: AddSaleFormVariant;
-  /** After a successful create (e.g. close dialog) */
   onSuccessfulCreate?: () => void;
-  /** When user cancels (dialog only) — reset + callback */
   onCancel?: () => void;
   className?: string;
 }
@@ -95,46 +79,26 @@ export function AddSaleForm({
 
   const validation = useMemo(() => {
     const errors: { partIndex: number; fields: string[] }[] = [];
-
     parts.forEach((part, index) => {
       const missingFields: string[] = [];
-
       if (!part.item_id?.trim()) missingFields.push("Part Number");
       if (!part.location_id?.trim()) missingFields.push("Location");
-
       const qty = Number(part.quantity);
       if (!Number.isFinite(qty) || qty < 1) missingFields.push("Quantity");
-
-      const price = Number(part.unit_price);
+      const price = Number(part.price);
       if (!Number.isFinite(price) || price < 0) missingFields.push("Unit Price");
-
-      if (missingFields.length > 0) {
-        errors.push({ partIndex: index, fields: missingFields });
-      }
+      if (missingFields.length > 0) errors.push({ partIndex: index, fields: missingFields });
     });
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+    return { isValid: errors.length === 0, errors };
   }, [parts]);
 
   const getAutoLocation = (itemId: string) => {
-    if (!inventoryOnHand || !itemId) return { locationId: "", locationCode: "", hasStock: false };
-
+    if (!inventoryOnHand || !itemId) return "";
     const stockRows = inventoryOnHand
       .filter((row) => row.item_id === itemId && (row.quantity_on_hand ?? 0) > 0)
       .sort((a, b) => (a.quantity_on_hand ?? 0) - (b.quantity_on_hand ?? 0));
-
-    if (stockRows.length === 0) return { locationId: "", locationCode: "", hasStock: false };
-
-    const chosen = stockRows[0];
-    const loc = locations?.find((l) => l.location_id === chosen.location_id);
-    return {
-      locationId: chosen.location_id?.toString() || "",
-      locationCode: loc?.location_code || "",
-      hasStock: true,
-    };
+    if (stockRows.length === 0) return "";
+    return stockRows[0].location_id?.toString() || "";
   };
 
   const resetForm = () => {
@@ -144,20 +108,10 @@ export function AddSaleForm({
     setShowErrors(false);
   };
 
-  const handleAddPart = () => {
-    setParts([...parts, { ...emptyPart }]);
-  };
-
-  const handleRemovePart = (index: number) => {
-    if (parts.length > 1) {
-      setParts(parts.filter((_, i) => i !== index));
-    }
-  };
-
   const handlePartSelect = (index: number, itemId: string) => {
     setParts((prev) => {
       const updated = [...prev];
-      const { locationId } = getAutoLocation(itemId);
+      const locationId = getAutoLocation(itemId);
       updated[index] = { ...updated[index], item_id: itemId, location_id: locationId };
       return updated;
     });
@@ -174,16 +128,13 @@ export function AddSaleForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setShowErrors(true);
-
-    if (!validation.isValid) {
-      return;
-    }
+    if (!validation.isValid) return;
 
     const lines: SaleLineInput[] = parts.map((p) => ({
       item_id: p.item_id,
       location_id: p.location_id,
       quantity: Math.trunc(Number(p.quantity)),
-      unit_price: Number(p.unit_price),
+      unit_price: Number(p.price),
       currency_code: p.currency_code,
     }));
 
@@ -195,7 +146,7 @@ export function AddSaleForm({
       lines,
     });
 
-    posthog.capture("sale_created", {
+    analytics.track("sale_created", {
       line_count: lines.length,
       channel_id: channelId || null,
     });
@@ -206,14 +157,11 @@ export function AddSaleForm({
 
   const handleCancelOrClear = () => {
     resetForm();
-    if (variant === "dialog") {
-      onCancel?.();
-    }
+    if (variant === "dialog") onCancel?.();
   };
 
-  const getPartErrors = (index: number) => {
-    return validation.errors.find((e) => e.partIndex === index)?.fields || [];
-  };
+  const getPartErrors = (index: number) =>
+    validation.errors.find((e) => e.partIndex === index)?.fields || [];
 
   return (
     <form onSubmit={handleSubmit} className={cn(className)}>
@@ -300,110 +248,29 @@ export function AddSaleForm({
           </Popover>
         </div>
 
-        {parts.map((part, index) => {
-          const partErrors = getPartErrors(index);
-          return (
-            <Card
-              key={index}
-              className={`border-primary/20 ${showErrors && partErrors.length > 0 ? "border-destructive" : ""}`}
-            >
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm text-foreground">Part {index + 1}</CardTitle>
-                  {parts.length > 1 && (
-                    <Button type="button" variant="ghost" size="sm" onClick={() => handleRemovePart(index)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  )}
-                </div>
-                {showErrors && partErrors.length > 0 && (
-                  <p className="mt-1 text-xs text-destructive">Missing: {partErrors.join(", ")}</p>
-                )}
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <Label
-                    className={`w-32 shrink-0 ${showErrors && partErrors.includes("Part Number") ? "text-destructive" : "text-muted-foreground"}`}
-                  >
-                    Part Number:
-                  </Label>
-                  <SearchablePartPicker
-                    items={items}
-                    value={part.item_id}
-                    onSelect={(id) => handlePartSelect(index, id)}
-                    hasError={showErrors && partErrors.includes("Part Number")}
-                  />
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <Label
-                    className={`w-32 shrink-0 ${showErrors && partErrors.includes("Location") ? "text-destructive" : "text-muted-foreground"}`}
-                  >
-                    Location:
-                  </Label>
-                  <SearchableLocationPicker
-                    locations={locations}
-                    value={part.location_id}
-                    onSelect={(id) => handlePartChange(index, "location_id", id)}
-                    hasError={showErrors && partErrors.includes("Location")}
-                  />
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <Label
-                    className={`w-32 shrink-0 ${showErrors && partErrors.includes("Quantity") ? "text-destructive" : "text-muted-foreground"}`}
-                  >
-                    Quantity:
-                  </Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={part.quantity}
-                    onChange={(e) => handlePartChange(index, "quantity", e.target.value)}
-                    className={`min-w-0 flex-1 ${showErrors && partErrors.includes("Quantity") ? "border-destructive" : ""}`}
-                  />
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <Label
-                    className={`w-32 shrink-0 ${showErrors && partErrors.includes("Unit Price") ? "text-destructive" : "text-muted-foreground"}`}
-                  >
-                    Unit Price:
-                  </Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={part.unit_price}
-                    onChange={(e) => handlePartChange(index, "unit_price", e.target.value)}
-                    className={`min-w-0 flex-1 ${showErrors && partErrors.includes("Unit Price") ? "border-destructive" : ""}`}
-                  />
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <Label className="w-32 shrink-0 text-muted-foreground">Currency:</Label>
-                  <Select value={part.currency_code} onValueChange={(v) => handlePartChange(index, "currency_code", v)}>
-                    <SelectTrigger className="min-w-0 flex-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="£">£</SelectItem>
-                      <SelectItem value="$">$</SelectItem>
-                      <SelectItem value="€">€</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+        {parts.map((part, index) => (
+          <PartLineCard
+            key={index}
+            index={index}
+            part={part}
+            items={items}
+            locations={locations}
+            priceLabel="Unit Price"
+            showErrors={showErrors}
+            errors={getPartErrors(index)}
+            canRemove={parts.length > 1}
+            onPartSelect={handlePartSelect}
+            onFieldChange={handlePartChange}
+            onRemove={(i) => setParts(parts.filter((_, j) => j !== i))}
+          />
+        ))}
       </div>
 
       <div className="flex flex-wrap justify-center gap-2 pt-6">
         <Button type="submit" disabled={addSale.isPending}>
           {addSale.isPending ? "Creating..." : variant === "inline" ? "Create sale" : "Create"}
         </Button>
-        <Button type="button" variant="outline" onClick={handleAddPart}>
+        <Button type="button" variant="outline" onClick={() => setParts([...parts, { ...emptyPart }])}>
           Add Part
         </Button>
         {variant === "inline" ? (

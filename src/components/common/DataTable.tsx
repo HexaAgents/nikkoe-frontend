@@ -29,13 +29,13 @@ interface Column<T> {
 interface DataTableProps<T> {
   data: T[];
   columns: Column<T>[];
+  idKey: keyof T;
   searchPlaceholder?: string;
   onAdd?: () => void;
   addButtonText?: string;
   onRowClick?: (item: T) => void;
   searchKeys?: string[];
   itemsPerPage?: number;
-  idKey?: keyof T;
   exportFilename?: string;
   rowClassName?: (item: T) => string;
   toolbarExtra?: React.ReactNode;
@@ -63,17 +63,8 @@ export function DataTable<T extends Record<string, unknown>>({
   const [currentPage, setCurrentPage] = useState(1);
 
   const getItemKey = (item: T, index: number): string => {
-    if (idKey && item[idKey] !== undefined) {
-      return String(item[idKey]);
-    }
-    if (item.id !== undefined) return String(item.id);
-    if (item.name !== undefined) return String(item.name);
-    if (item.location_id !== undefined) return String(item.location_id);
-    if (item.part_number !== undefined) return String(item.part_number);
-    if (item.supplier_id !== undefined) return String(item.supplier_id);
-    if (item.sale_id !== undefined) return String(item.sale_id);
-    if (item.receipt_id !== undefined) return String(item.receipt_id);
-    return String(index);
+    const val = item[idKey];
+    return val !== undefined && val !== null ? String(val) : String(index);
   };
 
   const filteredData = useMemo(() => {

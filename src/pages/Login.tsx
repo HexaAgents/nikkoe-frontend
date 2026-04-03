@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import posthog from "posthog-js";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { analytics } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import nikkoLogo from "@/assets/nikko-logo.png";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,18 +22,15 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { user, error } = await signIn(email, password);
 
     if (error) {
       toast.error(error.message);
       setLoading(false);
     } else {
-      if (data.user) {
-        posthog.identify(data.user.id, { email: data.user.email });
-        posthog.capture("user_signed_in", { email: data.user.email });
+      if (user) {
+        analytics.identify(user.id, { email: user.email });
+        analytics.track("user_signed_in", { email: user.email });
       }
       toast.success("Logged in successfully");
       navigate("/sales");

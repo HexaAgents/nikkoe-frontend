@@ -2,28 +2,14 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DataTable } from "@/components/common/DataTable";
-import { useReceipts } from "@/hooks/useReceipts";
+import { useReceipts } from "@/hooks/queries";
 import { AddReceiptForm } from "@/components/receipts/AddReceiptForm";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-interface ReceiptWithRelations {
-  receipt_id: string;
-  received_at: string;
-  status: string;
-  reference: string | null;
-  note: string | null;
-  supplier_id: string | null;
-  received_by: string | null;
-  void_reason: string | null;
-  voided_at: string | null;
-  voided_by: string | null;
-  suppliers: { supplier_id: string; supplier_name: string } | null;
-  users: { user_id: string; name: string } | null;
-}
+import type { ReceiptWithRelations } from "@/types/domain.types";
 
 export default function ReceiptsPage() {
   const navigate = useNavigate();

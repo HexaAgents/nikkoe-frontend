@@ -2,16 +2,16 @@ import { describe, it, expect } from "vitest";
 import {
   saleInputSchema,
   saleLineInputSchema,
-} from "@/hooks/useSales";
+} from "@/hooks/mutations";
 import {
   receiptInputSchema,
   receiptLineInputSchema,
-} from "@/hooks/useReceipts";
-import { itemInputSchema } from "@/hooks/useItems";
-import { categoryNameSchema } from "@/hooks/useCategories";
-import { locationInputSchema } from "@/hooks/useLocations";
-import { supplierInputSchema } from "@/hooks/useSuppliers";
-import { supplierQuoteInputSchema } from "@/hooks/useSupplierQuotes";
+} from "@/hooks/mutations";
+import { itemInputSchema } from "@/hooks/mutations";
+import { categoryNameSchema } from "@/hooks/mutations";
+import { locationInputSchema } from "@/hooks/mutations";
+import { supplierInputSchema } from "@/hooks/mutations";
+import { supplierQuoteInputSchema } from "@/hooks/mutations";
 
 describe("saleInputSchema", () => {
   it("accepts a valid minimal sale", () => {

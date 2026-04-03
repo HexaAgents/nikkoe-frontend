@@ -2,29 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DataTable } from "@/components/common/DataTable";
-import { useItems } from "@/hooks/useItems";
+import { useItems } from "@/hooks/queries";
 import { AddItemModal } from "@/components/modals/AddItemModal";
 import { Skeleton } from "@/components/ui/skeleton";
-
-interface InventoryBalance {
-  quantity_on_hand: number;
-  locations: { location_code: string } | null;
-}
-
-interface ReceiptLine {
-  unit_cost: number;
-  receipts: { status: string } | null;
-}
-
-interface ItemWithRelations {
-  item_id: number;
-  part_number: string;
-  description: string | null;
-  category_id: number | null;
-  categories: { category_id: number; name: string } | null;
-  inventory_balances: InventoryBalance[];
-  receipt_lines: ReceiptLine[];
-}
+import type { ItemWithRelations } from "@/types/domain.types";
 
 interface ItemsPageProps {
   /** When true, render without outer shell (e.g. embedded in Settings). */

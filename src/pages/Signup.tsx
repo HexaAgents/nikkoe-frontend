@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import posthog from "posthog-js";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { analytics } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 
 export default function Signup() {
   const navigate = useNavigate();
+  const { signUp } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -31,21 +32,15 @@ export default function Signup() {
 
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin,
-      },
-    });
+    const { user, error } = await signUp(email, password);
 
     if (error) {
       toast.error(error.message);
       setLoading(false);
     } else {
-      if (data.user) {
-        posthog.identify(data.user.id, { email: data.user.email });
-        posthog.capture("user_signed_up", { email: data.user.email });
+      if (user) {
+        analytics.identify(user.id, { email: user.email });
+        analytics.track("user_signed_up", { email: user.email });
       }
       toast.success("Check your email for the confirmation link");
       navigate("/login");

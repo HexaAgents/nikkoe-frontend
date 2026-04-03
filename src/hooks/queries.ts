@@ -1,0 +1,171 @@
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
+import type {
+  ReceiptWithRelations,
+  ReceiptLine,
+  SaleWithRelations,
+  SaleLine,
+  Item,
+  ItemWithRelations,
+  Category,
+  Supplier,
+  Location,
+  Channel,
+  Customer,
+  InventoryMovementWithRelations,
+  InventoryOnHand,
+  UserProfile,
+} from "@/types/domain.types";
+
+export function useReceipts() {
+  return useQuery({
+    queryKey: ["receipts"],
+    queryFn: () => api.getList<ReceiptWithRelations>("/receipts"),
+  });
+}
+
+export function useReceipt(receiptId: string) {
+  return useQuery({
+    queryKey: ["receipts", receiptId],
+    queryFn: () => api.get<ReceiptWithRelations>(`/receipts/${receiptId}`),
+    enabled: !!receiptId,
+  });
+}
+
+export function useReceiptLines(receiptId: string) {
+  return useQuery({
+    queryKey: ["receipt_lines", receiptId],
+    queryFn: () => api.get<ReceiptLine[]>(`/receipts/${receiptId}/lines`),
+    enabled: !!receiptId,
+  });
+}
+
+export function useSales() {
+  return useQuery({
+    queryKey: ["sales"],
+    queryFn: () => api.getList<SaleWithRelations>("/sales"),
+  });
+}
+
+export function useSale(saleId: string) {
+  return useQuery({
+    queryKey: ["sales", saleId],
+    queryFn: () => api.get<SaleWithRelations>(`/sales/${saleId}`),
+    enabled: !!saleId,
+  });
+}
+
+export function useSaleLines(saleId: string) {
+  return useQuery({
+    queryKey: ["sale_lines", saleId],
+    queryFn: () => api.get<SaleLine[]>(`/sales/${saleId}/lines`),
+    enabled: !!saleId,
+  });
+}
+
+export function useItems() {
+  return useQuery({
+    queryKey: ["items"],
+    queryFn: () => api.getList<ItemWithRelations>("/items"),
+  });
+}
+
+export function useItem(itemId: string | number) {
+  return useQuery({
+    queryKey: ["items", String(itemId)],
+    queryFn: () => api.get<Item>(`/items/${itemId}`),
+    enabled: !!itemId,
+  });
+}
+
+export function useItemSupplierQuotes(itemId: string | number) {
+  return useQuery({
+    queryKey: ["supplier_quotes", String(itemId)],
+    queryFn: () => api.get<Record<string, unknown>[]>(`/items/${itemId}/quotes`),
+    enabled: !!itemId,
+  });
+}
+
+export function useItemInventory(itemId: string | number) {
+  return useQuery({
+    queryKey: ["inventory_balances", String(itemId)],
+    queryFn: () => api.get<Record<string, unknown>[]>(`/items/${itemId}/inventory`),
+    enabled: !!itemId,
+  });
+}
+
+export function useItemReceipts(itemId: string | number) {
+  return useQuery({
+    queryKey: ["receipt_lines", "by_item", String(itemId)],
+    queryFn: () => api.get<Record<string, unknown>[]>(`/items/${itemId}/receipts`),
+    enabled: !!itemId,
+  });
+}
+
+export function useItemSales(itemId: string | number) {
+  return useQuery({
+    queryKey: ["sale_lines", "by_item", String(itemId)],
+    queryFn: () => api.get<Record<string, unknown>[]>(`/items/${itemId}/sales`),
+    enabled: !!itemId,
+  });
+}
+
+export function useCategories() {
+  return useQuery({
+    queryKey: ["categories"],
+    queryFn: () => api.getList<Category>("/categories"),
+  });
+}
+
+export function useSuppliers() {
+  return useQuery({
+    queryKey: ["suppliers"],
+    queryFn: () => api.getList<Supplier>("/suppliers"),
+  });
+}
+
+export function useLocations() {
+  return useQuery({
+    queryKey: ["locations"],
+    queryFn: () => api.getList<Location>("/locations"),
+  });
+}
+
+export function useChannels() {
+  return useQuery({
+    queryKey: ["channels"],
+    queryFn: () => api.getList<Channel>("/channels"),
+  });
+}
+
+export function useCustomers() {
+  return useQuery({
+    queryKey: ["customers"],
+    queryFn: () => api.getList<Customer>("/customers"),
+  });
+}
+
+export function useInventoryMovements() {
+  return useQuery({
+    queryKey: ["inventory_movements"],
+    queryFn: () => api.getList<InventoryMovementWithRelations>("/inventory/movements"),
+  });
+}
+
+export function useInventoryOnHand() {
+  return useQuery({
+    queryKey: ["inventory_on_hand"],
+    queryFn: () => api.get<InventoryOnHand[]>("/inventory/on-hand"),
+  });
+}
+
+export function useCurrentUser() {
+  const { user: authUser } = useAuth();
+
+  return useQuery({
+    queryKey: ["current_user", authUser?.id],
+    queryFn: () => api.get<UserProfile>("/users/me"),
+    enabled: !!authUser?.id,
+  });
+}

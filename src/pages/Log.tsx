@@ -1,28 +1,8 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DataTable } from "@/components/common/DataTable";
-import { useInventoryMovements } from "@/hooks/useInventoryMovements";
+import { useInventoryMovements } from "@/hooks/queries";
 import { Skeleton } from "@/components/ui/skeleton";
-
-interface MovementWithRelations {
-  movement_id: number;
-  item_id: number;
-  moved_at: string;
-  movement_type: string;
-  quantity: number;
-  from_location_id: number | null;
-  to_location_id: number | null;
-  user_id: string | null;
-  receipt_id: number | null;
-  sale_id: number | null;
-  note: string | null;
-  receipt_line_id: number | null;
-  reversed_by_movement_id: number | null;
-  sale_line_id: number | null;
-  items: { item_id: number; part_number: string } | null;
-  from_location: { location_id: number; location_code: string } | null;
-  to_location: { location_id: number; location_code: string } | null;
-  users: { user_id: string; name: string } | null;
-}
+import type { InventoryMovementWithRelations } from "@/types/domain.types";
 
 interface LogPageProps {
   embedded?: boolean;
@@ -36,40 +16,40 @@ export default function LogPage({ embedded = false }: LogPageProps) {
     {
       key: "moved_at",
       header: "Date/Time",
-      render: (m: MovementWithRelations) => new Date(m.moved_at).toLocaleString(),
+      render: (m: InventoryMovementWithRelations) => new Date(m.moved_at).toLocaleString(),
     },
     { key: "movement_type", header: "Type" },
     {
       key: "item",
       header: "Item",
-      render: (m: MovementWithRelations) => m.items?.part_number || "-",
+      render: (m: InventoryMovementWithRelations) => m.items?.part_number || "-",
     },
     { key: "quantity", header: "Qty" },
     {
       key: "from",
       header: "From",
-      render: (m: MovementWithRelations) => m.from_location?.location_code || "-",
+      render: (m: InventoryMovementWithRelations) => m.from_location?.location_code || "-",
     },
     {
       key: "to",
       header: "To",
-      render: (m: MovementWithRelations) => m.to_location?.location_code || "-",
+      render: (m: InventoryMovementWithRelations) => m.to_location?.location_code || "-",
     },
     {
       key: "user",
       header: "User",
-      render: (m: MovementWithRelations) => m.users?.name || "-",
+      render: (m: InventoryMovementWithRelations) => m.users?.name || "-",
     },
     {
       key: "reference",
       header: "Reference",
-      render: (m: MovementWithRelations) => {
+      render: (m: InventoryMovementWithRelations) => {
         if (m.receipt_id) return `Receipt #${m.receipt_id}`;
         if (m.sale_id) return `Sale #${m.sale_id}`;
         return "-";
       },
     },
-    { key: "note", header: "Note", render: (m: MovementWithRelations) => m.note || "-" },
+    { key: "note", header: "Note", render: (m: InventoryMovementWithRelations) => m.note || "-" },
   ];
 
   const exportColumns = [
@@ -77,40 +57,40 @@ export default function LogPage({ embedded = false }: LogPageProps) {
     {
       key: "moved_at",
       header: "Date/Time",
-      render: (m: MovementWithRelations) => new Date(m.moved_at).toLocaleString(),
+      render: (m: InventoryMovementWithRelations) => new Date(m.moved_at).toLocaleString(),
     },
     { key: "movement_type", header: "Type" },
     {
       key: "item",
       header: "Item",
-      render: (m: MovementWithRelations) => m.items?.part_number || "",
+      render: (m: InventoryMovementWithRelations) => m.items?.part_number || "",
     },
     { key: "quantity", header: "Qty" },
     {
       key: "from",
       header: "From",
-      render: (m: MovementWithRelations) => m.from_location?.location_code || "",
+      render: (m: InventoryMovementWithRelations) => m.from_location?.location_code || "",
     },
     {
       key: "to",
       header: "To",
-      render: (m: MovementWithRelations) => m.to_location?.location_code || "",
+      render: (m: InventoryMovementWithRelations) => m.to_location?.location_code || "",
     },
     {
       key: "user",
       header: "User",
-      render: (m: MovementWithRelations) => m.users?.name || "",
+      render: (m: InventoryMovementWithRelations) => m.users?.name || "",
     },
     {
       key: "reference",
       header: "Reference",
-      render: (m: MovementWithRelations) => {
+      render: (m: InventoryMovementWithRelations) => {
         if (m.receipt_id) return `Receipt #${m.receipt_id}`;
         if (m.sale_id) return `Sale #${m.sale_id}`;
         return "";
       },
     },
-    { key: "note", header: "Note", render: (m: MovementWithRelations) => m.note || "" },
+    { key: "note", header: "Note", render: (m: InventoryMovementWithRelations) => m.note || "" },
   ];
 
   const loadingView = (

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DataTable } from "@/components/common/DataTable";
-import { useCategories } from "@/hooks/useCategories";
+import { useCategories } from "@/hooks/queries";
 import { AddCategoryModal } from "@/components/modals/AddCategoryModal";
 import { Skeleton } from "@/components/ui/skeleton";
 

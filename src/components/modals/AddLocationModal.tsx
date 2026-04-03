@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAddLocation } from "@/hooks/useLocations";
+import { useAddLocation } from "@/hooks/mutations";
 
 interface AddLocationModalProps {
   open: boolean;

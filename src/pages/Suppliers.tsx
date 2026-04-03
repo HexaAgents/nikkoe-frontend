@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DataTable } from "@/components/common/DataTable";
-import { useSuppliers } from "@/hooks/useSuppliers";
+import { useSuppliers } from "@/hooks/queries";
 import { AddSupplierModal } from "@/components/modals/AddSupplierModal";
 import { Skeleton } from "@/components/ui/skeleton";
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import posthog from "posthog-js";
+import { analytics } from "@/lib/analytics";
 import { ArrowLeft } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useSale, useSaleLines, useVoidSale } from "@/hooks/useSales";
+import { useSale, useSaleLines } from "@/hooks/queries";
+import { useVoidSale } from "@/hooks/mutations";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function SaleDetailPage() {
@@ -51,7 +52,7 @@ export default function SaleDetailPage() {
         voidedBy: user.id,
         reason: voidReason || undefined,
       });
-      posthog.capture("sale_voided", {
+      analytics.track("sale_voided", {
         sale_id: saleId,
         has_reason: !!voidReason,
       });

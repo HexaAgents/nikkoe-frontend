@@ -23,9 +23,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useItem, useItemSupplierQuotes, useItemInventory, useItemReceipts, useItemSales, useUpdateItem, useDeleteItem } from "@/hooks/useItems";
-import { useCategories } from "@/hooks/useCategories";
-import { useDeleteSupplierQuote } from "@/hooks/useSupplierQuotes";
+import { useItem, useItemSupplierQuotes, useItemInventory, useItemReceipts, useItemSales, useCategories } from "@/hooks/queries";
+import { useUpdateItem, useDeleteItem, useDeleteSupplierQuote } from "@/hooks/mutations";
 import { AddSupplierQuoteModal } from "@/components/modals/AddSupplierQuoteModal";
 import { toast } from "sonner";
 

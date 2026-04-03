@@ -1,5 +1,5 @@
 import { useState } from "react";
-import posthog from "posthog-js";
+import { analytics } from "@/lib/analytics";
 import {
   Dialog,
   DialogContent,
@@ -17,8 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useAddItem } from "@/hooks/useItems";
-import { useCategories } from "@/hooks/useCategories";
+import { useAddItem } from "@/hooks/mutations";
+import { useCategories } from "@/hooks/queries";
 
 interface AddItemModalProps {
   open: boolean;
@@ -41,7 +41,7 @@ export function AddItemModal({ open, onOpenChange }: AddItemModalProps) {
       description: formData.description || undefined,
       category_id: formData.category_id ? parseInt(formData.category_id) : undefined,
     });
-    posthog.capture("item_created", {
+    analytics.track("item_created", {
       has_description: !!formData.description,
       has_category: !!formData.category_id,
     });
