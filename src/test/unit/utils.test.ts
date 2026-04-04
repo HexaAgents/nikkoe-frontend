@@ -18,7 +18,8 @@ describe("cn (class name merge utility)", () => {
   });
 
   it("handles conditional classes via clsx", () => {
-    const result = cn("base", false && "hidden", "extra");
+    const isHidden = false;
+    const result = cn("base", isHidden && "hidden", "extra");
     expect(result).toContain("base");
     expect(result).toContain("extra");
     expect(result).not.toContain("hidden");

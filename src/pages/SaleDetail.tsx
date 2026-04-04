@@ -200,8 +200,8 @@ export default function SaleDetailPage() {
                         }
                       }}
                     >
-                      <TableCell className="font-medium">{(line as any).items?.part_number || "—"}</TableCell>
-                      <TableCell>{(line as any).locations?.location_code || "—"}</TableCell>
+                      <TableCell className="font-medium">{line.items?.part_number || "—"}</TableCell>
+                      <TableCell>{line.locations?.location_code || "—"}</TableCell>
                       <TableCell>{line.quantity}</TableCell>
                       <TableCell>{line.unit_price}</TableCell>
                       <TableCell>{line.currency_code || "—"}</TableCell>
