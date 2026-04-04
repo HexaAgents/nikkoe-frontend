@@ -136,16 +136,17 @@ Vitest runs setup files before every test file automatically. This avoids repeat
 
 **How mocking works:**
 
-The API module depends on two external things:
-1. `supabase.auth.getSession()` — to get the auth token
+The API module depends on two things:
+1. `localStorage` — to read the stored JWT token
 2. `globalThis.fetch` — to make HTTP requests
 
-Both are mocked:
-- Supabase is mocked via `vi.mock()` to return a fake session with `access_token: "test-token-abc"`.
+Both are controlled in tests:
+- `setStoredToken("test-token-abc")` writes a test token to localStorage before each test.
 - `fetch` is replaced with `vi.fn()` before each test and restored after.
 
 **Test cases for `apiFetch`:**
-- Sends the auth token in the `Authorization` header
+- Sends the auth token from localStorage in the `Authorization` header
+- Omits the Authorization header when no token is stored
 - Sets `Content-Type: application/json`
 - Returns parsed JSON on success
 - Throws with the error message from the response body on failure

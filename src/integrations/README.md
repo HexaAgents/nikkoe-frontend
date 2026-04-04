@@ -1,15 +1,11 @@
 # src/integrations/
 
-Third-party service client setup. Currently contains only the Supabase client singleton, which handles JWT session lifecycle management for the frontend.
+Third-party service client setup. This directory previously contained the Supabase client singleton for JWT session management. That has been removed — the frontend now stores tokens directly in `localStorage` without any third-party SDK.
 
-## How it works
+## Current state
 
-After the backend authenticates a user and returns the JWT, `supabase.auth.setSession()` stores it in `localStorage`. The Supabase client then auto-refreshes the token before it expires, and `src/lib/api.ts` reads the current token from the client on every API request to attach it as a `Bearer` header.
+This directory is empty in application code. The only remaining Supabase client is in `src/test/helpers/test-client.ts`, used exclusively by integration tests to perform CRUD operations against a live Supabase database.
 
-## Why this design
+## Why the Supabase client was removed
 
-The frontend still needs a Supabase client even though all auth operations go through the backend. Without it, the frontend would need to implement its own token storage, expiry tracking, and refresh logic -- the Supabase client provides all of that out of the box.
-
-## Files
-
-- **supabase/client.ts** -- Creates and exports the Supabase client singleton using the anon key (`VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY`). Configures `localStorage` for session persistence and `autoRefreshToken: true` so the JWT is refreshed before expiry. This client is used for exactly two things: (1) storing and refreshing the JWT session after the backend authenticates the user, and (2) providing the current JWT to `src/lib/api.ts` so it can attach it to every API request as a Bearer token.
+The frontend previously used `@supabase/supabase-js` to store JWTs, auto-refresh tokens, and listen for auth state changes. This created a direct dependency on a specific Supabase project (URL + anon key baked into the frontend). By moving token storage to plain `localStorage` and token verification to `GET /api/auth/me` on the backend, the frontend has zero knowledge of what database or auth service the backend uses. This makes it possible to swap the backend's database without touching any frontend code.
