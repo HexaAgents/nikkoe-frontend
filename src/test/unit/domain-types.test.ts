@@ -118,8 +118,8 @@ describe("Domain type contracts", () => {
       user_id: "u-1",
       name: "Admin",
       email_address: "admin@test.com",
-      role: "admin",
     };
-    expect(profile.role).toBe("admin");
+    expect(profile.user_id).toBe("u-1");
+    expect(profile.name).toBe("Admin");
   });
 });

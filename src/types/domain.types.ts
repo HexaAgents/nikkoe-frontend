@@ -163,7 +163,6 @@ export interface UserProfile {
   user_id: string;
   name: string;
   email_address: string | null;
-  role: string | null;
 }
 
 export interface SupplierQuoteInput {
