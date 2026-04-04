@@ -1,29 +1,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-
-vi.mock("@/integrations/supabase/client", () => ({
-  supabase: {
-    auth: {
-      getSession: vi.fn().mockResolvedValue({
-        data: { session: { access_token: "test-token-abc" } },
-      }),
-    },
-  },
-}));
-
-import { apiFetch, api } from "@/lib/api";
+import { apiFetch, api, setStoredToken, clearStoredToken } from "@/lib/api";
 
 describe("apiFetch", () => {
   const originalFetch = globalThis.fetch;
 
   beforeEach(() => {
     globalThis.fetch = vi.fn();
+    setStoredToken("test-token-abc");
   });
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    clearStoredToken();
   });
 
-  it("sends GET request with auth header", async () => {
+  it("sends GET request with auth header from localStorage", async () => {
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ data: [] }),
@@ -91,6 +82,19 @@ describe("apiFetch", () => {
     expect(options.method).toBe("POST");
     expect(options.body).toBe('{"name":"test"}');
   });
+
+  it("omits Authorization header when no token is stored", async () => {
+    clearStoredToken();
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({}),
+    });
+
+    await apiFetch("/items");
+
+    const [, options] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(options.headers.Authorization).toBeUndefined();
+  });
 });
 
 describe("api convenience methods", () => {
@@ -98,10 +102,12 @@ describe("api convenience methods", () => {
 
   beforeEach(() => {
     globalThis.fetch = vi.fn();
+    setStoredToken("test-token-abc");
   });
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    clearStoredToken();
   });
 
   it("api.get returns parsed response", async () => {

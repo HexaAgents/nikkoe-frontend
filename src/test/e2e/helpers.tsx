@@ -3,7 +3,6 @@ import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthContext, type AuthContextType } from "@/contexts/AuthContext";
-import type { Session, User } from "@supabase/supabase-js";
 
 export function createMockAuthContext(
   overrides: Partial<AuthContextType> = {}
@@ -24,8 +23,8 @@ export function createLoggedInAuthContext(
   overrides: Partial<AuthContextType> = {}
 ): AuthContextType {
   return createMockAuthContext({
-    session: { access_token: "test-token", refresh_token: "test-refresh" } as Session,
-    user: { id: "user-123", email: "test@example.com" } as User,
+    session: { access_token: "test-token", refresh_token: "test-refresh", expires_in: 3600, token_type: "bearer" },
+    user: { id: "user-123", email: "test@example.com" },
     ...overrides,
   });
 }

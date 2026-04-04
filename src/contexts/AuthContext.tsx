@@ -1,18 +1,50 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useEffect, useState, ReactNode } from "react";
-import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
 import { analytics } from "@/lib/analytics";
+import { apiFetch, setStoredToken, clearStoredToken, getStoredToken } from "@/lib/api";
+
+interface AuthUser {
+  id: string;
+  email: string;
+}
+
+interface AuthSession {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  token_type: string;
+}
+
+interface AuthSessionResponse {
+  user: AuthUser;
+  session: AuthSession | null;
+}
+
+interface AuthMeResponse {
+  user: AuthUser;
+  profile: { user_id: string; name: string; email_address: string | null } | null;
+}
+
+export interface AuthContextType {
+  session: AuthSession | null;
+  user: AuthUser | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<{ user: AuthUser | null; error: Error | null }>;
+  signUp: (email: string, password: string) => Promise<{ user: AuthUser | null; error: Error | null }>;
+  signOut: () => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ error: Error | null }>;
+}
+
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-async function authFetch<T>(path: string, body: unknown): Promise<T> {
-  const session = (await supabase.auth.getSession()).data.session;
+async function authPost<T>(path: string, body: unknown, token?: string | null): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(body),
   });
@@ -24,62 +56,41 @@ async function authFetch<T>(path: string, body: unknown): Promise<T> {
   return data as T;
 }
 
-interface AuthSessionResponse {
-  user: { id: string; email: string };
-  session: {
-    access_token: string;
-    refresh_token: string;
-    expires_in: number;
-    token_type: string;
-  } | null;
-}
-
-export interface AuthContextType {
-  session: Session | null;
-  user: User | null;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ user: { id: string; email: string } | null; error: Error | null }>;
-  signUp: (email: string, password: string) => Promise<{ user: { id: string; email: string } | null; error: Error | null }>;
-  signOut: () => Promise<void>;
-  changePassword: (currentPassword: string, newPassword: string) => Promise<{ error: Error | null }>;
-}
-
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<AuthSession | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    const token = getStoredToken();
+    if (!token) {
       setLoading(false);
-    });
+      return;
+    }
 
-    return () => subscription.unsubscribe();
+    apiFetch<AuthMeResponse>("/auth/me")
+      .then((data) => {
+        setUser(data.user);
+        setSession({ access_token: token, refresh_token: "", expires_in: 0, token_type: "bearer" });
+      })
+      .catch(() => {
+        clearStoredToken();
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
-      const data = await authFetch<AuthSessionResponse>("/auth/login", { email, password });
+      const data = await authPost<AuthSessionResponse>("/auth/login", { email, password });
 
       if (data.session) {
-        await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-        });
+        setStoredToken(data.session.access_token);
+        setSession(data.session);
       }
 
+      setUser(data.user);
       return { user: data.user, error: null };
     } catch (err) {
       return { user: null, error: err instanceof Error ? err : new Error(String(err)) };
@@ -88,15 +99,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string) => {
     try {
-      const data = await authFetch<AuthSessionResponse>("/auth/signup", { email, password });
+      const data = await authPost<AuthSessionResponse>("/auth/signup", { email, password });
 
       if (data.session) {
-        await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-        });
+        setStoredToken(data.session.access_token);
+        setSession(data.session);
       }
 
+      setUser(data.user);
       return { user: data.user, error: null };
     } catch (err) {
       return { user: null, error: err instanceof Error ? err : new Error(String(err)) };
@@ -106,15 +116,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     analytics.track("user_signed_out");
     analytics.reset();
-    await supabase.auth.signOut();
+    clearStoredToken();
+    setSession(null);
+    setUser(null);
   };
 
   const changePassword = async (currentPassword: string, newPassword: string) => {
     try {
-      await authFetch("/auth/change-password", {
+      const token = getStoredToken();
+      await authPost("/auth/change-password", {
         current_password: currentPassword,
         new_password: newPassword,
-      });
+      }, token);
       return { error: null };
     } catch (err) {
       return { error: err instanceof Error ? err : new Error(String(err)) };

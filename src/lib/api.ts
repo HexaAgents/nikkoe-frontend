@@ -1,15 +1,27 @@
-import { supabase } from "@/integrations/supabase/client";
-
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
+const TOKEN_KEY = "nikkoe_access_token";
+
+export function getStoredToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setStoredToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearStoredToken(): void {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
 export async function apiFetch<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
-  const { data: { session } } = await supabase.auth.getSession();
+  const token = getStoredToken();
 
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${session?.access_token ?? ""}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   });
