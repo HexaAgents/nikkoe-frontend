@@ -289,14 +289,13 @@ Provides three utilities used by all e2e tests:
 - **`createLoggedInAuthContext()`** — extends the mock with a real session and user object. Simulates a logged-in user.
 - **`renderWithProviders(ui, { auth, route })`** — wraps the component in `QueryClientProvider`, `AuthContext.Provider`, and `MemoryRouter` with the given initial route. This replicates the exact provider hierarchy from `App.tsx` so components behave the same as in the real app.
 
-### `login.test.tsx` — Login Page (6 tests)
+### `login.test.tsx` — Login Page (5 tests)
 
 | Test | What it verifies |
 |------|-----------------|
 | Renders email, password, and sign in button | The login form appears with all expected fields |
 | Does not submit when email is empty | HTML `required` attribute prevents form submission — `signIn` is never called |
-| Calls signIn with entered email and password | Typing into both fields and clicking "Sign in" passes the values to `AuthContext.signIn()` |
-| Shows error toast and re-enables button on failure | When `signIn` returns `{ error }`, the button changes back from spinner to "Sign in" so the user can retry |
+| Calls signIn with entered credentials and re-enables button on failure | Types wrong email/password, clicks submit, asserts `signIn` was called with those values AND the button is re-enabled after the error so the user can retry |
 | Navigates to /sales on success | When `signIn` returns `{ user, error: null }`, React Router navigates away from the login page |
 | Toggles password visibility | Clicking the eye icon switches the input type between "password" (dots) and "text" (visible) |
 
@@ -314,7 +313,7 @@ Provides three utilities used by all e2e tests:
 
 | Test | What it verifies |
 |------|-----------------|
-| Redirects to /login for /sales, /receipts, /items, /settings | When `session` is null, every protected route renders the login page instead of its content (4 separate tests) |
+| Redirects to /login when unauthenticated (parameterized) | Uses `it.each` over `/sales`, `/receipts`, `/items`, `/settings` — when `session` is null, all four routes render the login page instead of their content |
 | Shows loading spinner while auth is checking | When `loading` is true, neither the page content nor the login redirect appears — just the spinner |
 | Renders /sales when authenticated | When session exists, the protected route renders its content (not the login form) |
 | Allows unauthenticated access to /login | The login page renders without any auth check |
