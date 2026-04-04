@@ -42,3 +42,18 @@ All business logic and data access goes through the backend so it remains the si
 - **App.tsx** -- Provider composition root that wraps the entire application in its required context providers: QueryClientProvider (React Query with 30s staleTime, 1 retry, no refetchOnWindowFocus), TooltipProvider, two toast systems (Radix Toaster and Sonner), BrowserRouter, and AuthProvider. Renders `<AppRoutes />` which handles all routing.
 - **routes.tsx** -- Defines every URL route in the application. Public routes (`/login`, `/signup`) render without auth; all other routes wrap their page component in `<ProtectedRoute>` which redirects to login if unauthenticated. The `*` catch-all renders the NotFound page.
 - **App.css** / **index.css** -- Global styles and Tailwind CSS configuration. `index.css` defines CSS custom properties for theming (colours, border radius) and imports Tailwind's base/components/utilities layers.
+
+## Testing
+
+```bash
+npm test          # Unit + e2e tests (fast, no credentials needed)
+npm run test:all  # Unit + e2e + integration tests
+```
+
+The test suite has three layers:
+
+- **Unit tests** (`src/test/unit/`) — test isolated modules (api client, analytics, utilities) with mocked dependencies.
+- **E2E user interaction tests** (`src/test/e2e/`) — 36 tests that render real React components with mocked auth/API and simulate user actions (clicking buttons, typing into forms, verifying validation errors). Covers login, signup, protected routes, create sale, create receipt, and change password flows.
+- **Integration tests** (`src/test/integration/`) — test real CRUD operations against a live Supabase database. Requires `.env.test` credentials.
+
+See `src/test/README.md` for detailed documentation of every test file and test case.

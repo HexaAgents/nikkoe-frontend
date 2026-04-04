@@ -19,6 +19,15 @@ src/test/
     analytics.test.ts             PostHog analytics wrapper
     domain-types.test.ts          Domain type contract verification
 
+  e2e/
+    helpers.tsx                   Mock auth context + renderWithProviders utility
+    login.test.tsx                Login page: wrong creds blocked, success → /sales
+    signup.test.tsx               Signup page: password validation, success flow
+    protected-routes.test.tsx     Route protection: unauthenticated → /login redirect
+    create-sale.test.tsx          Sale form: field validation, add/clear parts
+    create-receipt.test.tsx       Receipt form: field validation, inline create buttons
+    settings.test.tsx             Change password: short/mismatched passwords blocked
+
   validation/
     schemas.test.ts               Zod schema validation rules
 
@@ -265,6 +274,83 @@ Integration tests connect to a **real Supabase database** and perform actual CRU
 **`auth.ts`** — Provides `signInTestUser()` which authenticates once and caches the result (the `signedIn` flag prevents re-authenticating in every test). `hasTestCredentials()` allows tests to gracefully skip when credentials aren't available.
 
 **`cleanup.ts`** — The `CleanupTracker` records every row created during a test. `cleanupAll()` deletes them in reverse insertion order, which naturally respects foreign key constraints (child rows deleted before parent rows). The `uid()` function generates unique prefixed strings (`__test_...`) so test data is easily identifiable.
+
+---
+
+## End-to-End User Interaction Tests (`src/test/e2e/`)
+
+These tests simulate real user interactions with the application by rendering actual React components with mocked auth and API layers. They verify that every critical user flow works correctly — from clicking buttons to seeing the right error messages.
+
+### `helpers.tsx` — Test Infrastructure
+
+Provides three utilities used by all e2e tests:
+
+- **`createMockAuthContext()`** — returns a mock `AuthContextType` with all methods as `vi.fn()`. Simulates an unauthenticated user by default (session: null).
+- **`createLoggedInAuthContext()`** — extends the mock with a real session and user object. Simulates a logged-in user.
+- **`renderWithProviders(ui, { auth, route })`** — wraps the component in `QueryClientProvider`, `AuthContext.Provider`, and `MemoryRouter` with the given initial route. This replicates the exact provider hierarchy from `App.tsx` so components behave the same as in the real app.
+
+### `login.test.tsx` — Login Page (6 tests)
+
+| Test | What it verifies |
+|------|-----------------|
+| Renders email, password, and sign in button | The login form appears with all expected fields |
+| Does not submit when email is empty | HTML `required` attribute prevents form submission — `signIn` is never called |
+| Calls signIn with entered email and password | Typing into both fields and clicking "Sign in" passes the values to `AuthContext.signIn()` |
+| Shows error toast and re-enables button on failure | When `signIn` returns `{ error }`, the button changes back from spinner to "Sign in" so the user can retry |
+| Navigates to /sales on success | When `signIn` returns `{ user, error: null }`, React Router navigates away from the login page |
+| Toggles password visibility | Clicking the eye icon switches the input type between "password" (dots) and "text" (visible) |
+
+### `signup.test.tsx` — Signup Page (5 tests)
+
+| Test | What it verifies |
+|------|-----------------|
+| Renders all signup fields | Email, password, confirm password, and "Create account" button appear |
+| Does not call signUp when passwords do not match | `signUp` is never called — the mismatch is caught client-side before any API call |
+| Does not call signUp when password is too short | Passwords under 6 characters are rejected client-side |
+| Calls signUp with valid matching passwords | Valid input passes through to `AuthContext.signUp()` with the correct arguments |
+| Has a link to the login page | The "Sign in" link points to `/login` for users who already have accounts |
+
+### `protected-routes.test.tsx` — Route Protection (8 tests)
+
+| Test | What it verifies |
+|------|-----------------|
+| Redirects to /login for /sales, /receipts, /items, /settings | When `session` is null, every protected route renders the login page instead of its content (4 separate tests) |
+| Shows loading spinner while auth is checking | When `loading` is true, neither the page content nor the login redirect appears — just the spinner |
+| Renders /sales when authenticated | When session exists, the protected route renders its content (not the login form) |
+| Allows unauthenticated access to /login | The login page renders without any auth check |
+| Allows unauthenticated access to /signup | The signup page renders without any auth check |
+
+### `create-sale.test.tsx` — Create Sale Form (6 tests)
+
+| Test | What it verifies |
+|------|-----------------|
+| Renders channel, customer, part line, and create button | All form sections appear including the dropdown labels and the "Create sale" button |
+| Shows validation errors with empty required fields | Clicking "Create sale" without filling Part Number, Location, Quantity, or Unit Price shows "Missing: [fields]" and does NOT call `addSale.mutateAsync` |
+| Does not submit when quantity is 0 | A quantity of 0 fails the `>= 1` validation — the API is never called |
+| Does not submit when unit price is negative | A negative price fails the `>= 0` validation — the API is never called |
+| Can add and remove additional part lines | Clicking "Add Part" creates a "Part 2" card |
+| Clears form when Clear form is clicked | All inputs reset to empty after clicking "Clear form" |
+
+### `create-receipt.test.tsx` — Create Receipt Form (7 tests)
+
+| Test | What it verifies |
+|------|-----------------|
+| Renders supplier, reference, note, part line, and create button | All form sections appear with exact labels "Supplier:", "Reference:", "Note:" |
+| Shows validation errors with empty required fields | Same as sale — missing Part Number/Location/Quantity/Cost blocks submission |
+| Does not submit when quantity is 0 | Same quantity validation as sale |
+| Does not submit when unit cost is negative | Negative cost fails the `>= 0` validation |
+| Can add additional part lines | "Add Part" creates a new part card |
+| Shows New Part and New Location buttons | These inline-create buttons appear on each part line (unlike the sale form which doesn't have them) |
+| Clears form when Clear form is clicked | Reference, note, and all part fields reset |
+
+### `settings.test.tsx` — Change Password Form (4 tests)
+
+| Test | What it verifies |
+|------|-----------------|
+| Renders current, new, and confirm password fields | All three password inputs and the "Update Password" button appear |
+| Does not call changePassword when new password is too short | Passwords under 6 characters are rejected client-side — `changePassword` is never called |
+| Does not call changePassword when new passwords do not match | Mismatched new/confirm passwords are caught client-side |
+| Calls changePassword with valid matching passwords | Valid input calls `AuthContext.changePassword("oldpass", "newpass")` with the correct arguments |
 
 ---
 
