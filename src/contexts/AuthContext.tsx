@@ -62,6 +62,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Clean up old Supabase SDK session keys from localStorage
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith("sb-") || key.includes("supabase")) {
+        localStorage.removeItem(key);
+      }
+    });
+
     const token = getStoredToken();
     if (!token) {
       setLoading(false);
