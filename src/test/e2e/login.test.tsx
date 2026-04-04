@@ -24,7 +24,7 @@ describe("Login Page", () => {
     expect(auth.signIn).not.toHaveBeenCalled();
   });
 
-  it("calls signIn with the entered email and password", async () => {
+  it("calls signIn with entered credentials and re-enables button on failure", async () => {
     const auth = createMockAuthContext({
       signIn: vi.fn().mockResolvedValue({ user: null, error: new Error("Invalid login credentials") }),
     });
@@ -35,18 +35,6 @@ describe("Login Page", () => {
     await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
     expect(auth.signIn).toHaveBeenCalledWith("wrong@example.com", "badpassword");
-  });
-
-  it("shows error toast and re-enables button when login fails", async () => {
-    const auth = createMockAuthContext({
-      signIn: vi.fn().mockResolvedValue({ user: null, error: new Error("Invalid login credentials") }),
-    });
-    renderWithProviders(<Login />, { auth });
-
-    await userEvent.type(screen.getByLabelText(/email/i), "wrong@example.com");
-    await userEvent.type(screen.getByLabelText(/password/i), "badpassword");
-    await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
-
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /sign in/i })).not.toBeDisabled();
     });

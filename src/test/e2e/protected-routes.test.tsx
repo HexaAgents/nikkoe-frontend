@@ -22,29 +22,14 @@ vi.mock("@/hooks/queries", () => ({
 }));
 
 describe("Protected Routes", () => {
-  it("redirects to /login when user is not authenticated and visits /sales", () => {
-    const auth = createMockAuthContext({ session: null, loading: false });
-    renderWithProviders(<AppRoutes />, { auth, route: "/sales" });
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-  });
-
-  it("redirects to /login when user is not authenticated and visits /receipts", () => {
-    const auth = createMockAuthContext({ session: null, loading: false });
-    renderWithProviders(<AppRoutes />, { auth, route: "/receipts" });
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-  });
-
-  it("redirects to /login when user is not authenticated and visits /items", () => {
-    const auth = createMockAuthContext({ session: null, loading: false });
-    renderWithProviders(<AppRoutes />, { auth, route: "/items" });
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-  });
-
-  it("redirects to /login when user is not authenticated and visits /settings", () => {
-    const auth = createMockAuthContext({ session: null, loading: false });
-    renderWithProviders(<AppRoutes />, { auth, route: "/settings" });
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-  });
+  it.each(["/sales", "/receipts", "/items", "/settings"])(
+    "redirects to /login when unauthenticated and visiting %s",
+    (route) => {
+      const auth = createMockAuthContext({ session: null, loading: false });
+      renderWithProviders(<AppRoutes />, { auth, route });
+      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    }
+  );
 
   it("shows loading spinner while auth is checking", () => {
     const auth = createMockAuthContext({ loading: true });
