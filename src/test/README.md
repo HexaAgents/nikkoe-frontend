@@ -1,30 +1,308 @@
-# src/test/
+# Test Suite — nikkoe-frontend
 
-Test infrastructure and test files for the Nikkoe frontend. Uses Vitest as the test runner with integration tests that verify data operations against the live Supabase database and unit tests that validate schema parsing.
+This document explains the structure, purpose, and reasoning behind every test file and test category in the frontend test suite.
 
-## How it works
+---
 
-1. `npm test` runs all tests (unit + integration).
-2. `npm run test:watch` re-runs tests on file changes.
-3. `npm run test:unit` runs only unit/validation tests.
-4. `npm run test:integration` runs only integration tests, which require valid Supabase credentials in the environment.
+## Overview
 
-## Why this design
+The frontend test suite uses **Vitest** with two separate configurations, plus Testing Library and jsdom for component testing. Tests are organized into three categories:
 
-Integration tests hit Supabase directly (not the backend API) to verify data operations independently of the API layer. This catches database-level issues that unit tests would miss.
+```
+src/test/
+  setup.ts                        Vitest setup (jest-dom matchers, browser mocks)
+  example.test.ts                 Smoke test — is the test runner working?
 
-## Files
+  unit/
+    utils.test.ts                 cn() class name merge utility
+    api.test.ts                   apiFetch and api convenience methods
+    analytics.test.ts             PostHog analytics wrapper
+    domain-types.test.ts          Domain type contract verification
 
-- **setup.ts** -- Vitest test setup configuration file. Runs before every test file to initialize the test environment and configure global settings.
-- **example.test.ts** -- Placeholder test that verifies the test runner works correctly. Contains a simple assertion to confirm Vitest is properly configured.
-- **helpers/auth.ts** -- Test helper that authenticates against Supabase using test credentials and returns a session. Used by integration tests that need an authenticated client.
-- **helpers/cleanup.ts** -- Test helper that deletes test data created during integration test runs to keep the database clean. Called in afterAll blocks to prevent test pollution.
-- **helpers/test-client.ts** -- Creates a Supabase client configured for the test environment with test-specific credentials. Used by all integration tests as the database client.
-- **integration/connection.test.ts** -- Verifies basic Supabase connectivity and authentication works in the test environment. Acts as a smoke test before running other integration tests.
-- **integration/categories.test.ts** -- Integration tests for category CRUD: creates a category, verifies it exists, and deletes it. Validates the full lifecycle against the live database.
-- **integration/items.test.ts** -- Integration tests for item CRUD operations against the live database. Covers creation, retrieval, update, and deletion of inventory items.
-- **integration/locations.test.ts** -- Integration tests for location CRUD. Verifies that locations can be created, listed, and deleted through Supabase.
-- **integration/receipts.test.ts** -- Integration tests for receipt creation and voiding, including line items. Validates that receipt operations correctly update inventory.
-- **integration/sales.test.ts** -- Integration tests for sale creation and voiding. Validates the full sale lifecycle including line items and inventory impact.
-- **integration/suppliers.test.ts** -- Integration tests for supplier CRUD. Covers creating, listing, and deleting suppliers against the live database.
-- **validation/schemas.test.ts** -- Unit tests that verify Zod/Pydantic schema parsing: checks that valid data is accepted and invalid data is rejected with appropriate error messages. Runs without network access.
+  validation/
+    schemas.test.ts               Zod schema validation rules
+
+  integration/
+    connection.test.ts            Supabase connectivity smoke test
+    categories.test.ts            Category CRUD against live database
+    items.test.ts                 Item CRUD against live database
+    locations.test.ts             Location CRUD against live database
+    receipts.test.ts              Receipt lifecycle against live database
+    sales.test.ts                 Sale lifecycle against live database
+    suppliers.test.ts             Supplier CRUD against live database
+
+  helpers/
+    auth.ts                       Test user authentication helper
+    cleanup.ts                    Test data cleanup tracker
+    test-client.ts                Supabase client for test environment
+```
+
+---
+
+## Two Test Configurations
+
+The frontend has two separate Vitest config files, each running a different subset of tests in a different environment:
+
+| Config | Environment | Includes | Excludes | Timeout |
+|--------|------------|----------|----------|---------|
+| `vitest.config.ts` | **jsdom** (simulated browser) | `src/**/*.{test,spec}.*` | `src/test/integration/**` | Default (5s) |
+| `vitest.integration.config.ts` | **node** (real network) | `src/test/integration/**` | Everything else | 15 seconds |
+
+### Why two configs?
+
+Unit tests and integration tests have fundamentally different needs:
+
+- **Unit tests** need a fake browser environment (jsdom) for React components and DOM APIs. They should be fast (milliseconds) and run without any external services.
+- **Integration tests** need real network access to talk to Supabase. They use the `node` environment because they don't render DOM. They need longer timeouts because database calls over the network are unpredictable. They run sequentially to avoid database race conditions.
+
+Mixing these in one configuration would mean either running unit tests in `node` (breaking component tests) or running integration tests in `jsdom` (unnecessary overhead and potential compatibility issues).
+
+---
+
+## Running the Tests
+
+```bash
+# Unit + validation tests only (fast, no credentials needed)
+npm test
+
+# Watch mode (re-runs on file save)
+npm run test:watch
+
+# Unit tests only (excludes integration)
+npm run test:unit
+
+# Integration tests only (requires .env.test with Supabase credentials)
+npm run test:integration
+
+# Everything
+npm run test:all
+```
+
+---
+
+## `setup.ts` — Test Environment Setup
+
+```typescript
+import "@testing-library/jest-dom";
+
+Object.defineProperty(window, "matchMedia", { ... });
+```
+
+### What it does
+
+1. **Imports jest-dom matchers** — adds custom assertions like `toBeInTheDocument()`, `toBeVisible()`, and `toHaveTextContent()` to Vitest's `expect`. These are essential for component testing.
+
+2. **Mocks `window.matchMedia`** — many UI components (especially theme-aware ones like those using `next-themes`) call `window.matchMedia()` to detect dark mode or responsive breakpoints. jsdom doesn't implement `matchMedia`, so without this mock, those components crash during tests.
+
+### Why it exists as a setup file
+
+Vitest runs setup files before every test file automatically. This avoids repeating the same imports and mocks in every test file.
+
+---
+
+## Unit Tests (`src/test/unit/`)
+
+### `utils.test.ts` — Class Name Merge Utility
+
+**What it tests:** The `cn()` function from `src/lib/utils.ts`, which combines `clsx` (conditional class names) with `tailwind-merge` (Tailwind CSS conflict resolution).
+
+**Test cases:**
+- Single class passes through unchanged
+- Multiple classes are merged
+- Tailwind conflicts resolve correctly (e.g., `cn("px-4", "px-8")` returns `"px-8"`, not `"px-4 px-8"`)
+- Falsy values (`false`, `undefined`, `null`) are filtered out
+- Object syntax (`{ "text-red-500": true }`) works
+- Array syntax works
+- Empty/no arguments return empty string
+
+**Why test a utility function?**
+
+`cn()` is used in virtually every component in the codebase. If it breaks (e.g., after upgrading `tailwind-merge`), the entire UI's styling breaks. These tests are trivial to write but protect against subtle regressions when dependencies are updated.
+
+---
+
+### `api.test.ts` — API Client
+
+**What it tests:** The `apiFetch` function and the `api` convenience object from `src/lib/api.ts`. This module is the single point of contact between the frontend and the backend API.
+
+**How mocking works:**
+
+The API module depends on two external things:
+1. `supabase.auth.getSession()` — to get the auth token
+2. `globalThis.fetch` — to make HTTP requests
+
+Both are mocked:
+- Supabase is mocked via `vi.mock()` to return a fake session with `access_token: "test-token-abc"`.
+- `fetch` is replaced with `vi.fn()` before each test and restored after.
+
+**Test cases for `apiFetch`:**
+- Sends the auth token in the `Authorization` header
+- Sets `Content-Type: application/json`
+- Returns parsed JSON on success
+- Throws with the error message from the response body on failure
+- Throws a generic `"Request failed: {status}"` message when the body has no `error` field
+- Throws a generic message when the response body isn't valid JSON
+- Passes custom options (method, body) through to fetch
+
+**Test cases for `api` convenience methods:**
+- `api.get()` returns the full response
+- `api.getList()` extracts the `data` array from a paginated response (`{ data: [...], total: N }`)
+- `api.post()` sends a POST request with a JSON body
+- `api.put()` sends a PUT request
+- `api.del()` sends a DELETE request
+
+**Why test the API client?**
+
+Every query hook (`useItems`, `useSales`, etc.) and every mutation hook (`useAddItem`, `useVoidSale`, etc.) depends on this module. It handles:
+- Authentication token injection (if this breaks, all API calls fail with 401)
+- Error message extraction (if this breaks, users see `"[object Object]"` instead of real error messages)
+- Response parsing (if `getList` breaks, every list page shows no data)
+
+Testing this module gives confidence that the entire data layer works correctly, without needing to test every individual hook.
+
+---
+
+### `analytics.test.ts` — PostHog Analytics Wrapper
+
+**What it tests:** The `analytics` object from `src/lib/analytics.ts`, which wraps PostHog's `identify`, `capture`, and `reset` methods.
+
+**How mocking works:** PostHog is mocked via `vi.mock("posthog-js")` to avoid loading the real PostHog SDK (which would try to make network requests).
+
+**Test cases:**
+- `analytics.identify()` calls `posthog.identify()` with the correct user ID and properties
+- `analytics.track()` calls `posthog.capture()` with the correct event name and properties
+- `analytics.reset()` calls `posthog.reset()`
+- All methods work with and without optional properties
+
+**Why test an analytics wrapper?**
+
+The wrapper is thin, but it's the only interface between the app and PostHog. If the PostHog API changes (e.g., `capture` is renamed), these tests catch it immediately. They also serve as documentation of how analytics events are structured.
+
+---
+
+### `domain-types.test.ts` — Type Contract Tests
+
+**What it tests:** Creates objects conforming to the TypeScript interfaces defined in `src/types/domain.types.ts` and `src/types/api.types.ts`, then verifies they have the expected fields.
+
+**Why test types at runtime?**
+
+TypeScript types are erased at compile time — they don't exist in the JavaScript that runs in the browser. These tests serve as:
+
+1. **Living documentation** — they show exactly what shape each API response should have.
+2. **Regression detection** — if someone renames `item_id` to `id` in the type definition, these tests fail. The TypeScript compiler alone wouldn't catch all downstream effects.
+3. **Contract verification** — they document the agreed-upon shape between frontend and backend.
+
+---
+
+## Validation Tests (`src/test/validation/`)
+
+### `schemas.test.ts` — Zod Schema Validation
+
+**What it tests:** All Zod validation schemas defined in `src/lib/schemas.ts`:
+
+| Schema | What it validates |
+|--------|------------------|
+| `saleInputSchema` | Sale header fields (customer, channel, note) |
+| `saleLineInputSchema` | Sale line items (quantity, price, currency) |
+| `receiptInputSchema` | Receipt header fields (supplier, reference, note) |
+| `receiptLineInputSchema` | Receipt line items (quantity, cost, currency) |
+| `itemInputSchema` | Item creation (part number, description, category) |
+| `categoryNameSchema` | Category name (trimmed, non-empty) |
+| `locationInputSchema` | Location creation (code, description) |
+| `supplierInputSchema` | Supplier creation (name, address, email, phone) |
+| `supplierQuoteInputSchema` | Supplier quote (item, supplier, cost, currency) |
+
+For each schema, tests cover:
+- **Happy path** — valid minimal input, valid fully-populated input
+- **Boundary values** — max length strings, zero values
+- **Rejection** — missing required fields, empty strings, values exceeding limits, negative numbers, invalid emails
+- **Transformation** — whitespace trimming on `part_number`, `location_code`, category names
+
+**Why Zod schemas?**
+
+These schemas mirror the backend's Pydantic validation models. By validating on the frontend before sending requests, we:
+- Give users instant feedback without waiting for a network round-trip
+- Reduce unnecessary load on the backend API
+- Ensure the frontend and backend agree on what valid data looks like
+
+---
+
+## Integration Tests (`src/test/integration/`)
+
+### How they work
+
+Integration tests connect to a **real Supabase database** and perform actual CRUD operations. They:
+
+1. **Authenticate** using test credentials from `.env.test` via the `signInTestUser()` helper.
+2. **Create test data** with unique identifiers (generated by `uid()` and `uuid()` from `cleanup.ts`).
+3. **Perform operations** — insert, read, update, delete.
+4. **Assert results** — verify the database returned the expected data.
+5. **Clean up** — the `CleanupTracker` deletes all created records in reverse order (respecting foreign key constraints).
+
+### Test files
+
+| File | What it tests |
+|------|--------------|
+| `connection.test.ts` | Can we reach Supabase? Do the credentials work? Can we read from tables? |
+| `categories.test.ts` | Full category lifecycle: create, verify it exists, delete |
+| `items.test.ts` | Item CRUD: create linked to a category, update, read with relations, delete |
+| `locations.test.ts` | Location CRUD: create, list, delete |
+| `receipts.test.ts` | Receipt lifecycle: create with line items, verify, void |
+| `sales.test.ts` | Sale lifecycle: create with line items, verify, void |
+| `suppliers.test.ts` | Supplier CRUD: create, list, delete |
+
+### Why run integration tests separately?
+
+1. **Credentials** — they need `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (plus test user credentials). These aren't available in all environments.
+2. **Speed** — database calls over the network are 100-1000x slower than in-memory unit tests.
+3. **Sequentiality** — tests must run one at a time to avoid race conditions (two tests creating the same category simultaneously would cause a duplicate key error).
+4. **Reliability** — network issues can cause flaky failures. Keeping them separate means a flaky integration test doesn't block fast feedback from unit tests.
+
+### The helpers
+
+**`test-client.ts`** — Creates a Supabase client with `persistSession: false` and `autoRefreshToken: false`. These settings prevent the test client from writing to localStorage (which doesn't exist in Node) and from making background token refresh calls.
+
+**`auth.ts`** — Provides `signInTestUser()` which authenticates once and caches the result (the `signedIn` flag prevents re-authenticating in every test). `hasTestCredentials()` allows tests to gracefully skip when credentials aren't available.
+
+**`cleanup.ts`** — The `CleanupTracker` records every row created during a test. `cleanupAll()` deletes them in reverse insertion order, which naturally respects foreign key constraints (child rows deleted before parent rows). The `uid()` function generates unique prefixed strings (`__test_...`) so test data is easily identifiable.
+
+---
+
+## How to Add New Tests
+
+### Adding a unit test
+1. Create a file in `src/test/unit/` named `<module>.test.ts`.
+2. Import from `vitest` and the module under test.
+3. Mock external dependencies with `vi.mock()`.
+4. The file is automatically included by the default Vitest config.
+
+### Adding a validation test for a new Zod schema
+1. Define the schema in `src/lib/schemas.ts`.
+2. Export it from `src/hooks/mutations.ts` (or import directly from `schemas.ts`).
+3. Add test cases in `src/test/validation/schemas.test.ts`.
+
+### Adding an integration test
+1. Create a file in `src/test/integration/` named `<entity>.test.ts`.
+2. Use `signInTestUser()` in `beforeAll`.
+3. Use `CleanupTracker` to track and clean up created records.
+4. Use `describe.skipIf(!hasTestCredentials())` to skip gracefully without credentials.
+5. The file is automatically included by `vitest.integration.config.ts`.
+
+### Adding a component test
+1. Create a `.test.tsx` file next to the component or in `src/test/unit/`.
+2. Use `@testing-library/react`'s `render` and `screen`.
+3. Wrap the component with necessary providers (QueryClientProvider, BrowserRouter, AuthProvider).
+4. The `setup.ts` file already provides jest-dom matchers and the `matchMedia` mock.
+
+---
+
+## Test Scripts in `package.json`
+
+| Script | Command | What it runs |
+|--------|---------|-------------|
+| `test` | `vitest run` | Unit + validation tests (default config, excludes integration) |
+| `test:watch` | `vitest` | Same as `test` but re-runs on file changes |
+| `test:unit` | `vitest run --exclude src/test/integration/**` | Explicitly unit-only |
+| `test:integration` | `vitest run --config vitest.integration.config.ts` | Integration tests only |
+| `test:all` | `vitest run && vitest run --config vitest.integration.config.ts` | Everything |
+| `typecheck` | `tsc --noEmit` | TypeScript type checking (not tests, but related quality check) |

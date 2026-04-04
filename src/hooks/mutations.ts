@@ -11,6 +11,18 @@ import type {
 
 export type { ReceiptLineInput, SaleLineInput, ItemInput, SupplierInput, SupplierQuoteInput } from "@/types/domain.types";
 
+export {
+  saleInputSchema,
+  saleLineInputSchema,
+  receiptInputSchema,
+  receiptLineInputSchema,
+  itemInputSchema,
+  categoryNameSchema,
+  locationInputSchema,
+  supplierInputSchema,
+  supplierQuoteInputSchema,
+} from "@/lib/schemas";
+
 export function useAddReceipt() {
   const queryClient = useQueryClient();
 

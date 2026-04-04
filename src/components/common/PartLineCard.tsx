@@ -24,8 +24,8 @@ export interface PartLine {
 interface PartLineCardProps {
   index: number;
   part: PartLine;
-  items: { item_id: number; part_number: string }[] | undefined;
-  locations: { location_id: number; location_code: string }[] | undefined;
+  items: { item_id: string | number; part_number: string }[] | undefined;
+  locations: { location_id: string | number; location_code: string }[] | undefined;
   priceLabel: string;
   showErrors: boolean;
   errors: string[];
