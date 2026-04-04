@@ -4,12 +4,42 @@ import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { analytics } from "@/lib/analytics";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+
+async function authFetch<T>(path: string, body: unknown): Promise<T> {
+  const session = (await supabase.auth.getSession()).data.session;
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || data.detail || `Request failed: ${res.status}`);
+  }
+  return data as T;
+}
+
+interface AuthSessionResponse {
+  user: { id: string; email: string };
+  session: {
+    access_token: string;
+    refresh_token: string;
+    expires_in: number;
+    token_type: string;
+  } | null;
+}
+
 export interface AuthContextType {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ user: User | null; error: Error | null }>;
-  signUp: (email: string, password: string) => Promise<{ user: User | null; error: Error | null }>;
+  signIn: (email: string, password: string) => Promise<{ user: { id: string; email: string } | null; error: Error | null }>;
+  signUp: (email: string, password: string) => Promise<{ user: { id: string; email: string } | null; error: Error | null }>;
   signOut: () => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ error: Error | null }>;
 }
@@ -40,19 +70,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { user: null, error };
-    return { user: data.user, error: null };
+    try {
+      const data = await authFetch<AuthSessionResponse>("/auth/login", { email, password });
+
+      if (data.session) {
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+      }
+
+      return { user: data.user, error: null };
+    } catch (err) {
+      return { user: null, error: err instanceof Error ? err : new Error(String(err)) };
+    }
   };
 
   const signUp = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: window.location.origin },
-    });
-    if (error) return { user: null, error };
-    return { user: data.user, error: null };
+    try {
+      const data = await authFetch<AuthSessionResponse>("/auth/signup", { email, password });
+
+      if (data.session) {
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+      }
+
+      return { user: data.user, error: null };
+    } catch (err) {
+      return { user: null, error: err instanceof Error ? err : new Error(String(err)) };
+    }
   };
 
   const signOut = async () => {
@@ -62,15 +110,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const changePassword = async (currentPassword: string, newPassword: string) => {
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: user?.email ?? "",
-      password: currentPassword,
-    });
-    if (signInError) return { error: new Error("Current password is incorrect") };
-
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) return { error };
-    return { error: null };
+    try {
+      await authFetch("/auth/change-password", {
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
+      return { error: null };
+    } catch (err) {
+      return { error: err instanceof Error ? err : new Error(String(err)) };
+    }
   };
 
   return (
