@@ -63,6 +63,7 @@ export function AddSaleForm({
   const addCustomer = useAddCustomer();
 
   const [channelId, setChannelId] = useState<string>("");
+  const [customerId, setCustomerId] = useState<string>("");
   const [customerName, setCustomerName] = useState("");
   const [customerOpen, setCustomerOpen] = useState(false);
   const [parts, setParts] = useState<PartLine[]>([{ ...emptyPart }]);
@@ -105,6 +106,7 @@ export function AddSaleForm({
 
   const resetForm = () => {
     setChannelId("");
+    setCustomerId("");
     setCustomerName("");
     setParts([{ ...emptyPart }]);
     setShowErrors(false);
@@ -143,7 +145,7 @@ export function AddSaleForm({
     await addSale.mutateAsync({
       sale: {
         channel_id_id: Number(channelId) || undefined,
-        customer_id_id: Number(customerName) || undefined,
+        customer_id_id: Number(customerId) || undefined,
       },
       lines,
     });
@@ -217,6 +219,8 @@ export function AddSaleForm({
                         value={c.name}
                         onSelect={(val) => {
                           setCustomerName(val);
+                          const match = customers?.find((cu) => cu.name.toLowerCase() === val.toLowerCase());
+                          if (match) setCustomerId(String(match.id));
                           setCustomerOpen(false);
                         }}
                       >
