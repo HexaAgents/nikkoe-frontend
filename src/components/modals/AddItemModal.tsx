@@ -85,7 +85,7 @@ export function AddItemModal({ open, onOpenChange }: AddItemModalProps) {
                 </SelectTrigger>
                 <SelectContent>
                   {categories?.map((cat) => (
-                    <SelectItem key={cat.category_id} value={String(cat.category_id)}>
+                    <SelectItem key={cat.id} value={String(cat.id)}>
                       {cat.name}
                     </SelectItem>
                   ))}
