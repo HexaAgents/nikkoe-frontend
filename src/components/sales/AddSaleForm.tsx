@@ -91,8 +91,12 @@ export function AddSaleForm({
       if (!part.location_id?.trim()) missingFields.push("Location");
       const qty = Number(part.quantity);
       if (!Number.isFinite(qty) || qty < 1) missingFields.push("Quantity");
-      const price = Number(part.price);
-      if (!Number.isFinite(price) || price < 0) missingFields.push("Unit Price");
+      if (!part.price?.toString().trim()) {
+        missingFields.push("Unit Price");
+      } else {
+        const price = Number(part.price);
+        if (!Number.isFinite(price) || price < 0) missingFields.push("Unit Price");
+      }
       if (!part.currency_id?.trim()) missingFields.push("Currency");
       if (missingFields.length > 0) lineErrors.push({ partIndex: index, fields: missingFields });
     });
