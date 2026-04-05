@@ -80,7 +80,11 @@ export function AddSaleForm({
   };
 
   const validation = useMemo(() => {
-    const errors: { partIndex: number; fields: string[] }[] = [];
+    const headerErrors: string[] = [];
+    if (!channelId) headerErrors.push("Channel");
+    if (!customerId) headerErrors.push("Customer");
+
+    const lineErrors: { partIndex: number; fields: string[] }[] = [];
     parts.forEach((part, index) => {
       const missingFields: string[] = [];
       if (!part.item_id?.trim()) missingFields.push("Part Number");
@@ -89,10 +93,15 @@ export function AddSaleForm({
       if (!Number.isFinite(qty) || qty < 1) missingFields.push("Quantity");
       const price = Number(part.price);
       if (!Number.isFinite(price) || price < 0) missingFields.push("Unit Price");
-      if (missingFields.length > 0) errors.push({ partIndex: index, fields: missingFields });
+      if (!part.currency_id?.trim()) missingFields.push("Currency");
+      if (missingFields.length > 0) lineErrors.push({ partIndex: index, fields: missingFields });
     });
-    return { isValid: errors.length === 0, errors };
-  }, [parts]);
+    return {
+      isValid: headerErrors.length === 0 && lineErrors.length === 0,
+      headerErrors,
+      errors: lineErrors,
+    };
+  }, [parts, channelId, customerId]);
 
   const getAutoLocation = (itemId: string) => {
     if (!inventoryOnHand || !itemId) return "";
@@ -170,8 +179,11 @@ export function AddSaleForm({
   return (
     <form onSubmit={handleSubmit} className={cn(className)}>
       <div className={cn("space-y-6", variant === "inline" ? "py-0" : "py-4")}>
+        {showErrors && validation.headerErrors.length > 0 && (
+          <p className="text-sm text-destructive">Missing: {validation.headerErrors.join(", ")}</p>
+        )}
         <div className="flex items-center gap-4">
-          <Label className="w-24 shrink-0 text-muted-foreground">Channel:</Label>
+          <Label className={`w-24 shrink-0 ${showErrors && !channelId ? "text-destructive" : "text-muted-foreground"}`}>Channel:</Label>
           <Select value={channelId || undefined} onValueChange={setChannelId}>
             <SelectTrigger className="min-w-0 flex-1">
               <SelectValue placeholder="Select channel" />
@@ -187,7 +199,7 @@ export function AddSaleForm({
         </div>
 
         <div className="flex items-center gap-4">
-          <Label className="w-24 shrink-0 text-muted-foreground">Customer:</Label>
+          <Label className={`w-24 shrink-0 ${showErrors && !customerId ? "text-destructive" : "text-muted-foreground"}`}>Customer:</Label>
           <Popover open={customerOpen} onOpenChange={setCustomerOpen}>
             <PopoverTrigger asChild>
               <Button
