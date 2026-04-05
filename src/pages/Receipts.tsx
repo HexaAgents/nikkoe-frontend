@@ -24,14 +24,14 @@ export default function ReceiptsPage() {
 
   const columns = [
     {
-      key: "received_at",
+      key: "dateTime",
       header: "Date/Time",
-      render: (receipt: ReceiptWithRelations) => new Date(receipt.received_at).toLocaleString(),
+      render: (receipt: ReceiptWithRelations) => receipt.dateTime ? new Date(receipt.dateTime).toLocaleString() : "—",
     },
     {
       key: "supplier",
       header: "Supplier",
-      render: (receipt: ReceiptWithRelations) => receipt.suppliers?.supplier_name || "—",
+      render: (receipt: ReceiptWithRelations) => receipt.suppliers?.name || "—",
     },
     {
       key: "reference",
@@ -41,7 +41,7 @@ export default function ReceiptsPage() {
   ];
 
   const handleRowClick = (receipt: ReceiptWithRelations) => {
-    navigate(`/receipts/${receipt.receipt_id}`);
+    navigate(`/receipts/${receipt.id}`);
   };
 
   return (
@@ -81,14 +81,14 @@ export default function ReceiptsPage() {
               exportFilename="receipts"
               exportColumns={[
                 {
-                  key: "received_at",
+                  key: "dateTime",
                   header: "Date/Time",
-                  render: (r: ReceiptWithRelations) => new Date(r.received_at).toLocaleString(),
+                  render: (r: ReceiptWithRelations) => r.dateTime ? new Date(r.dateTime).toLocaleString() : "",
                 },
                 {
                   key: "supplier",
                   header: "Supplier",
-                  render: (r: ReceiptWithRelations) => r.suppliers?.supplier_name ?? "",
+                  render: (r: ReceiptWithRelations) => r.suppliers?.name ?? "",
                 },
                 {
                   key: "reference",
@@ -102,7 +102,7 @@ export default function ReceiptsPage() {
                 },
               ]}
               onRowClick={handleRowClick}
-              idKey="receipt_id"
+              idKey="id"
               rowClassName={(receipt) => (receipt.status === "VOIDED" ? "text-destructive" : "")}
               exportOptions={{ isVoided: (receipt) => receipt.status === "VOIDED" }}
               toolbarExtra={

@@ -24,24 +24,24 @@ export default function SalesPage() {
 
   const columns = [
     {
-      key: "customer_name",
+      key: "customer",
       header: "Customer",
-      render: (sale: SaleWithRelations) => sale.customer_name || "—",
+      render: (sale: SaleWithRelations) => sale.customers?.name || "—",
     },
     {
       key: "channel",
       header: "Channel",
-      render: (sale: SaleWithRelations) => sale.channels?.channel_name || "—",
+      render: (sale: SaleWithRelations) => sale.channels?.name || "—",
     },
     {
-      key: "sold_at",
+      key: "date",
       header: "Date/Time",
-      render: (sale: SaleWithRelations) => new Date(sale.sold_at).toLocaleString(),
+      render: (sale: SaleWithRelations) => sale.date ? new Date(sale.date).toLocaleString() : "—",
     },
   ];
 
   const handleRowClick = (sale: SaleWithRelations) => {
-    navigate(`/sales/${sale.sale_id}`);
+    navigate(`/sales/${sale.id}`);
   };
 
   return (
@@ -80,13 +80,13 @@ export default function SalesPage() {
               searchKeys={["customer_name"]}
               exportFilename="sales"
               onRowClick={handleRowClick}
-              idKey="sale_id"
+              idKey="id"
               rowClassName={(sale) => (sale.status === "VOIDED" ? "text-destructive" : "")}
               exportOptions={{ isVoided: (sale) => sale.status === "VOIDED" }}
               exportColumns={[
-                { key: "customer_name", header: "Customer", render: (sale: SaleWithRelations) => sale.customer_name || "" },
-                { key: "channel", header: "Channel", render: (sale: SaleWithRelations) => sale.channels?.channel_name || "" },
-                { key: "sold_at", header: "Date/Time", render: (sale: SaleWithRelations) => new Date(sale.sold_at).toLocaleString() },
+                { key: "customer", header: "Customer", render: (sale: SaleWithRelations) => sale.customers?.name || "" },
+                { key: "channel", header: "Channel", render: (sale: SaleWithRelations) => sale.channels?.name || "" },
+                { key: "date", header: "Date/Time", render: (sale: SaleWithRelations) => sale.date ? new Date(sale.date).toLocaleString() : "" },
                 { key: "status", header: "Status" },
                 { key: "note", header: "Note" },
                 { key: "void_reason", header: "Void Reason" },

@@ -161,6 +161,8 @@ export function useTransfers() {
   });
 }
 
+export const useInventoryMovements = useTransfers;
+
 export function useInventoryOnHand() {
   return useQuery({
     queryKey: ["inventory_on_hand"],
