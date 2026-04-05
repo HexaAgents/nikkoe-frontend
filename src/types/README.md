@@ -1,16 +1,21 @@
 # src/types/
 
-Shared TypeScript type definitions used across the frontend. Contains all domain entity interfaces and API response shapes in two files, mirroring the backend's Pydantic models to ensure type consistency across the API contract.
+Shared TypeScript type definitions used across the frontend. Contains all domain entity interfaces and API response shapes, mirroring the backend's Pydantic models to ensure type consistency across the API contract.
 
-## How it works
+## Database Schema
 
-Components, hooks, and utility modules import interfaces from this folder to type their props, API responses, and function parameters. When the backend adds or changes a field in a Pydantic model, the corresponding interface here should be updated to match so the compiler catches any mismatches at build time.
-
-## Why this design
-
-All types are consolidated in one file to avoid a proliferation of tiny single-interface files. They mirror the backend Pydantic models so the frontend and backend stay in sync on the API contract.
+The types reflect a Supabase database with PascalCase singular table names and integer primary keys:
+- **Item** (id, item_id text, description, category_id) — `item_id` is the part number, `id` is the PK
+- **Sale** (id, customer_id_id, channel_id_id, channel_ref, date, user_id, status, note)
+- **Sale_Stock** (id, sale_id, stock_id, quantity, unit_price, currency_id)
+- **Receipt** (id, dateTime, user_id, supplier_id, status, reference, note)
+- **Receipt_Stock** (id, receipt_id, stock_id, quantity, unit_price, currency_id, supplier_id)
+- **Stock** (id, item_id, location_id, quantity) — intermediate entity linking items to locations
+- **Currency** (id, name) — lookup table for currencies
+- **Transfer** (id, quantity, notes, date, stock_id_from_id, stock_id_to_id, user_id) — inventory movements
+- **User** (id, first_name, last_name, auth_id, email)
 
 ## Files
 
-- **domain.types.ts** -- All frontend domain interfaces in one file. Contains: `ReceiptWithRelations`, `ReceiptLine`, `ReceiptLineInput`, `SaleWithRelations`, `SaleLine`, `SaleLineInput`, `Item`, `ItemWithRelations` (with nested `InventoryBalance` and `ItemReceiptLine`), `ItemInput`, `Category`, `Supplier`, `SupplierInput`, `Location`, `Channel`, `Customer`, `InventoryMovementWithRelations`, `InventoryOnHand`, `UserProfile`, and `SupplierQuoteInput`. These mirror the backend's Pydantic models to ensure type consistency across the API contract.
-- **api.types.ts** -- Single `PaginatedResponse<T>` interface defining the `{ data: T[], total: number }` shape returned by all backend list endpoints. Used by `api.getList()` to type the response before unwrapping.
+- **domain.types.ts** -- All frontend domain interfaces: ReceiptWithRelations, ReceiptLine, SaleWithRelations, SaleLine, Item, ItemWithRelations, Category, Supplier, Location, Channel, Customer, Currency, Transfer, InventoryOnHand, UserProfile, and input types for mutations. All IDs are `number` (integer). Currency is referenced by `currency_id` (FK to Currency table), not a text string.
+- **api.types.ts** -- Single `PaginatedResponse<T>` interface defining the `{ data: T[], total: number }` shape returned by all backend list endpoints.
