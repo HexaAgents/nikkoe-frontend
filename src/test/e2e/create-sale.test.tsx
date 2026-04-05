@@ -45,7 +45,8 @@ describe("Create Sale Form", () => {
     await userEvent.click(screen.getByRole("button", { name: /create sale/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/missing/i)).toBeInTheDocument();
+      const msgs = screen.getAllByText(/missing/i);
+      expect(msgs.length).toBeGreaterThanOrEqual(1);
     });
     expect(mockMutateAsync).not.toHaveBeenCalled();
   });
