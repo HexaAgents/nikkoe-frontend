@@ -86,6 +86,9 @@ export default function ReceiptDetailPage() {
   }
 
   const isVoided = receipt.status === "VOIDED";
+  const userName = receipt.users
+    ? `${receipt.users.first_name} ${receipt.users.last_name}`.trim()
+    : "—";
 
   return (
     <MainLayout>
@@ -95,7 +98,7 @@ export default function ReceiptDetailPage() {
             <Button variant="ghost" size="icon-sm" onClick={() => navigate("/receipts")}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="font-display text-[28px] font-normal text-foreground">Receipt No. {receipt.receipt_id}</h1>
+            <h1 className="font-display text-[28px] font-normal text-foreground">Receipt No. {receipt.id}</h1>
             <Badge variant={isVoided ? "destructive" : "default"}>
               {receipt.status}
             </Badge>
@@ -133,15 +136,15 @@ export default function ReceiptDetailPage() {
             <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
               <div>
                 <p className="text-[13px] text-muted-foreground">Date and Time</p>
-                <p className="text-[13px] font-medium">{new Date(receipt.received_at).toLocaleString()}</p>
+                <p className="text-[13px] font-medium">{receipt.dateTime ? new Date(receipt.dateTime).toLocaleString() : "—"}</p>
               </div>
               <div>
                 <p className="text-[13px] text-muted-foreground">Received by</p>
-                <p className="text-[13px] font-medium">{receipt.users?.name || "—"}</p>
+                <p className="text-[13px] font-medium">{userName}</p>
               </div>
               <div>
                 <p className="text-[13px] text-muted-foreground">Supplier</p>
-                <p className="text-[13px] font-medium">{receipt.suppliers?.supplier_name || "—"}</p>
+                <p className="text-[13px] font-medium">{receipt.suppliers?.name || "—"}</p>
               </div>
               <div>
                 <p className="text-[13px] text-muted-foreground">Reference</p>
@@ -155,7 +158,7 @@ export default function ReceiptDetailPage() {
                 <>
                   <div>
                     <p className="text-[13px] text-muted-foreground">Voided At</p>
-                    <p className="text-[13px] font-medium text-destructive">{new Date(receipt.voided_at).toLocaleString()}</p>
+                    <p className="text-[13px] font-medium text-destructive">{receipt.voided_at ? new Date(receipt.voided_at).toLocaleString() : "—"}</p>
                   </div>
                   {receipt.void_reason && (
                     <div>
@@ -194,19 +197,20 @@ export default function ReceiptDetailPage() {
                 ) : (
                   receiptLines?.map((line) => (
                     <TableRow 
-                      key={line.receipt_line_id}
+                      key={line.id}
                       className="cursor-pointer"
                       onClick={() => {
-                        if (line.item_id) {
-                          navigate(`/items/${line.item_id}`);
+                        const itemId = line.items?.id || line.stock?.item_id;
+                        if (itemId) {
+                          navigate(`/items/${itemId}`);
                         }
                       }}
                     >
-                      <TableCell className="font-medium">{line.items?.part_number}</TableCell>
-                      <TableCell>{line.locations?.location_code}</TableCell>
+                      <TableCell className="font-medium">{line.items?.item_id || "—"}</TableCell>
+                      <TableCell>{line.locations?.code || "—"}</TableCell>
                       <TableCell>{line.quantity}</TableCell>
-                      <TableCell>{line.unit_cost}</TableCell>
-                      <TableCell>{line.currency}</TableCell>
+                      <TableCell>{line.unit_price}</TableCell>
+                      <TableCell>{line.currencies?.name || "—"}</TableCell>
                     </TableRow>
                   ))
                 )}

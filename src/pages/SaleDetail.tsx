@@ -86,6 +86,9 @@ export default function SaleDetailPage() {
   }
 
   const isVoided = sale.status === "VOIDED";
+  const userName = sale.users
+    ? `${sale.users.first_name} ${sale.users.last_name}`.trim()
+    : "—";
 
   return (
     <MainLayout>
@@ -133,16 +136,26 @@ export default function SaleDetailPage() {
             <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
               <div>
                 <p className="text-[13px] text-muted-foreground">Date and Time</p>
-                <p className="text-[13px] font-medium">{new Date(sale.sold_at).toLocaleString()}</p>
+                <p className="text-[13px] font-medium">{sale.date ? new Date(sale.date).toLocaleString() : "—"}</p>
+              </div>
+              <div>
+                <p className="text-[13px] text-muted-foreground">Sold by</p>
+                <p className="text-[13px] font-medium">{userName}</p>
               </div>
               <div>
                 <p className="text-[13px] text-muted-foreground">Customer</p>
-                <p className="text-[13px] font-medium">{sale.customer_name || "—"}</p>
+                <p className="text-[13px] font-medium">{sale.customers?.name || "—"}</p>
               </div>
               <div>
                 <p className="text-[13px] text-muted-foreground">Channel</p>
-                <p className="text-[13px] font-medium">{sale.channels?.channel_name || "—"}</p>
+                <p className="text-[13px] font-medium">{sale.channels?.name || "—"}</p>
               </div>
+              {sale.channel_ref && (
+                <div>
+                  <p className="text-[13px] text-muted-foreground">Channel Ref</p>
+                  <p className="text-[13px] font-medium">{sale.channel_ref}</p>
+                </div>
+              )}
               {sale.note && (
                 <div className="sm:col-span-2">
                   <p className="text-[13px] text-muted-foreground">Note</p>
@@ -153,7 +166,7 @@ export default function SaleDetailPage() {
                 <>
                   <div>
                     <p className="text-[13px] text-muted-foreground">Voided At</p>
-                    <p className="text-[13px] font-medium text-destructive">{new Date(sale.voided_at).toLocaleString()}</p>
+                    <p className="text-[13px] font-medium text-destructive">{sale.voided_at ? new Date(sale.voided_at).toLocaleString() : "—"}</p>
                   </div>
                   {sale.void_reason && (
                     <div>
@@ -192,19 +205,20 @@ export default function SaleDetailPage() {
                 ) : (
                   saleLines?.map((line) => (
                     <TableRow 
-                      key={line.sale_line_id}
+                      key={line.id}
                       className="cursor-pointer"
                       onClick={() => {
-                        if (line.item_id) {
-                          navigate(`/items/${line.item_id}`);
+                        const itemId = line.items?.id || line.stock?.item_id;
+                        if (itemId) {
+                          navigate(`/items/${itemId}`);
                         }
                       }}
                     >
-                      <TableCell className="font-medium">{line.items?.part_number || "—"}</TableCell>
-                      <TableCell>{line.locations?.location_code || "—"}</TableCell>
+                      <TableCell className="font-medium">{line.items?.item_id || "—"}</TableCell>
+                      <TableCell>{line.locations?.code || "—"}</TableCell>
                       <TableCell>{line.quantity}</TableCell>
                       <TableCell>{line.unit_price}</TableCell>
-                      <TableCell>{line.currency_code || "—"}</TableCell>
+                      <TableCell>{line.currencies?.name || "—"}</TableCell>
                     </TableRow>
                   ))
                 )}
