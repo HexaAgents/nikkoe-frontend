@@ -142,8 +142,8 @@ export function AddSaleForm({
 
     await addSale.mutateAsync({
       sale: {
-        channel_id: Number(channelId) || undefined,
-        customer_id: Number(customerName) || undefined,
+        channel_id_id: Number(channelId) || undefined,
+        customer_id_id: Number(customerName) || undefined,
       },
       lines,
     });
