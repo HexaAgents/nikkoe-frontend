@@ -1,89 +1,98 @@
 export interface ReceiptWithRelations {
-  receipt_id: string;
-  received_at: string;
+  id: number;
+  dateTime: string;
   status: string;
   reference: string | null;
   note: string | null;
-  supplier_id: string | null;
-  received_by: string | null;
+  supplier_id: number | null;
+  user_id: number | null;
   void_reason: string | null;
   voided_at: string | null;
-  voided_by: string | null;
-  suppliers: { supplier_id: string; supplier_name: string } | null;
-  users: { user_id: string; name: string } | null;
+  voided_by: number | null;
+  suppliers: { id: number; name: string } | null;
+  users: { id: number; first_name: string; last_name: string } | null;
 }
 
 export interface ReceiptLine {
-  receipt_line_id: string;
-  receipt_id: string;
-  item_id: string;
-  location_id: string;
+  id: number;
+  receipt_id: number;
+  stock_id: number;
   quantity: number;
-  unit_cost: number;
-  currency_code: string;
-  items?: { part_number: string } | null;
-  locations?: { location_code: string } | null;
+  unit_price: number;
+  currency_id: number;
+  supplier_id: number | null;
+  items?: { id: number; item_id: string } | null;
+  locations?: { id: number; code: string } | null;
+  stock?: { id: number; item_id: number; location_id: number; quantity: number } | null;
+  currencies?: { id: number; name: string } | null;
+  suppliers?: { id: number; name: string } | null;
 }
 
 export interface ReceiptLineInput {
-  item_id: string;
-  location_id: string;
+  stock_id?: number;
+  item_id?: number;
+  location_id?: number;
   quantity: number;
-  unit_cost: number;
-  currency_code: string;
+  unit_price: number;
+  currency_id: number;
+  supplier_id?: number;
 }
 
 export interface SaleWithRelations {
-  sale_id: string;
-  customer_name: string | null;
-  channel_id: string | null;
-  sold_at: string;
-  sold_by: string | null;
+  id: number;
+  customer_id_id: number | null;
+  channel_id_id: number | null;
+  channel_ref: string | null;
+  date: string;
+  user_id: number | null;
   status: string;
   note: string | null;
   void_reason: string | null;
   voided_at: string | null;
-  voided_by: string | null;
-  channels: { channel_id: string; channel_name: string } | null;
-  users: { user_id: string; name: string } | null;
+  voided_by: number | null;
+  channels: { id: number; name: string } | null;
+  users: { id: number; first_name: string; last_name: string } | null;
+  customers: { id: number; name: string } | null;
 }
 
 export interface SaleLine {
-  sale_line_id: string;
-  sale_id: string;
-  item_id: string;
-  location_id: string;
+  id: number;
+  sale_id: number;
+  stock_id: number;
   quantity: number;
-  unit_price: number;
-  currency_code: string;
-  items?: { part_number: string } | null;
-  locations?: { location_code: string } | null;
+  unit_price: string;
+  currency_id: number;
+  items?: { id: number; item_id: string } | null;
+  locations?: { id: number; code: string } | null;
+  stock?: { id: number; item_id: number; location_id: number; quantity: number } | null;
+  currencies?: { id: number; name: string } | null;
 }
 
 export interface SaleLineInput {
-  item_id: string;
-  location_id: string;
+  stock_id?: number;
+  item_id?: number;
+  location_id?: number;
   quantity: number;
   unit_price: number;
-  currency_code: string;
+  currency_id: number;
 }
 
 export interface Item {
+  id: number;
   item_id: string;
-  part_number: string;
   description: string | null;
-  category_id: string | null;
-  categories?: { category_id: string; name: string } | null;
+  category_id: number | null;
+  search_id: string | null;
+  categories?: { id: number; name: string } | null;
 }
 
 export interface InventoryBalance {
-  quantity_on_hand: number;
-  locations: { location_code: string } | null;
+  quantity: number;
+  locations: { id: number; code: string } | null;
 }
 
 export interface ItemReceiptLine {
-  unit_cost: number;
-  receipts: { status: string } | null;
+  unit_price: number;
 }
 
 export interface ItemWithRelations extends Item {
@@ -92,84 +101,83 @@ export interface ItemWithRelations extends Item {
 }
 
 export interface ItemInput {
-  part_number: string;
+  item_id: string;
   description?: string;
-  category_id?: string;
+  category_id?: number;
 }
 
 export interface Category {
-  category_id: string;
+  id: number;
   name: string;
 }
 
 export interface Supplier {
-  supplier_id: string;
-  supplier_name: string;
-  supplier_address: string | null;
-  supplier_email: string | null;
-  supplier_phone: string | null;
+  id: number;
+  name: string;
+  address: string | null;
+  email: string | null;
+  phone: string | null;
 }
 
 export interface SupplierInput {
-  supplier_name: string;
-  supplier_address?: string;
-  supplier_email?: string;
-  supplier_phone?: string;
+  name: string;
+  address?: string;
+  email?: string;
+  phone?: string;
 }
 
 export interface Location {
-  location_id: string;
-  location_code: string;
+  id: number;
+  code: string;
 }
 
 export interface Channel {
-  channel_id: string;
-  channel_name: string;
-}
-
-export interface Customer {
-  customer_id: string;
+  id: number;
   name: string;
 }
 
-export interface InventoryMovementWithRelations {
-  movement_id: string;
-  item_id: string;
-  moved_at: string;
-  movement_type: string;
+export interface Customer {
+  id: number;
+  name: string;
+}
+
+export interface Currency {
+  id: number;
+  name: string;
+}
+
+export interface Transfer {
+  id: number;
   quantity: number;
-  from_location_id: string | null;
-  to_location_id: string | null;
-  user_id: string | null;
-  receipt_id: string | null;
-  sale_id: string | null;
-  note: string | null;
-  receipt_line_id: string | null;
-  reversed_by_movement_id: string | null;
-  sale_line_id: string | null;
-  items: { item_id: string; part_number: string } | null;
-  from_location: { location_id: string; location_code: string } | null;
-  to_location: { location_id: string; location_code: string } | null;
-  users: { user_id: string; name: string } | null;
+  notes: string | null;
+  date: string;
+  stock_id_from_id: number | null;
+  stock_id_to_id: number | null;
+  user_id: number | null;
+  from_stock: { id: number; item_id: number; location_id: number } | null;
+  to_stock: { id: number; item_id: number; location_id: number } | null;
+  items: { id: number; item_id: string } | null;
+  users: { id: number; first_name: string; last_name: string } | null;
 }
 
 export interface InventoryOnHand {
-  item_id: string;
-  location_id: string;
-  quantity_on_hand: number;
+  id: number;
+  item_id: number;
+  location_id: number;
+  quantity: number;
 }
 
 export interface UserProfile {
-  user_id: string;
+  user_id: number;
   name: string;
   email_address: string | null;
 }
 
 export interface SupplierQuoteInput {
-  item_id: string;
-  supplier_id: string;
-  unit_cost: number;
-  currency: string;
-  quoted_at?: string;
+  item_id: number;
+  supplier_id: number;
+  cost: number;
+  currency_id: number;
+  date_time?: string;
   note?: string;
 }

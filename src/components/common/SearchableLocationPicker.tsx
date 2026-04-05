@@ -1,7 +1,7 @@
 import { SearchableCombobox } from "./SearchableCombobox";
 
 interface Location {
-  location_id: number;
+  location_id: string | number;
   location_code: string;
 }
 

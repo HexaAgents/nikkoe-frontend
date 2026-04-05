@@ -204,7 +204,7 @@ export function useAddLocation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (location: { location_code: string }) => api.post("/locations", location),
+    mutationFn: (location: { code: string }) => api.post("/locations", location),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["locations"] });
       toast.success("Location added successfully");

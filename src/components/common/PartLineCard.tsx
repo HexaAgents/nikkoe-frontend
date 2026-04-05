@@ -18,7 +18,7 @@ export interface PartLine {
   location_id: string;
   quantity: string;
   price: string;
-  currency_code: string;
+  currency_id: string;
 }
 
 interface PartLineCardProps {
@@ -26,6 +26,7 @@ interface PartLineCardProps {
   part: PartLine;
   items: { item_id: string | number; part_number: string }[] | undefined;
   locations: { location_id: string | number; location_code: string }[] | undefined;
+  currencies?: { id: number; name: string }[] | undefined;
   priceLabel: string;
   showErrors: boolean;
   errors: string[];
@@ -42,6 +43,7 @@ export function PartLineCard({
   part,
   items,
   locations,
+  currencies,
   priceLabel,
   showErrors,
   errors,
@@ -135,14 +137,24 @@ export function PartLineCard({
 
         <div className="flex items-center gap-4">
           <Label className="w-32 shrink-0 text-muted-foreground">Currency:</Label>
-          <Select value={part.currency_code} onValueChange={(v) => onFieldChange(index, "currency_code", v)}>
+          <Select value={part.currency_id} onValueChange={(v) => onFieldChange(index, "currency_id", v)}>
             <SelectTrigger className="min-w-0 flex-1">
-              <SelectValue />
+              <SelectValue placeholder="Select currency" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="£">£</SelectItem>
-              <SelectItem value="$">$</SelectItem>
-              <SelectItem value="€">€</SelectItem>
+              {currencies && currencies.length > 0 ? (
+                currencies.map((c) => (
+                  <SelectItem key={c.id} value={c.id.toString()}>
+                    {c.name}
+                  </SelectItem>
+                ))
+              ) : (
+                <>
+                  <SelectItem value="1">GBP</SelectItem>
+                  <SelectItem value="2">USD</SelectItem>
+                  <SelectItem value="3">EUR</SelectItem>
+                </>
+              )}
             </SelectContent>
           </Select>
         </div>

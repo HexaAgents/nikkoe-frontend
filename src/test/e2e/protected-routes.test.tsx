@@ -15,9 +15,11 @@ vi.mock("@/hooks/queries", () => ({
   useSuppliers: () => ({ data: [], isLoading: false }),
   useLocations: () => ({ data: [], isLoading: false }),
   useChannels: () => ({ data: [], isLoading: false }),
+  useCurrencies: () => ({ data: [], isLoading: false }),
   useCustomers: () => ({ data: [], isLoading: false }),
   useInventoryOnHand: () => ({ data: [], isLoading: false }),
   useInventoryMovements: () => ({ data: [], isLoading: false }),
+  useTransfers: () => ({ data: [], isLoading: false }),
   useCurrentUser: () => ({ data: null, isLoading: false }),
 }));
 

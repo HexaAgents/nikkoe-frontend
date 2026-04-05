@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { analytics } from "@/lib/analytics";
-import { useCurrentUser, useSuppliers, useItems, useLocations } from "@/hooks/queries";
+import { useCurrentUser, useCurrencies, useSuppliers, useItems, useLocations } from "@/hooks/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,8 +47,8 @@ function partLineToInput(p: PartLine): ReceiptLineInput {
     item_id: p.item_id,
     location_id: p.location_id,
     quantity: Number.parseInt(p.quantity, 10),
-    unit_cost: Number.parseFloat(p.price.replace(",", ".").trim()),
-    currency_code: p.currency_code,
+    unit_price: Number.parseFloat(p.price.replace(",", ".").trim()),
+    currency_id: Number(p.currency_id),
   };
 }
 
@@ -57,7 +57,7 @@ const emptyPart: PartLine = {
   location_id: "",
   quantity: "",
   price: "",
-  currency_code: "£",
+  currency_id: "",
 };
 
 export type AddReceiptFormVariant = "inline" | "dialog";
@@ -80,6 +80,7 @@ export function AddReceiptForm({
   const { data: suppliers } = useSuppliers();
   const { data: items } = useItems();
   const { data: locations } = useLocations();
+  const { data: currencies } = useCurrencies();
 
   const [supplierId, setSupplierId] = useState<string>("");
   const [reference, setReference] = useState("");
@@ -166,8 +167,8 @@ export function AddReceiptForm({
               </SelectTrigger>
               <SelectContent>
                 {suppliers?.map((supplier) => (
-                  <SelectItem key={supplier.supplier_id} value={supplier.supplier_id.toString()}>
-                    {supplier.supplier_name}
+                  <SelectItem key={supplier.id} value={supplier.id.toString()}>
+                    {supplier.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -198,8 +199,9 @@ export function AddReceiptForm({
               key={index}
               index={index}
               part={part}
-              items={items}
-              locations={locations}
+              items={items?.map((i) => ({ item_id: i.id, part_number: i.item_id }))}
+              locations={locations?.map((l) => ({ location_id: l.id, location_code: l.code }))}
+              currencies={currencies}
               priceLabel="Unit Cost"
               showErrors={showErrors}
               errors={getPartErrors(index)}

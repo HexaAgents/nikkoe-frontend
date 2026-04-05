@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/command";
 import { useAddSale, useAddCustomer } from "@/hooks/mutations";
 import type { SaleLineInput } from "@/types/domain.types";
-import { useChannels, useCustomers, useItems, useLocations, useInventoryOnHand } from "@/hooks/queries";
+import { useChannels, useCurrencies, useCustomers, useItems, useLocations, useInventoryOnHand } from "@/hooks/queries";
 import { PartLineCard } from "@/components/common/PartLineCard";
 import type { PartLine } from "@/components/common/PartLineCard";
 import { cn } from "@/lib/utils";
@@ -35,7 +35,7 @@ const emptyPart: PartLine = {
   location_id: "",
   quantity: "",
   price: "",
-  currency_code: "£",
+  currency_id: "",
 };
 
 export type AddSaleFormVariant = "inline" | "dialog";
@@ -59,6 +59,7 @@ export function AddSaleForm({
   const { data: locations } = useLocations();
   const { data: inventoryOnHand } = useInventoryOnHand();
   const { data: customers } = useCustomers();
+  const { data: currencies } = useCurrencies();
   const addCustomer = useAddCustomer();
 
   const [channelId, setChannelId] = useState<string>("");
@@ -94,9 +95,10 @@ export function AddSaleForm({
 
   const getAutoLocation = (itemId: string) => {
     if (!inventoryOnHand || !itemId) return "";
+    const numId = Number(itemId);
     const stockRows = inventoryOnHand
-      .filter((row) => row.item_id === itemId && (row.quantity_on_hand ?? 0) > 0)
-      .sort((a, b) => (a.quantity_on_hand ?? 0) - (b.quantity_on_hand ?? 0));
+      .filter((row) => row.item_id === numId && (row.quantity ?? 0) > 0)
+      .sort((a, b) => (a.quantity ?? 0) - (b.quantity ?? 0));
     if (stockRows.length === 0) return "";
     return stockRows[0].location_id?.toString() || "";
   };
@@ -131,17 +133,17 @@ export function AddSaleForm({
     if (!validation.isValid) return;
 
     const lines: SaleLineInput[] = parts.map((p) => ({
-      item_id: p.item_id,
-      location_id: p.location_id,
+      item_id: Number(p.item_id) || undefined,
+      location_id: Number(p.location_id) || undefined,
       quantity: Math.trunc(Number(p.quantity)),
       unit_price: Number(p.price),
-      currency_code: p.currency_code,
+      currency_id: Number(p.currency_id),
     }));
 
     await addSale.mutateAsync({
       sale: {
-        channel_id: channelId || undefined,
-        customer_name: customerName.trim() || undefined,
+        channel_id: Number(channelId) || undefined,
+        customer_id: Number(customerName) || undefined,
       },
       lines,
     });
@@ -174,8 +176,8 @@ export function AddSaleForm({
             </SelectTrigger>
             <SelectContent>
               {channels?.map((channel) => (
-                <SelectItem key={channel.channel_id} value={channel.channel_id.toString()}>
-                  {channel.channel_name}
+                <SelectItem key={channel.id} value={channel.id.toString()}>
+                  {channel.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -211,7 +213,7 @@ export function AddSaleForm({
                   <CommandGroup>
                     {customers?.map((c) => (
                       <CommandItem
-                        key={c.customer_id}
+                        key={c.id}
                         value={c.name}
                         onSelect={(val) => {
                           setCustomerName(val);
@@ -253,8 +255,9 @@ export function AddSaleForm({
             key={index}
             index={index}
             part={part}
-            items={items}
-            locations={locations}
+            items={items?.map((i) => ({ item_id: i.id, part_number: i.item_id }))}
+            locations={locations?.map((l) => ({ location_id: l.id, location_code: l.code }))}
+            currencies={currencies}
             priceLabel="Unit Price"
             showErrors={showErrors}
             errors={getPartErrors(index)}

@@ -17,10 +17,11 @@ vi.mock("@/hooks/mutations", () => ({
 }));
 
 vi.mock("@/hooks/queries", () => ({
-  useSuppliers: () => ({ data: [{ supplier_id: "s1", supplier_name: "Supplier A" }] }),
-  useItems: () => ({ data: [{ item_id: "it1", part_number: "PART-001" }] }),
-  useLocations: () => ({ data: [{ location_id: "loc1", location_code: "SHELF-A" }] }),
-  useCurrentUser: () => ({ data: { user_id: "u1", name: "Test User" } }),
+  useSuppliers: () => ({ data: [{ id: 1, name: "Supplier A" }] }),
+  useCurrencies: () => ({ data: [{ id: 1, name: "GBP" }] }),
+  useItems: () => ({ data: [{ id: 1, item_id: "PART-001" }] }),
+  useLocations: () => ({ data: [{ id: 1, code: "SHELF-A" }] }),
+  useCurrentUser: () => ({ data: { user_id: 1, name: "Test User" } }),
   useCategories: () => ({ data: [] }),
 }));
 

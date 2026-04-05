@@ -17,11 +17,12 @@ vi.mock("@/hooks/mutations", () => ({
 }));
 
 vi.mock("@/hooks/queries", () => ({
-  useChannels: () => ({ data: [{ channel_id: "ch1", channel_name: "Online" }] }),
-  useCustomers: () => ({ data: [{ customer_id: "cu1", name: "Existing Customer" }] }),
-  useItems: () => ({ data: [{ item_id: "it1", part_number: "PART-001" }] }),
-  useLocations: () => ({ data: [{ location_id: "loc1", location_code: "SHELF-A" }] }),
-  useInventoryOnHand: () => ({ data: [{ item_id: "it1", location_id: "loc1", quantity_on_hand: 10 }] }),
+  useChannels: () => ({ data: [{ id: 1, name: "Online" }] }),
+  useCurrencies: () => ({ data: [{ id: 1, name: "GBP" }] }),
+  useCustomers: () => ({ data: [{ id: 1, name: "Existing Customer" }] }),
+  useItems: () => ({ data: [{ id: 1, item_id: "PART-001" }] }),
+  useLocations: () => ({ data: [{ id: 1, code: "SHELF-A" }] }),
+  useInventoryOnHand: () => ({ data: [{ id: 1, item_id: 1, location_id: 1, quantity: 10 }] }),
   useCurrentUser: () => ({ data: null }),
 }));
 

@@ -1,7 +1,7 @@
 import { SearchableCombobox } from "./SearchableCombobox";
 
 interface Item {
-  item_id: number;
+  item_id: string | number;
   part_number: string;
 }
 

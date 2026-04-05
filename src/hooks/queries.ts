@@ -13,7 +13,8 @@ import type {
   Location,
   Channel,
   Customer,
-  InventoryMovementWithRelations,
+  Currency,
+  Transfer,
   InventoryOnHand,
   UserProfile,
 } from "@/types/domain.types";
@@ -25,17 +26,17 @@ export function useReceipts() {
   });
 }
 
-export function useReceipt(receiptId: string) {
+export function useReceipt(receiptId: string | number) {
   return useQuery({
-    queryKey: ["receipts", receiptId],
+    queryKey: ["receipts", String(receiptId)],
     queryFn: () => api.get<ReceiptWithRelations>(`/receipts/${receiptId}`),
     enabled: !!receiptId,
   });
 }
 
-export function useReceiptLines(receiptId: string) {
+export function useReceiptLines(receiptId: string | number) {
   return useQuery({
-    queryKey: ["receipt_lines", receiptId],
+    queryKey: ["receipt_lines", String(receiptId)],
     queryFn: () => api.get<ReceiptLine[]>(`/receipts/${receiptId}/lines`),
     enabled: !!receiptId,
   });
@@ -48,17 +49,17 @@ export function useSales() {
   });
 }
 
-export function useSale(saleId: string) {
+export function useSale(saleId: string | number) {
   return useQuery({
-    queryKey: ["sales", saleId],
+    queryKey: ["sales", String(saleId)],
     queryFn: () => api.get<SaleWithRelations>(`/sales/${saleId}`),
     enabled: !!saleId,
   });
 }
 
-export function useSaleLines(saleId: string) {
+export function useSaleLines(saleId: string | number) {
   return useQuery({
-    queryKey: ["sale_lines", saleId],
+    queryKey: ["sale_lines", String(saleId)],
     queryFn: () => api.get<SaleLine[]>(`/sales/${saleId}/lines`),
     enabled: !!saleId,
   });
@@ -146,10 +147,17 @@ export function useCustomers() {
   });
 }
 
-export function useInventoryMovements() {
+export function useCurrencies() {
   return useQuery({
-    queryKey: ["inventory_movements"],
-    queryFn: () => api.getList<InventoryMovementWithRelations>("/inventory/movements"),
+    queryKey: ["currencies"],
+    queryFn: () => api.getList<Currency>("/currencies"),
+  });
+}
+
+export function useTransfers() {
+  return useQuery({
+    queryKey: ["transfers"],
+    queryFn: () => api.getList<Transfer>("/inventory/movements"),
   });
 }
 
