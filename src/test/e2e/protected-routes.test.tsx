@@ -11,6 +11,7 @@ vi.mock("@/hooks/queries", () => ({
   useSales: () => ({ data: [], isLoading: false }),
   useReceipts: () => ({ data: [], isLoading: false }),
   useItems: () => ({ data: [], isLoading: false }),
+  useItemSearch: () => ({ data: [], isFetching: false }),
   useCategories: () => ({ data: [], isLoading: false }),
   useSuppliers: () => ({ data: [], isLoading: false }),
   useLocations: () => ({ data: [], isLoading: false }),
