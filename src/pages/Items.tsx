@@ -18,43 +18,20 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
   const { data: items, isLoading } = useItems();
 
   const columns = [
-    { key: "part_number", header: "Part Number" },
+    { key: "item_id", header: "Part Number" },
     { key: "description", header: "Description" },
-    { 
-      key: "category", 
+    {
+      key: "category",
       header: "Category",
-      render: (item: ItemWithRelations) => item.categories?.name || "-"
+      render: (item: ItemWithRelations) => item.categories?.name || "-",
     },
     {
-      key: "locations",
-      header: "Locations",
+      key: "total_quantity",
+      header: "Quantity",
       render: (item: ItemWithRelations) => {
-        const locs = (item.inventory_balances || [])
-          .filter((b) => b.quantity_on_hand > 0)
-          .map((b) => b.locations?.location_code)
-          .filter(Boolean);
-        return locs.length > 0 ? locs.join(", ") : "-";
-      }
-    },
-    {
-      key: "total_qty",
-      header: "Total Qty",
-      render: (item: ItemWithRelations) => {
-        const total = (item.inventory_balances || [])
-          .reduce((sum: number, b) => sum + (b.quantity_on_hand || 0), 0);
-        return total > 0 ? total : "-";
-      }
-    },
-    {
-      key: "avg_unit_cost",
-      header: "Avg Unit Cost",
-      render: (item: ItemWithRelations) => {
-        const postedLines = (item.receipt_lines || [])
-          .filter((rl) => rl.receipts?.status === "POSTED");
-        if (postedLines.length === 0) return "-";
-        const avg = postedLines.reduce((sum: number, rl) => sum + Number(rl.unit_cost), 0) / postedLines.length;
-        return avg.toFixed(2);
-      }
+        const qty = (item as Record<string, unknown>).total_quantity as number;
+        return qty > 0 ? qty : "-";
+      },
     },
   ];
 
@@ -83,18 +60,15 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
           searchPlaceholder="Search items..."
           onAdd={() => setIsAddModalOpen(true)}
           addButtonText="Add Item"
-          searchKeys={["part_number", "description"]}
+          searchKeys={["item_id", "description"]}
           exportFilename="items"
           onRowClick={handleRowClick}
-          idKey="item_id"
+          idKey="id"
           exportColumns={[
-            { key: "item_id", header: "Item ID" },
-            { key: "part_number", header: "Part Number" },
+            { key: "item_id", header: "Part Number" },
             { key: "description", header: "Description" },
             { key: "category", header: "Category", render: (item: ItemWithRelations) => item.categories?.name || "" },
-            { key: "locations", header: "Locations", render: (item: ItemWithRelations) => (item.inventory_balances || []).filter((b) => b.quantity_on_hand > 0).map((b) => b.locations?.location_code).filter(Boolean).join(", ") },
-            { key: "total_qty", header: "Total Qty", render: (item: ItemWithRelations) => String((item.inventory_balances || []).reduce((sum: number, b) => sum + (b.quantity_on_hand || 0), 0)) },
-            { key: "avg_unit_cost", header: "Avg Unit Cost", render: (item: ItemWithRelations) => { const lines = (item.receipt_lines || []).filter((rl) => rl.receipts?.status === "POSTED"); return lines.length ? (lines.reduce((s: number, rl) => s + Number(rl.unit_cost), 0) / lines.length).toFixed(2) : ""; } },
+            { key: "total_quantity", header: "Quantity", render: (item: ItemWithRelations) => String((item as Record<string, unknown>).total_quantity || 0) },
           ]}
         />
       </div>
