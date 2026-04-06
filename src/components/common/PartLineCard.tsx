@@ -24,7 +24,6 @@ export interface PartLine {
 interface PartLineCardProps {
   index: number;
   part: PartLine;
-  items: { item_id: string | number; part_number: string }[] | undefined;
   locations: { location_id: string | number; location_code: string }[] | undefined;
   currencies?: { id: number; name: string }[] | undefined;
   priceLabel: string;
@@ -41,7 +40,6 @@ interface PartLineCardProps {
 export function PartLineCard({
   index,
   part,
-  items,
   locations,
   currencies,
   priceLabel,
@@ -78,7 +76,6 @@ export function PartLineCard({
           </Label>
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
             <SearchablePartPicker
-              items={items}
               value={part.item_id}
               onSelect={(id) => onPartSelect(index, id)}
               hasError={showErrors && errors.includes("Part Number")}

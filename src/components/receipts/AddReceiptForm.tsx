@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { analytics } from "@/lib/analytics";
-import { useCurrentUser, useCurrencies, useSuppliers, useItems, useLocations } from "@/hooks/queries";
+import { useCurrentUser, useCurrencies, useSuppliers, useLocations } from "@/hooks/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -78,7 +78,6 @@ export function AddReceiptForm({
   const addReceipt = useAddReceipt();
   const { data: currentUser } = useCurrentUser();
   const { data: suppliers } = useSuppliers();
-  const { data: items } = useItems();
   const { data: locations } = useLocations();
   const { data: currencies } = useCurrencies();
 
@@ -199,7 +198,6 @@ export function AddReceiptForm({
               key={index}
               index={index}
               part={part}
-              items={items?.map((i) => ({ item_id: i.id, part_number: i.item_id }))}
               locations={locations?.map((l) => ({ location_id: l.id, location_code: l.code }))}
               currencies={currencies}
               priceLabel="Unit Cost"

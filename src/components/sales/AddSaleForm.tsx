@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/command";
 import { useAddSale, useAddCustomer } from "@/hooks/mutations";
 import type { SaleLineInput } from "@/types/domain.types";
-import { useChannels, useCurrencies, useCustomers, useItems, useLocations, useInventoryOnHand } from "@/hooks/queries";
+import { useChannels, useCurrencies, useCustomers, useLocations, useInventoryOnHand } from "@/hooks/queries";
 import { PartLineCard } from "@/components/common/PartLineCard";
 import type { PartLine } from "@/components/common/PartLineCard";
 import { cn } from "@/lib/utils";
@@ -55,7 +55,6 @@ export function AddSaleForm({
 }: AddSaleFormProps) {
   const addSale = useAddSale();
   const { data: channels } = useChannels();
-  const { data: items } = useItems();
   const { data: locations } = useLocations();
   const { data: inventoryOnHand } = useInventoryOnHand();
   const { data: customers } = useCustomers();
@@ -275,7 +274,6 @@ export function AddSaleForm({
             key={index}
             index={index}
             part={part}
-            items={items?.map((i) => ({ item_id: i.id, part_number: i.item_id }))}
             locations={locations?.map((l) => ({ location_id: l.id, location_code: l.code }))}
             currencies={currencies}
             priceLabel="Unit Price"
