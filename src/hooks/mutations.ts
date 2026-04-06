@@ -33,6 +33,8 @@ export function useAddReceipt() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["receipts"] });
       queryClient.invalidateQueries({ queryKey: ["inventory_balances"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory_on_hand"] });
+      queryClient.invalidateQueries({ queryKey: ["items"] });
       toast.success("Receipt added successfully");
     },
     onError: (error) => {
@@ -50,6 +52,9 @@ export function useVoidReceipt() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["receipts"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory_balances"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory_on_hand"] });
+      queryClient.invalidateQueries({ queryKey: ["items"] });
       toast.success("Receipt voided successfully");
     },
     onError: (error) => {
@@ -68,6 +73,8 @@ export function useAddSale() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales"] });
       queryClient.invalidateQueries({ queryKey: ["inventory_balances"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory_on_hand"] });
+      queryClient.invalidateQueries({ queryKey: ["items"] });
       toast.success("Sale added successfully");
     },
     onError: (error) => {
@@ -85,6 +92,9 @@ export function useVoidSale() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory_balances"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory_on_hand"] });
+      queryClient.invalidateQueries({ queryKey: ["items"] });
       toast.success("Sale voided successfully");
     },
     onError: (error) => {

@@ -44,8 +44,8 @@ function getPartLineFieldErrors(part: PartLine): string[] {
 
 function partLineToInput(p: PartLine): ReceiptLineInput {
   return {
-    item_id: p.item_id,
-    location_id: p.location_id,
+    item_id: Number(p.item_id) || undefined,
+    location_id: Number(p.location_id) || undefined,
     quantity: Number.parseInt(p.quantity, 10),
     unit_price: Number.parseFloat(p.price.replace(",", ".").trim()),
     currency_id: Number(p.currency_id),
@@ -130,7 +130,7 @@ export function AddReceiptForm({
 
     await addReceipt.mutateAsync({
       receipt: {
-        supplier_id: supplierId || undefined,
+        supplier_id: Number(supplierId) || undefined,
         reference: reference.trim() || undefined,
         note: note.trim() || undefined,
       },
