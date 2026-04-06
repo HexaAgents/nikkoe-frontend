@@ -22,10 +22,12 @@ import type {
   UserProfile,
 } from "@/types/domain.types";
 
-export function useReceipts() {
+export function useReceipts(search?: string) {
+  const params = search ? `?search=${encodeURIComponent(search)}` : "";
   return useQuery({
-    queryKey: ["receipts"],
-    queryFn: () => api.getList<ReceiptWithRelations>("/receipts/"),
+    queryKey: ["receipts", { search }],
+    queryFn: () => api.getList<ReceiptWithRelations>(`/receipts/${params}`),
+    placeholderData: keepPreviousData,
   });
 }
 

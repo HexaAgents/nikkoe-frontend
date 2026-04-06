@@ -15,7 +15,8 @@ export default function ReceiptsPage() {
   const navigate = useNavigate();
   const [showVoided, setShowVoided] = useState(false);
   const [showReceiptsHistory, setShowReceiptsHistory] = useState(false);
-  const { data: receipts, isLoading } = useReceipts();
+  const [searchQuery, setSearchQuery] = useState("");
+  const { data: receipts, isLoading, isFetching } = useReceipts(searchQuery || undefined);
 
   const filteredReceipts = useMemo(() => {
     if (!receipts) return [];
@@ -76,8 +77,9 @@ export default function ReceiptsPage() {
             <DataTable
               data={filteredReceipts}
               columns={columns}
-              searchPlaceholder="Search receipts..."
-              searchKeys={["reference", "note"]}
+              searchPlaceholder="Search by part number..."
+              onServerSearch={setSearchQuery}
+              isSearching={isFetching}
               exportFilename="receipts"
               exportColumns={[
                 {
