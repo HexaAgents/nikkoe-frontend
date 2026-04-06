@@ -28,7 +28,7 @@ export function useAddReceipt() {
 
   return useMutation({
     mutationFn: async ({ receipt, lines }: { receipt: Record<string, unknown>; lines: ReceiptLineInput[] }) => {
-      return api.post("/receipts", { receipt, lines });
+      return api.post("/receipts/", { receipt, lines });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["receipts"] });
@@ -63,7 +63,7 @@ export function useAddSale() {
 
   return useMutation({
     mutationFn: async ({ sale, lines }: { sale: Record<string, unknown>; lines: SaleLineInput[] }) => {
-      return api.post("/sales", { sale, lines });
+      return api.post("/sales/", { sale, lines });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales"] });
@@ -97,7 +97,7 @@ export function useAddItem() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (item: ItemInput) => api.post("/items", item),
+    mutationFn: (item: ItemInput) => api.post("/items/", item),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["items"] });
       toast.success("Item added successfully");
@@ -144,7 +144,7 @@ export function useAddCategory() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (name: string) => api.post("/categories", { name }),
+    mutationFn: (name: string) => api.post("/categories/", { name }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       toast.success("Category added successfully");
@@ -174,7 +174,7 @@ export function useAddSupplier() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (supplier: SupplierInput) => api.post("/suppliers", supplier),
+    mutationFn: (supplier: SupplierInput) => api.post("/suppliers/", supplier),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
       toast.success("Supplier added successfully");
@@ -204,7 +204,7 @@ export function useAddLocation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (location: { code: string }) => api.post("/locations", location),
+    mutationFn: (location: { code: string }) => api.post("/locations/", location),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["locations"] });
       toast.success("Location added successfully");
@@ -234,7 +234,7 @@ export function useAddCustomer() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (name: string) => api.post("/customers", { name }),
+    mutationFn: (name: string) => api.post("/customers/", { name }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
     },
@@ -248,7 +248,7 @@ export function useAddSupplierQuote() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (quote: SupplierQuoteInput) => api.post("/supplier-quotes", quote),
+    mutationFn: (quote: SupplierQuoteInput) => api.post("/supplier-quotes/", quote),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["supplier_quotes", variables.item_id] });
       toast.success("Quote added successfully");

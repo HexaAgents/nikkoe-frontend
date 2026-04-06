@@ -22,7 +22,7 @@ import type {
 export function useReceipts() {
   return useQuery({
     queryKey: ["receipts"],
-    queryFn: () => api.getList<ReceiptWithRelations>("/receipts"),
+    queryFn: () => api.getList<ReceiptWithRelations>("/receipts/"),
   });
 }
 
@@ -45,7 +45,7 @@ export function useReceiptLines(receiptId: string | number) {
 export function useSales() {
   return useQuery({
     queryKey: ["sales"],
-    queryFn: () => api.getList<SaleWithRelations>("/sales"),
+    queryFn: () => api.getList<SaleWithRelations>("/sales/"),
   });
 }
 
@@ -68,7 +68,7 @@ export function useSaleLines(saleId: string | number) {
 export function useItems() {
   return useQuery({
     queryKey: ["items"],
-    queryFn: () => api.getList<ItemWithRelations>("/items"),
+    queryFn: () => api.getList<ItemWithRelations>("/items/"),
   });
 }
 
@@ -115,49 +115,49 @@ export function useItemSales(itemId: string | number) {
 export function useCategories() {
   return useQuery({
     queryKey: ["categories"],
-    queryFn: () => api.getList<Category>("/categories"),
+    queryFn: () => api.getList<Category>("/categories/"),
   });
 }
 
 export function useSuppliers() {
   return useQuery({
     queryKey: ["suppliers"],
-    queryFn: () => api.getList<Supplier>("/suppliers"),
+    queryFn: () => api.getList<Supplier>("/suppliers/"),
   });
 }
 
 export function useLocations() {
   return useQuery({
     queryKey: ["locations"],
-    queryFn: () => api.getList<Location>("/locations"),
+    queryFn: () => api.getList<Location>("/locations/"),
   });
 }
 
 export function useChannels() {
   return useQuery({
     queryKey: ["channels"],
-    queryFn: () => api.getList<Channel>("/channels"),
+    queryFn: () => api.getList<Channel>("/channels/"),
   });
 }
 
 export function useCustomers() {
   return useQuery({
     queryKey: ["customers"],
-    queryFn: () => api.getList<Customer>("/customers"),
+    queryFn: () => api.getList<Customer>("/customers/"),
   });
 }
 
 export function useCurrencies() {
   return useQuery({
     queryKey: ["currencies"],
-    queryFn: () => api.getList<Currency>("/currencies"),
+    queryFn: () => api.getList<Currency>("/currencies/"),
   });
 }
 
 export function useTransfers() {
   return useQuery({
     queryKey: ["transfers"],
-    queryFn: () => api.getList<Transfer>("/inventory/movements"),
+    queryFn: () => api.getList<Transfer>("/inventory/movements/"),
   });
 }
 
