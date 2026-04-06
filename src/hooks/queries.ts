@@ -8,6 +8,7 @@ import type {
   SaleLine,
   Item,
   ItemWithRelations,
+  ItemReceiptHistory,
   ItemSaleHistory,
   ItemSupplierQuote,
   StockWithLocation,
@@ -119,7 +120,7 @@ export function useItemInventory(itemId: string | number) {
 export function useItemReceipts(itemId: string | number) {
   return useQuery({
     queryKey: ["receipt_lines", "by_item", String(itemId)],
-    queryFn: () => api.get<Record<string, unknown>[]>(`/items/${itemId}/receipts`),
+    queryFn: () => api.get<ItemReceiptHistory[]>(`/items/${itemId}/receipts`),
     enabled: !!itemId,
   });
 }

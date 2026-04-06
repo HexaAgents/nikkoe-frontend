@@ -187,6 +187,21 @@ export interface ItemSupplierQuote {
   currency: { name: string } | null;
 }
 
+export interface ItemReceiptHistory {
+  id: number;
+  receipt_id: number;
+  quantity: number;
+  unit_price: number;
+  date: string | null;
+  status: string | null;
+  reference: string | null;
+  note: string | null;
+  suppliers: { id: number; name: string } | null;
+  users: { id: number; first_name: string; last_name: string } | null;
+  currencies: { id: number; name: string } | null;
+  locations: { id: number; code: string } | null;
+}
+
 export interface ItemSaleHistory {
   id: number;
   sale_id: number;

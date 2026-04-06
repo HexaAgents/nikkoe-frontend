@@ -23,12 +23,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useItem, useItemSupplierQuotes, useItemInventory, useItemSales, useCategories } from "@/hooks/queries";
+import { useItem, useItemSupplierQuotes, useItemInventory, useItemReceipts, useItemSales, useCategories } from "@/hooks/queries";
 import { useUpdateItem, useDeleteItem, useDeleteSupplierQuote } from "@/hooks/mutations";
 import { AddSupplierQuoteModal } from "@/components/modals/AddSupplierQuoteModal";
 import { TransferStockModal } from "@/components/modals/TransferStockModal";
 import { toast } from "sonner";
-import type { ItemSaleHistory, StockWithLocation } from "@/types/domain.types";
+import type { ItemReceiptHistory, ItemSaleHistory, StockWithLocation } from "@/types/domain.types";
 
 export default function ItemDetailPage() {
   const { id } = useParams();
@@ -39,6 +39,7 @@ export default function ItemDetailPage() {
   const { data: categories } = useCategories();
   const { data: supplierQuotes } = useItemSupplierQuotes(itemId);
   const { data: inventory } = useItemInventory(itemId);
+  const { data: receiptsHistory, isLoading: isReceiptsLoading } = useItemReceipts(itemId);
   const { data: salesHistory, isLoading: isSalesLoading } = useItemSales(itemId);
   const updateItem = useUpdateItem();
   const deleteItem = useDeleteItem();
@@ -281,6 +282,92 @@ export default function ItemDetailPage() {
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader className="border-b pb-6">
+            <div className="flex items-center justify-between">
+              <CardTitle>Receipt History</CardTitle>
+              {receiptsHistory && receiptsHistory.length > 0 && (
+                <span className="text-sm text-muted-foreground">
+                  {receiptsHistory.length} receipt{receiptsHistory.length !== 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {isReceiptsLoading ? (
+              <div className="p-6">
+                <Skeleton className="h-[120px] w-full" />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Supplier</TableHead>
+                    <TableHead>Reference</TableHead>
+                    <TableHead className="text-right">Qty</TableHead>
+                    <TableHead className="text-right">Unit Cost</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead>Currency</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Received By</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {!receiptsHistory || receiptsHistory.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
+                        No receipts recorded for this item
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    receiptsHistory.map((receipt: ItemReceiptHistory) => {
+                      const unitCost = receipt.unit_price ?? 0;
+                      const total = unitCost * (receipt.quantity ?? 0);
+                      const isVoided = receipt.status === "VOIDED";
+                      return (
+                        <TableRow
+                          key={receipt.id}
+                          className={`${isVoided ? "text-muted-foreground line-through" : ""} cursor-pointer`}
+                          onClick={() => navigate(`/receipts/${receipt.receipt_id}`)}
+                        >
+                          <TableCell className="whitespace-nowrap">
+                            {receipt.date ? new Date(receipt.date).toLocaleDateString() : "-"}
+                          </TableCell>
+                          <TableCell>{receipt.suppliers?.name ?? "-"}</TableCell>
+                          <TableCell>{receipt.reference ?? "-"}</TableCell>
+                          <TableCell className="text-right tabular-nums">{receipt.quantity ?? 0}</TableCell>
+                          <TableCell className="text-right tabular-nums">{unitCost.toFixed(2)}</TableCell>
+                          <TableCell className="text-right tabular-nums font-medium">{total.toFixed(2)}</TableCell>
+                          <TableCell>{receipt.currencies?.name ?? "-"}</TableCell>
+                          <TableCell>{receipt.locations?.code ?? "-"}</TableCell>
+                          <TableCell>
+                            {receipt.users
+                              ? `${receipt.users.first_name} ${receipt.users.last_name}`
+                              : "-"}
+                          </TableCell>
+                          <TableCell>
+                            {isVoided ? (
+                              <span className="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+                                Voided
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
+                                Completed
+                              </span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader className="border-b pb-6">
