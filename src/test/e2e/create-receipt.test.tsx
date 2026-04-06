@@ -20,6 +20,7 @@ vi.mock("@/hooks/queries", () => ({
   useSuppliers: () => ({ data: [{ id: 1, name: "Supplier A" }] }),
   useCurrencies: () => ({ data: [{ id: 1, name: "GBP" }] }),
   useItems: () => ({ data: [{ id: 1, item_id: "PART-001" }] }),
+  useItemSearch: () => ({ data: [{ id: 1, item_id: "PART-001" }], isFetching: false }),
   useLocations: () => ({ data: [{ id: 1, code: "SHELF-A" }] }),
   useCurrentUser: () => ({ data: { user_id: 1, name: "Test User" } }),
   useCategories: () => ({ data: [] }),

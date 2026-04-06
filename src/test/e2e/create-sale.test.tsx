@@ -21,6 +21,7 @@ vi.mock("@/hooks/queries", () => ({
   useCurrencies: () => ({ data: [{ id: 1, name: "GBP" }] }),
   useCustomers: () => ({ data: [{ id: 1, name: "Existing Customer" }] }),
   useItems: () => ({ data: [{ id: 1, item_id: "PART-001" }] }),
+  useItemSearch: () => ({ data: [{ id: 1, item_id: "PART-001" }], isFetching: false }),
   useLocations: () => ({ data: [{ id: 1, code: "SHELF-A" }] }),
   useInventoryOnHand: () => ({ data: [{ id: 1, item_id: 1, location_id: 1, quantity: 10 }] }),
   useCurrentUser: () => ({ data: null }),
