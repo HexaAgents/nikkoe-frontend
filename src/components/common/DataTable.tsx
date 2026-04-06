@@ -45,6 +45,8 @@ interface DataTableProps<T> {
   onServerSearch?: (query: string) => void;
   /** Show a loading spinner in the search box during server search. */
   isSearching?: boolean;
+  /** Pre-fill the search input (e.g. restored from URL params). */
+  defaultSearchValue?: string;
 }
 
 const DEBOUNCE_MS = 300;
@@ -66,8 +68,9 @@ export function DataTable<T extends object>({
   exportColumns: exportColumnsProp,
   onServerSearch,
   isSearching = false,
+  defaultSearchValue = "",
 }: DataTableProps<T>) {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(defaultSearchValue);
   const [currentPage, setCurrentPage] = useState(1);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 

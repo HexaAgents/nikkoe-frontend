@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo, useCallback } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DataTable } from "@/components/common/DataTable";
 import { useSales } from "@/hooks/queries";
@@ -13,9 +13,56 @@ import type { SaleWithRelations } from "@/types/domain.types";
 
 export default function SalesPage() {
   const navigate = useNavigate();
-  const [showVoided, setShowVoided] = useState(false);
-  const [showSalesHistory, setShowSalesHistory] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const searchQuery = searchParams.get("search") ?? "";
+  const showVoided = searchParams.get("voided") === "1";
+  const showSalesHistory = searchParams.get("history") === "1" || searchQuery !== "";
+
+  const setSearchQuery = useCallback(
+    (q: string) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (q) {
+          next.set("search", q);
+          next.set("history", "1");
+        } else {
+          next.delete("search");
+        }
+        return next;
+      }, { replace: true });
+    },
+    [setSearchParams],
+  );
+
+  const setShowVoided = useCallback(
+    (v: boolean) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (v) next.set("voided", "1");
+        else next.delete("voided");
+        return next;
+      }, { replace: true });
+    },
+    [setSearchParams],
+  );
+
+  const setShowSalesHistory = useCallback(
+    (show: boolean) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (show) next.set("history", "1");
+        else {
+          next.delete("history");
+          next.delete("search");
+          next.delete("voided");
+        }
+        return next;
+      }, { replace: true });
+    },
+    [setSearchParams],
+  );
+
   const { data: sales, isLoading, isFetching } = useSales(searchQuery || undefined);
 
   const filteredSales = useMemo(() => {
@@ -63,7 +110,7 @@ export default function SalesPage() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => setShowSalesHistory((prev) => !prev)}
+            onClick={() => setShowSalesHistory(!showSalesHistory)}
             aria-expanded={showSalesHistory}
           >
             {showSalesHistory ? "Hide recent sales" : "Show recent sales"}
@@ -79,6 +126,7 @@ export default function SalesPage() {
               columns={columns}
               searchPlaceholder="Search by part number..."
               onServerSearch={setSearchQuery}
+              defaultSearchValue={searchQuery}
               isSearching={isFetching}
               exportFilename="sales"
               onRowClick={handleRowClick}
