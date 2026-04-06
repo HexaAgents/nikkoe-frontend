@@ -2,7 +2,7 @@ import { LogOut, Settings } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import hexaLogo from "@/assets/hexa-logo.png";
+import nikkoLogo from "@/assets/nikko-logo.png";
 
 export function AppTopBar() {
   const { signOut, user } = useAuth();
@@ -23,8 +23,7 @@ export function AppTopBar() {
               to="/sales"
               className="flex shrink-0 items-center gap-2.5 text-white/90 hover:text-white"
             >
-              <img src={hexaLogo} alt="Hexa" className="h-7 w-7 rounded-sm bg-primary object-contain p-[3px]" />
-              <span className="font-display text-lg font-normal">Hexa</span>
+              <img src={nikkoLogo} alt="Nikko" className="h-12 object-contain" />
             </NavLink>
 
             <nav className="flex items-center gap-1" aria-label="Main">
