@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   Settings2,
-  Package,
   Users,
   Tags,
   MapPin,
@@ -10,14 +9,12 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { cn } from "@/lib/utils";
 import { ChangePasswordForm } from "@/components/settings/ChangePasswordForm";
 import { AddUserForm } from "@/components/settings/AddUserForm";
-import ItemsPage from "@/pages/Items";
 import SuppliersPage from "@/pages/Suppliers";
 import CategoriesPage from "@/pages/Categories";
 import LocationsPage from "@/pages/Locations";
 
 type SettingsSection =
   | "general"
-  | "items"
   | "suppliers"
   | "categories"
   | "locations";
@@ -33,7 +30,6 @@ const navSections: {
   {
     label: "Inventory",
     items: [
-      { id: "items", label: "Items", icon: Package },
       { id: "suppliers", label: "Suppliers", icon: Users },
       { id: "categories", label: "Categories", icon: Tags },
       { id: "locations", label: "Locations", icon: MapPin },
@@ -100,7 +96,6 @@ export default function Settings() {
             </div>
           )}
 
-          {activeSection === "items" && <ItemsPage embedded />}
           {activeSection === "suppliers" && <SuppliersPage embedded />}
           {activeSection === "categories" && <CategoriesPage embedded />}
           {activeSection === "locations" && <LocationsPage embedded />}

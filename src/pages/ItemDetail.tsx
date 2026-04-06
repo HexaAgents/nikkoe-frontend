@@ -23,7 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useItem, useItemSupplierQuotes, useItemInventory, useItemReceipts, useItemSales, useCategories } from "@/hooks/queries";
+import { useItem, useItemSupplierQuotes, useItemInventory, useCategories } from "@/hooks/queries";
 import { useUpdateItem, useDeleteItem, useDeleteSupplierQuote } from "@/hooks/mutations";
 import { AddSupplierQuoteModal } from "@/components/modals/AddSupplierQuoteModal";
 import { toast } from "sonner";
@@ -37,8 +37,6 @@ export default function ItemDetailPage() {
   const { data: categories } = useCategories();
   const { data: supplierQuotes } = useItemSupplierQuotes(itemId);
   const { data: inventory } = useItemInventory(itemId);
-  const { data: receipts } = useItemReceipts(itemId);
-  const { data: sales } = useItemSales(itemId);
   const updateItem = useUpdateItem();
   const deleteItem = useDeleteItem();
   const deleteQuote = useDeleteSupplierQuote();
@@ -116,7 +114,7 @@ export default function ItemDetailPage() {
             <Button variant="ghost" size="icon-sm" onClick={() => navigate(-1)}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="font-display text-[28px] font-normal text-foreground">{item.part_number}</h1>
+            <h1 className="font-display text-[28px] font-normal text-foreground">{item.item_id}</h1>
           </div>
           <div className="flex gap-2">
             {!isEditing && (
@@ -133,7 +131,7 @@ export default function ItemDetailPage() {
 
         <Card>
           <CardContent className="space-y-4 pt-6">
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-3">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Description</Label>
                 {isEditing ? (
@@ -154,7 +152,7 @@ export default function ItemDetailPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {categories?.map((cat) => (
-                        <SelectItem key={cat.category_id} value={String(cat.category_id)}>
+                        <SelectItem key={cat.id} value={String(cat.id)}>
                           {cat.name}
                         </SelectItem>
                       ))}
@@ -163,6 +161,12 @@ export default function ItemDetailPage() {
                 ) : (
                   <p className="text-[13px]">{item.categories?.name || "-"}</p>
                 )}
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Total Quantity</Label>
+                <p className="text-[13px]">
+                  {inventory?.reduce((sum, inv) => sum + (inv.quantity ?? 0), 0) ?? "-"}
+                </p>
               </div>
             </div>
             {isEditing && (
@@ -207,16 +211,16 @@ export default function ItemDetailPage() {
                     </TableRow>
                   ) : (
                     supplierQuotes?.map((quote) => (
-                      <TableRow key={quote.quote_id}>
-                        <TableCell>{new Date(quote.quoted_at).toLocaleDateString()}</TableCell>
-                        <TableCell className="font-medium">{quote.suppliers?.supplier_name}</TableCell>
-                        <TableCell>{quote.unit_cost}</TableCell>
-                        <TableCell>{quote.currency}</TableCell>
+                      <TableRow key={quote.id}>
+                        <TableCell>{quote.date_time ? new Date(quote.date_time).toLocaleDateString() : "-"}</TableCell>
+                        <TableCell className="font-medium">{quote.supplier?.name ?? "-"}</TableCell>
+                        <TableCell>{quote.cost}</TableCell>
+                        <TableCell>{quote.currency?.name ?? "-"}</TableCell>
                         <TableCell>
                           <Button
                             variant="ghost"
                             size="icon-sm"
-                            onClick={() => handleDeleteQuote(quote.quote_id)}
+                            onClick={() => handleDeleteQuote(quote.id)}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -251,8 +255,8 @@ export default function ItemDetailPage() {
                   ) : (
                     inventory?.map((inv) => (
                       <TableRow key={`${inv.item_id}-${inv.location_id}`}>
-                        <TableCell>{inv.locations?.location_code}</TableCell>
-                        <TableCell>{inv.quantity_on_hand}</TableCell>
+                        <TableCell>{inv.location?.code ?? "-"}</TableCell>
+                        <TableCell>{inv.quantity}</TableCell>
                       </TableRow>
                     ))
                   )}
@@ -262,95 +266,6 @@ export default function ItemDetailPage() {
           </Card>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader className="border-b pb-6">
-              <CardTitle>Sales</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Sale ID</TableHead>
-                    <TableHead>Quantity</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Currency</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sales?.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground">
-                        No sales
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    sales?.map((sale) => (
-                      <TableRow 
-                        key={sale.sale_line_id}
-                        className="cursor-pointer"
-                        onClick={() => navigate(`/sales/${sale.sales?.sale_id}`)}
-                      >
-                        <TableCell>{sale.sales?.sale_id}</TableCell>
-                        <TableCell>{sale.quantity}</TableCell>
-                        <TableCell className="font-medium">{sale.locations?.location_code}</TableCell>
-                        <TableCell>{sale.unit_price}</TableCell>
-                        <TableCell>{sale.currency}</TableCell>
-                        <TableCell>{new Date(sale.sales?.sold_at || "").toLocaleString()}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="border-b pb-6">
-              <CardTitle>Receipts</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Receipt ID</TableHead>
-                    <TableHead>Quantity</TableHead>
-                    <TableHead>Supplier</TableHead>
-                    <TableHead>Unit Cost</TableHead>
-                    <TableHead>Currency</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {receipts?.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground">
-                        No receipts
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    receipts?.map((receipt) => (
-                      <TableRow 
-                        key={receipt.receipt_line_id}
-                        className="cursor-pointer"
-                        onClick={() => navigate(`/receipts/${receipt.receipts?.receipt_id}`)}
-                      >
-                        <TableCell>{receipt.receipts?.receipt_id}</TableCell>
-                        <TableCell>{receipt.quantity}</TableCell>
-                        <TableCell className="font-medium">{receipt.receipts?.suppliers?.supplier_name}</TableCell>
-                        <TableCell>{receipt.unit_cost}</TableCell>
-                        <TableCell>{receipt.currency}</TableCell>
-                        <TableCell>{new Date(receipt.receipts?.received_at || "").toLocaleString()}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </div>
       </div>
       <AddSupplierQuoteModal
         open={isAddQuoteModalOpen}

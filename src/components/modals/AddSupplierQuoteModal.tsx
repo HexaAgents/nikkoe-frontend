@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSuppliers } from "@/hooks/queries";
+import { useSuppliers, useCurrencies } from "@/hooks/queries";
 import { useAddSupplierQuote } from "@/hooks/mutations";
 
 interface AddSupplierQuoteModalProps {
@@ -27,12 +27,13 @@ interface AddSupplierQuoteModalProps {
 
 export function AddSupplierQuoteModal({ open, onOpenChange, itemId }: AddSupplierQuoteModalProps) {
   const { data: suppliers } = useSuppliers();
+  const { data: currencies } = useCurrencies();
   const addQuote = useAddSupplierQuote();
   const [formData, setFormData] = useState({
     supplier_id: "",
-    unit_cost: "",
-    currency: "GBP",
-    quoted_at: new Date().toISOString().split("T")[0],
+    cost: "",
+    currency_id: "",
+    date_time: new Date().toISOString().split("T")[0],
     note: "",
   });
 
@@ -41,16 +42,16 @@ export function AddSupplierQuoteModal({ open, onOpenChange, itemId }: AddSupplie
     await addQuote.mutateAsync({
       item_id: itemId,
       supplier_id: parseInt(formData.supplier_id),
-      unit_cost: parseFloat(formData.unit_cost),
-      currency: formData.currency,
-      quoted_at: formData.quoted_at ? new Date(formData.quoted_at).toISOString() : undefined,
+      cost: parseFloat(formData.cost),
+      currency_id: parseInt(formData.currency_id),
+      date_time: formData.date_time ? new Date(formData.date_time).toISOString() : undefined,
       note: formData.note || undefined,
     });
     setFormData({
       supplier_id: "",
-      unit_cost: "",
-      currency: "GBP",
-      quoted_at: new Date().toISOString().split("T")[0],
+      cost: "",
+      currency_id: "",
+      date_time: new Date().toISOString().split("T")[0],
       note: "",
     });
     onOpenChange(false);
@@ -76,46 +77,48 @@ export function AddSupplierQuoteModal({ open, onOpenChange, itemId }: AddSupplie
                 </SelectTrigger>
                 <SelectContent>
                   {suppliers?.map((s) => (
-                    <SelectItem key={s.supplier_id} value={String(s.supplier_id)}>
-                      {s.supplier_name}
+                    <SelectItem key={s.id} value={String(s.id)}>
+                      {s.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="quoted_at">Date</Label>
+              <Label htmlFor="date_time">Date</Label>
               <Input
-                id="quoted_at"
+                id="date_time"
                 type="date"
-                value={formData.quoted_at}
-                onChange={(e) => setFormData({ ...formData, quoted_at: e.target.value })}
+                value={formData.date_time}
+                onChange={(e) => setFormData({ ...formData, date_time: e.target.value })}
                 required
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="unitCost">Unit Cost</Label>
+                <Label htmlFor="cost">Unit Cost</Label>
                 <Input
-                  id="unitCost"
+                  id="cost"
                   type="number"
                   step="0.01"
                   min="0"
-                  value={formData.unit_cost}
-                  onChange={(e) => setFormData({ ...formData, unit_cost: e.target.value })}
+                  value={formData.cost}
+                  onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
                   required
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="currency">Currency</Label>
-                <Select value={formData.currency} onValueChange={(value) => setFormData({ ...formData, currency: value })}>
+                <Label htmlFor="currency_id">Currency</Label>
+                <Select value={formData.currency_id} onValueChange={(value) => setFormData({ ...formData, currency_id: value })}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select currency" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="GBP">GBP</SelectItem>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
+                    {currencies?.map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

@@ -173,6 +173,26 @@ export interface UserProfile {
   email_address: string | null;
 }
 
+export interface ItemSupplierQuote {
+  id: number;
+  item_id: number;
+  supplier_id: number;
+  cost: number;
+  currency_id: number;
+  date_time: string | null;
+  note: string | null;
+  supplier: { name: string } | null;
+  currency: { name: string } | null;
+}
+
+export interface StockWithLocation {
+  id: number;
+  item_id: number;
+  location_id: number;
+  quantity: number;
+  location: { code: string } | null;
+}
+
 export interface SupplierQuoteInput {
   item_id: number;
   supplier_id: number;

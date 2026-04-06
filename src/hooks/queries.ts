@@ -8,6 +8,8 @@ import type {
   SaleLine,
   Item,
   ItemWithRelations,
+  ItemSupplierQuote,
+  StockWithLocation,
   Category,
   Supplier,
   Location,
@@ -83,7 +85,7 @@ export function useItem(itemId: string | number) {
 export function useItemSupplierQuotes(itemId: string | number) {
   return useQuery({
     queryKey: ["supplier_quotes", String(itemId)],
-    queryFn: () => api.get<Record<string, unknown>[]>(`/items/${itemId}/quotes`),
+    queryFn: () => api.get<ItemSupplierQuote[]>(`/items/${itemId}/quotes`),
     enabled: !!itemId,
   });
 }
@@ -91,7 +93,7 @@ export function useItemSupplierQuotes(itemId: string | number) {
 export function useItemInventory(itemId: string | number) {
   return useQuery({
     queryKey: ["inventory_balances", String(itemId)],
-    queryFn: () => api.get<Record<string, unknown>[]>(`/items/${itemId}/inventory`),
+    queryFn: () => api.get<StockWithLocation[]>(`/items/${itemId}/inventory`),
     enabled: !!itemId,
   });
 }

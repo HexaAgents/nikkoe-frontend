@@ -36,7 +36,7 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
   ];
 
   const handleRowClick = (item: ItemWithRelations) => {
-    navigate(`/items/${item.item_id}`);
+    navigate(`/items/${item.id}`);
   };
 
   const loadingView = (
