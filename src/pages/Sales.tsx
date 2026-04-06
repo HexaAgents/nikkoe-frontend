@@ -15,7 +15,8 @@ export default function SalesPage() {
   const navigate = useNavigate();
   const [showVoided, setShowVoided] = useState(false);
   const [showSalesHistory, setShowSalesHistory] = useState(false);
-  const { data: sales, isLoading } = useSales();
+  const [searchQuery, setSearchQuery] = useState("");
+  const { data: sales, isLoading, isFetching } = useSales(searchQuery || undefined);
 
   const filteredSales = useMemo(() => {
     if (!sales) return [];
@@ -76,8 +77,9 @@ export default function SalesPage() {
             <DataTable
               data={filteredSales}
               columns={columns}
-              searchPlaceholder="Search sales..."
-              searchKeys={["customer_name"]}
+              searchPlaceholder="Search by part number..."
+              onServerSearch={setSearchQuery}
+              isSearching={isFetching}
               exportFilename="sales"
               onRowClick={handleRowClick}
               idKey="id"

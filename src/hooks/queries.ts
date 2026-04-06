@@ -8,6 +8,7 @@ import type {
   SaleLine,
   Item,
   ItemWithRelations,
+  ItemSaleHistory,
   ItemSupplierQuote,
   StockWithLocation,
   Category,
@@ -44,10 +45,12 @@ export function useReceiptLines(receiptId: string | number) {
   });
 }
 
-export function useSales() {
+export function useSales(search?: string) {
+  const params = search ? `?search=${encodeURIComponent(search)}` : "";
   return useQuery({
-    queryKey: ["sales"],
-    queryFn: () => api.getList<SaleWithRelations>("/sales/"),
+    queryKey: ["sales", { search }],
+    queryFn: () => api.getList<SaleWithRelations>(`/sales/${params}`),
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -121,7 +124,7 @@ export function useItemReceipts(itemId: string | number) {
 export function useItemSales(itemId: string | number) {
   return useQuery({
     queryKey: ["sale_lines", "by_item", String(itemId)],
-    queryFn: () => api.get<Record<string, unknown>[]>(`/items/${itemId}/sales`),
+    queryFn: () => api.get<ItemSaleHistory[]>(`/items/${itemId}/sales`),
     enabled: !!itemId,
   });
 }
