@@ -23,16 +23,17 @@ interface SearchablePartPickerProps {
   value: string;
   onSelect: (itemId: string) => void;
   hasError?: boolean;
+  inStockOnly?: boolean;
 }
 
-export function SearchablePartPicker({ value, onSelect, hasError }: SearchablePartPickerProps) {
+export function SearchablePartPicker({ value, onSelect, hasError, inStockOnly }: SearchablePartPickerProps) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const labelCacheRef = useRef<Map<string, string>>(new Map());
 
-  const { data: results, isFetching } = useItemSearch(debouncedQuery);
+  const { data: results, isFetching } = useItemSearch(debouncedQuery, inStockOnly);
 
   const items = useMemo(
     () => results?.map((i) => ({ id: String(i.id), partNumber: i.item_id })) ?? [],

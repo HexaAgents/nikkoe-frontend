@@ -79,13 +79,14 @@ export function useItems() {
   });
 }
 
-export function useItemSearch(query: string) {
+export function useItemSearch(query: string, inStockOnly = false) {
   return useQuery({
-    queryKey: ["items", "search", query],
-    queryFn: () =>
-      api.getList<ItemWithRelations>(
-        `/items/search?q=${encodeURIComponent(query)}`
-      ),
+    queryKey: ["items", "search", query, { inStockOnly }],
+    queryFn: () => {
+      const params = new URLSearchParams({ q: query });
+      if (inStockOnly) params.set("in_stock", "true");
+      return api.getList<ItemWithRelations>(`/items/search?${params}`);
+    },
     enabled: query.length > 0,
     placeholderData: keepPreviousData,
   });

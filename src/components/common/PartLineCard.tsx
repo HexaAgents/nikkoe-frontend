@@ -35,6 +35,7 @@ interface PartLineCardProps {
   onRemove: (index: number) => void;
   extraPartActions?: React.ReactNode;
   extraLocationActions?: React.ReactNode;
+  inStockOnly?: boolean;
 }
 
 export function PartLineCard({
@@ -51,6 +52,7 @@ export function PartLineCard({
   onRemove,
   extraPartActions,
   extraLocationActions,
+  inStockOnly,
 }: PartLineCardProps) {
   return (
     <Card className={`border-primary/20 ${showErrors && errors.length > 0 ? "border-destructive" : ""}`}>
@@ -79,6 +81,7 @@ export function PartLineCard({
               value={part.item_id}
               onSelect={(id) => onPartSelect(index, id)}
               hasError={showErrors && errors.includes("Part Number")}
+              inStockOnly={inStockOnly}
             />
             {extraPartActions}
           </div>

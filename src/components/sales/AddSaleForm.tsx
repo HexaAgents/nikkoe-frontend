@@ -109,11 +109,13 @@ export function AddSaleForm({
   const getAutoLocation = (itemId: string) => {
     if (!inventoryOnHand || !itemId) return "";
     const numId = Number(itemId);
-    const stockRows = inventoryOnHand
-      .filter((row) => row.item_id === numId && (row.quantity ?? 0) > 0)
+    const allRows = inventoryOnHand.filter((row) => row.item_id === numId);
+    if (allRows.length === 0) return "";
+    const withStock = allRows
+      .filter((row) => (row.quantity ?? 0) > 0)
       .sort((a, b) => (a.quantity ?? 0) - (b.quantity ?? 0));
-    if (stockRows.length === 0) return "";
-    return stockRows[0].location_id?.toString() || "";
+    const best = withStock.length > 0 ? withStock[0] : allRows[0];
+    return best.location_id?.toString() || "";
   };
 
   const resetForm = () => {
@@ -283,6 +285,7 @@ export function AddSaleForm({
             onPartSelect={handlePartSelect}
             onFieldChange={handlePartChange}
             onRemove={(i) => setParts(parts.filter((_, j) => j !== i))}
+            inStockOnly
           />
         ))}
       </div>
