@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DataTable } from "@/components/common/DataTable";
-import { useItems } from "@/hooks/queries";
+import { useItems, useItemSearch } from "@/hooks/queries";
 import { AddItemModal } from "@/components/modals/AddItemModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ItemWithRelations } from "@/types/domain.types";
@@ -15,7 +15,17 @@ interface ItemsPageProps {
 export default function ItemsPage({ embedded = false }: ItemsPageProps) {
   const navigate = useNavigate();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const { data: items, isLoading } = useItems();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const { data: allItems, isLoading } = useItems();
+  const { data: searchResults, isFetching: isSearching } = useItemSearch(searchQuery);
+
+  const isActiveSearch = searchQuery.length > 0;
+  const items = isActiveSearch ? searchResults : allItems;
+
+  const handleServerSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+  }, []);
 
   const columns = [
     { key: "item_id", header: "Part Number" },
@@ -57,10 +67,11 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
         <DataTable
           data={items || []}
           columns={columns}
-          searchPlaceholder="Search items..."
+          searchPlaceholder="Search part numbers..."
           onAdd={() => setIsAddModalOpen(true)}
           addButtonText="Add Item"
-          searchKeys={["item_id", "description"]}
+          onServerSearch={handleServerSearch}
+          isSearching={isSearching}
           exportFilename="items"
           onRowClick={handleRowClick}
           idKey="id"

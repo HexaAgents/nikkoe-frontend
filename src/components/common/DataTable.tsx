@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Search, Plus, Download } from "lucide-react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { Search, Plus, Download, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,7 +41,13 @@ interface DataTableProps<T> {
   toolbarExtra?: React.ReactNode;
   exportOptions?: ExportOptions<T>;
   exportColumns?: { key: string; header: string; render?: (item: T) => string }[];
+  /** When provided, search is delegated to the server via this callback (debounced). */
+  onServerSearch?: (query: string) => void;
+  /** Show a loading spinner in the search box during server search. */
+  isSearching?: boolean;
 }
+
+const DEBOUNCE_MS = 300;
 
 export function DataTable<T extends object>({
   data,
@@ -58,9 +64,30 @@ export function DataTable<T extends object>({
   toolbarExtra,
   exportOptions,
   exportColumns: exportColumnsProp,
+  onServerSearch,
+  isSearching = false,
 }: DataTableProps<T>) {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchQuery(value);
+      setCurrentPage(1);
+      if (onServerSearch) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+          onServerSearch(value.trim());
+        }, DEBOUNCE_MS);
+      }
+    },
+    [onServerSearch],
+  );
+
+  useEffect(() => {
+    return () => clearTimeout(debounceRef.current);
+  }, []);
 
   const getItemKey = (item: T, index: number): string => {
     const val = item[idKey];
@@ -68,6 +95,7 @@ export function DataTable<T extends object>({
   };
 
   const filteredData = useMemo(() => {
+    if (onServerSearch) return data;
     if (!searchQuery.trim()) return data;
 
     const query = searchQuery.toLowerCase();
@@ -86,7 +114,7 @@ export function DataTable<T extends object>({
         return false;
       })
     );
-  }, [data, searchQuery, searchKeys]);
+  }, [data, searchQuery, searchKeys, onServerSearch]);
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -131,14 +159,15 @@ export function DataTable<T extends object>({
           Export Excel
         </Button>
         <div className="relative w-52">
-          <Search className="absolute left-2.5 top-1/2 h-[13px] w-[13px] -translate-y-1/2 text-muted-foreground" />
+          {isSearching ? (
+            <Loader2 className="absolute left-2.5 top-1/2 h-[13px] w-[13px] -translate-y-1/2 animate-spin text-muted-foreground" />
+          ) : (
+            <Search className="absolute left-2.5 top-1/2 h-[13px] w-[13px] -translate-y-1/2 text-muted-foreground" />
+          )}
           <Input
             placeholder={searchPlaceholder}
             value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="h-9 bg-background pl-8 text-xs"
           />
         </div>

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import type {
@@ -71,6 +71,18 @@ export function useItems() {
   return useQuery({
     queryKey: ["items"],
     queryFn: () => api.getList<ItemWithRelations>("/items/"),
+  });
+}
+
+export function useItemSearch(query: string) {
+  return useQuery({
+    queryKey: ["items", "search", query],
+    queryFn: () =>
+      api.getList<ItemWithRelations>(
+        `/items/search?q=${encodeURIComponent(query)}`
+      ),
+    enabled: query.length > 0,
+    placeholderData: keepPreviousData,
   });
 }
 
