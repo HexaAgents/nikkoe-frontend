@@ -14,7 +14,7 @@ export default function LocationsPage({ embedded = false }: LocationsPageProps) 
   const { data: locations, isLoading } = useLocations();
 
   const columns = [
-    { key: "location_code", header: "Location" },
+    { key: "code", header: "Location" },
   ];
 
   const loadingView = (
@@ -38,9 +38,9 @@ export default function LocationsPage({ embedded = false }: LocationsPageProps) 
           searchPlaceholder="Search locations..."
           onAdd={() => setIsAddModalOpen(true)}
           addButtonText="Add Location"
-          searchKeys={["location_code"]}
+          searchKeys={["code"]}
           exportFilename="locations"
-          idKey="location_id"
+          idKey="id"
         />
       </div>
       <AddLocationModal open={isAddModalOpen} onOpenChange={setIsAddModalOpen} />

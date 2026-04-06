@@ -14,10 +14,10 @@ export default function SuppliersPage({ embedded = false }: SuppliersPageProps) 
   const { data: suppliers, isLoading } = useSuppliers();
 
   const columns = [
-    { key: "supplier_name", header: "Name" },
-    { key: "supplier_address", header: "Address" },
-    { key: "supplier_email", header: "Email" },
-    { key: "supplier_phone", header: "Phone" },
+    { key: "name", header: "Name" },
+    { key: "address", header: "Address" },
+    { key: "email", header: "Email" },
+    { key: "phone", header: "Phone" },
   ];
 
   const loadingView = (
@@ -41,9 +41,9 @@ export default function SuppliersPage({ embedded = false }: SuppliersPageProps) 
           searchPlaceholder="Search suppliers..."
           onAdd={() => setIsAddModalOpen(true)}
           addButtonText="Add Supplier"
-          searchKeys={["supplier_name", "supplier_email", "supplier_address"]}
+          searchKeys={["name", "email", "address"]}
           exportFilename="suppliers"
-          idKey="supplier_id"
+          idKey="id"
         />
       </div>
       <AddSupplierModal open={isAddModalOpen} onOpenChange={setIsAddModalOpen} />
