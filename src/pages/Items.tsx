@@ -30,7 +30,7 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
       header: "Quantity",
       render: (item: ItemWithRelations) => {
         const qty = (item as Record<string, unknown>).total_quantity as number;
-        return qty > 0 ? qty : "-";
+        return qty ?? 0;
       },
     },
   ];
