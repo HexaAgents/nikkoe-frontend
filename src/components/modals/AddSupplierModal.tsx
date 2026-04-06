@@ -19,16 +19,16 @@ interface AddSupplierModalProps {
 export function AddSupplierModal({ open, onOpenChange }: AddSupplierModalProps) {
   const addSupplier = useAddSupplier();
   const [formData, setFormData] = useState({
-    supplier_name: "",
-    supplier_address: "",
-    supplier_email: "",
-    supplier_phone: "",
+    name: "",
+    address: "",
+    email: "",
+    phone: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await addSupplier.mutateAsync(formData);
-    setFormData({ supplier_name: "", supplier_address: "", supplier_email: "", supplier_phone: "" });
+    setFormData({ name: "", address: "", email: "", phone: "" });
     onOpenChange(false);
   };
 
@@ -44,8 +44,8 @@ export function AddSupplierModal({ open, onOpenChange }: AddSupplierModalProps) 
               <Label htmlFor="name">Name</Label>
               <Input
                 id="name"
-                value={formData.supplier_name}
-                onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
               />
             </div>
@@ -53,8 +53,8 @@ export function AddSupplierModal({ open, onOpenChange }: AddSupplierModalProps) 
               <Label htmlFor="address">Address</Label>
               <Input
                 id="address"
-                value={formData.supplier_address}
-                onChange={(e) => setFormData({ ...formData, supplier_address: e.target.value })}
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               />
             </div>
             <div className="grid gap-2">
@@ -62,16 +62,16 @@ export function AddSupplierModal({ open, onOpenChange }: AddSupplierModalProps) 
               <Input
                 id="email"
                 type="email"
-                value={formData.supplier_email}
-                onChange={(e) => setFormData({ ...formData, supplier_email: e.target.value })}
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="phone">Phone</Label>
               <Input
                 id="phone"
-                value={formData.supplier_phone}
-                onChange={(e) => setFormData({ ...formData, supplier_phone: e.target.value })}
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               />
             </div>
           </div>

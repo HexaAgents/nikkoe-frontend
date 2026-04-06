@@ -23,7 +23,7 @@ export function AddLocationModal({ open, onOpenChange }: AddLocationModalProps) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await addLocation.mutateAsync({
-      location_code: locationCode,
+      code: locationCode,
     });
     setLocationCode("");
     onOpenChange(false);

@@ -37,7 +37,7 @@ export function AddItemModal({ open, onOpenChange }: AddItemModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await addItem.mutateAsync({
-      part_number: formData.part_number,
+      item_id: formData.part_number,
       description: formData.description || undefined,
       category_id: formData.category_id ? parseInt(formData.category_id) : undefined,
     });
