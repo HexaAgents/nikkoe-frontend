@@ -5,7 +5,6 @@ import {
   Users,
   Tags,
   MapPin,
-  ClipboardList,
 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { cn } from "@/lib/utils";
@@ -15,15 +14,13 @@ import ItemsPage from "@/pages/Items";
 import SuppliersPage from "@/pages/Suppliers";
 import CategoriesPage from "@/pages/Categories";
 import LocationsPage from "@/pages/Locations";
-import LogPage from "@/pages/Log";
 
 type SettingsSection =
   | "general"
   | "items"
   | "suppliers"
   | "categories"
-  | "locations"
-  | "log";
+  | "locations";
 
 const navSections: {
   label: string;
@@ -40,7 +37,6 @@ const navSections: {
       { id: "suppliers", label: "Suppliers", icon: Users },
       { id: "categories", label: "Categories", icon: Tags },
       { id: "locations", label: "Locations", icon: MapPin },
-      { id: "log", label: "Log", icon: ClipboardList },
     ],
   },
 ];
@@ -108,7 +104,6 @@ export default function Settings() {
           {activeSection === "suppliers" && <SuppliersPage embedded />}
           {activeSection === "categories" && <CategoriesPage embedded />}
           {activeSection === "locations" && <LocationsPage embedded />}
-          {activeSection === "log" && <LogPage embedded />}
         </div>
       </div>
     </MainLayout>
