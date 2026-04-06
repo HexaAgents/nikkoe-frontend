@@ -98,6 +98,8 @@ export interface ItemReceiptLine {
 export interface ItemWithRelations extends Item {
   inventory_balances: InventoryBalance[];
   receipt_lines: ItemReceiptLine[];
+  locations?: string[];
+  total_quantity?: number;
 }
 
 export interface ItemInput {
@@ -185,6 +187,22 @@ export interface ItemSupplierQuote {
   currency: { name: string } | null;
 }
 
+export interface ItemSaleHistory {
+  id: number;
+  sale_id: number;
+  quantity: number;
+  unit_price: string;
+  date: string | null;
+  status: string | null;
+  note: string | null;
+  channel_ref: string | null;
+  customers: { id: number; name: string } | null;
+  channels: { id: number; name: string } | null;
+  users: { id: number; first_name: string; last_name: string } | null;
+  currencies: { id: number; name: string } | null;
+  locations: { id: number; code: string } | null;
+}
+
 export interface StockWithLocation {
   id: number;
   item_id: number;
@@ -200,4 +218,11 @@ export interface SupplierQuoteInput {
   currency_id: number;
   date_time?: string;
   note?: string;
+}
+
+export interface TransferInput {
+  from_stock_id: number;
+  to_location_id: number;
+  quantity: number;
+  notes?: string;
 }

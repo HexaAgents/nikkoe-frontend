@@ -36,6 +36,15 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
       render: (item: ItemWithRelations) => item.categories?.name || "-",
     },
     {
+      key: "locations",
+      header: "Locations",
+      render: (item: ItemWithRelations) => {
+        const locs = item.locations ?? [];
+        if (locs.length === 0) return "-";
+        return locs.join(", ");
+      },
+    },
+    {
       key: "total_quantity",
       header: "Quantity",
       render: (item: ItemWithRelations) => {
@@ -79,6 +88,7 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
             { key: "item_id", header: "Part Number" },
             { key: "description", header: "Description" },
             { key: "category", header: "Category", render: (item: ItemWithRelations) => item.categories?.name || "" },
+            { key: "locations", header: "Locations", render: (item: ItemWithRelations) => (item.locations ?? []).join(", ") },
             { key: "total_quantity", header: "Quantity", render: (item: ItemWithRelations) => String((item as Record<string, unknown>).total_quantity || 0) },
           ]}
         />

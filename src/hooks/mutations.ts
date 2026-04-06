@@ -7,9 +7,10 @@ import type {
   ItemInput,
   SupplierInput,
   SupplierQuoteInput,
+  TransferInput,
 } from "@/types/domain.types";
 
-export type { ReceiptLineInput, SaleLineInput, ItemInput, SupplierInput, SupplierQuoteInput } from "@/types/domain.types";
+export type { ReceiptLineInput, SaleLineInput, ItemInput, SupplierInput, SupplierQuoteInput, TransferInput } from "@/types/domain.types";
 
 export {
   saleInputSchema,
@@ -280,6 +281,24 @@ export function useDeleteSupplierQuote() {
     },
     onError: (error) => {
       toast.error(`Failed to delete quote: ${error.message}`);
+    },
+  });
+}
+
+export function useTransferStock() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: TransferInput) => api.post("/inventory/transfer", input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inventory_balances"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory_on_hand"] });
+      queryClient.invalidateQueries({ queryKey: ["items"] });
+      queryClient.invalidateQueries({ queryKey: ["transfers"] });
+      toast.success("Stock transferred successfully");
+    },
+    onError: (error) => {
+      toast.error(`Failed to transfer stock: ${error.message}`);
     },
   });
 }
