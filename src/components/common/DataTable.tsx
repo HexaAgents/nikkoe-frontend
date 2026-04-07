@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Search, Plus, Download, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -26,6 +27,13 @@ interface Column<T> {
   render?: (item: T) => React.ReactNode;
 }
 
+export interface ServerPaginationProps {
+  total: number;
+  page: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+}
+
 interface DataTableProps<T> {
   data: T[];
   columns: Column<T>[];
@@ -47,6 +55,8 @@ interface DataTableProps<T> {
   isSearching?: boolean;
   /** Pre-fill the search input (e.g. restored from URL params). */
   defaultSearchValue?: string;
+  /** When provided, pagination is driven by the server instead of client-side slicing. */
+  serverPagination?: ServerPaginationProps;
 }
 
 const DEBOUNCE_MS = 300;
@@ -69,15 +79,19 @@ export function DataTable<T extends object>({
   onServerSearch,
   isSearching = false,
   defaultSearchValue = "",
+  serverPagination,
 }: DataTableProps<T>) {
   const [searchQuery, setSearchQuery] = useState(defaultSearchValue);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [clientPage, setClientPage] = useState(1);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const isServerPaginated = !!serverPagination;
+  const currentPage = isServerPaginated ? serverPagination.page : clientPage;
 
   const handleSearchChange = useCallback(
     (value: string) => {
       setSearchQuery(value);
-      setCurrentPage(1);
+      if (!isServerPaginated) setClientPage(1);
       if (onServerSearch) {
         clearTimeout(debounceRef.current);
         debounceRef.current = setTimeout(() => {
@@ -85,7 +99,7 @@ export function DataTable<T extends object>({
         }, DEBOUNCE_MS);
       }
     },
-    [onServerSearch],
+    [onServerSearch, isServerPaginated],
   );
 
   useEffect(() => {
@@ -98,7 +112,7 @@ export function DataTable<T extends object>({
   };
 
   const filteredData = useMemo(() => {
-    if (onServerSearch) return data;
+    if (onServerSearch || isServerPaginated) return data;
     if (!searchQuery.trim()) return data;
 
     const query = searchQuery.toLowerCase();
@@ -117,15 +131,25 @@ export function DataTable<T extends object>({
         return false;
       })
     );
-  }, [data, searchQuery, searchKeys, onServerSearch]);
+  }, [data, searchQuery, searchKeys, onServerSearch, isServerPaginated]);
 
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedData = filteredData.slice(startIndex, startIndex + itemsPerPage);
+  const totalPages = isServerPaginated
+    ? Math.ceil(serverPagination.total / serverPagination.pageSize)
+    : Math.ceil(filteredData.length / itemsPerPage);
+
+  const paginatedData = isServerPaginated
+    ? data
+    : filteredData.slice(
+        (clientPage - 1) * itemsPerPage,
+        (clientPage - 1) * itemsPerPage + itemsPerPage,
+      );
 
   const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
+    if (page < 1 || page > totalPages) return;
+    if (isServerPaginated) {
+      serverPagination.onPageChange(page);
+    } else {
+      setClientPage(page);
     }
   };
 
@@ -257,6 +281,44 @@ export function DataTable<T extends object>({
           </PaginationContent>
         </Pagination>
       )}
+    </div>
+  );
+}
+
+const SKELETON_COLUMN_WIDTHS = ["w-24", "w-48", "w-20", "w-16", "w-14"];
+
+export function DataTableSkeleton({ columns = 5, rows = 8 }: { columns?: number; rows?: number }) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-9 w-[100px]" />
+        <Skeleton className="h-9 w-[120px]" />
+        <Skeleton className="h-9 w-52" />
+      </div>
+      <div className="overflow-hidden rounded-none border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {Array.from({ length: columns }, (_, i) => (
+                <TableHead key={i}>
+                  <Skeleton className={`h-4 ${SKELETON_COLUMN_WIDTHS[i % SKELETON_COLUMN_WIDTHS.length]}`} />
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: rows }, (_, rowIdx) => (
+              <TableRow key={rowIdx}>
+                {Array.from({ length: columns }, (_, colIdx) => (
+                  <TableCell key={colIdx}>
+                    <Skeleton className={`h-4 ${SKELETON_COLUMN_WIDTHS[colIdx % SKELETON_COLUMN_WIDTHS.length]}`} />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

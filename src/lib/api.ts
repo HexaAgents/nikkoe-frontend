@@ -35,13 +35,21 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
   return res.json();
 }
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+}
+
 export const api = {
   get: <T = unknown>(path: string) => apiFetch<T>(path),
 
   getList: async <T = unknown>(path: string): Promise<T[]> => {
-    const res = await apiFetch<{ data: T[]; total: number }>(path);
+    const res = await apiFetch<PaginatedResponse<T>>(path);
     return res.data;
   },
+
+  getListPaginated: <T = unknown>(path: string) =>
+    apiFetch<PaginatedResponse<T>>(path),
 
   post: <T = unknown>(path: string, body: unknown) =>
     apiFetch<T>(path, { method: "POST", body: JSON.stringify(body) }),

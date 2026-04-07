@@ -73,23 +73,38 @@ export function useSaleLines(saleId: string | number) {
   });
 }
 
-export function useItems() {
+export function useItems({ page = 1, pageSize = 20 } = {}) {
+  const offset = (page - 1) * pageSize;
   return useQuery({
-    queryKey: ["items"],
-    queryFn: () => api.getList<ItemWithRelations>("/items/"),
+    queryKey: ["items", { page, pageSize }],
+    queryFn: () =>
+      api.getListPaginated<ItemWithRelations>(
+        `/items/?limit=${pageSize}&offset=${offset}`,
+      ),
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
   });
 }
 
-export function useItemSearch(query: string, inStockOnly = false) {
+export function useItemSearch(
+  query: string,
+  { page = 1, pageSize = 20, inStockOnly = false } = {},
+) {
+  const offset = (page - 1) * pageSize;
   return useQuery({
-    queryKey: ["items", "search", query, { inStockOnly }],
+    queryKey: ["items", "search", query, { page, pageSize, inStockOnly }],
     queryFn: () => {
-      const params = new URLSearchParams({ q: query });
+      const params = new URLSearchParams({
+        q: query,
+        limit: String(pageSize),
+        offset: String(offset),
+      });
       if (inStockOnly) params.set("in_stock", "true");
-      return api.getList<ItemWithRelations>(`/items/search?${params}`);
+      return api.getListPaginated<ItemWithRelations>(`/items/search?${params}`);
     },
     enabled: query.length > 0,
     placeholderData: keepPreviousData,
+    staleTime: 60_000,
   });
 }
 

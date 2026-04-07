@@ -33,10 +33,10 @@ export function SearchablePartPicker({ value, onSelect, hasError, inStockOnly }:
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const labelCacheRef = useRef<Map<string, string>>(new Map());
 
-  const { data: results, isFetching } = useItemSearch(debouncedQuery, inStockOnly);
+  const { data: results, isFetching } = useItemSearch(debouncedQuery, { inStockOnly: !!inStockOnly });
 
   const items = useMemo(
-    () => results?.map((i) => ({ id: String(i.id), partNumber: i.item_id })) ?? [],
+    () => results?.data.map((i) => ({ id: String(i.id), partNumber: i.item_id })) ?? [],
     [results],
   );
 
