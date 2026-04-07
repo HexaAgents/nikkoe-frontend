@@ -27,10 +27,11 @@ import type {
 } from "@/types/domain.types";
 
 export function useReceipts(search?: string) {
-  const params = search ? `?search=${encodeURIComponent(search)}` : "";
+  const qs = new URLSearchParams({ limit: "5000" });
+  if (search) qs.set("search", search);
   return useQuery({
     queryKey: ["receipts", { search }],
-    queryFn: () => api.getList<ReceiptWithRelations>(`/receipts/${params}`),
+    queryFn: () => api.getList<ReceiptWithRelations>(`/receipts/?${qs}`),
     placeholderData: keepPreviousData,
   });
 }
@@ -52,10 +53,11 @@ export function useReceiptLines(receiptId: string | number) {
 }
 
 export function useSales(search?: string) {
-  const params = search ? `?search=${encodeURIComponent(search)}` : "";
+  const qs = new URLSearchParams({ limit: "5000" });
+  if (search) qs.set("search", search);
   return useQuery({
     queryKey: ["sales", { search }],
-    queryFn: () => api.getList<SaleWithRelations>(`/sales/${params}`),
+    queryFn: () => api.getList<SaleWithRelations>(`/sales/?${qs}`),
     placeholderData: keepPreviousData,
   });
 }
