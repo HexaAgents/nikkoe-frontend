@@ -124,7 +124,7 @@ export function PartLineCard({
               value={part.quantity}
               onChange={(e) => onFieldChange(index, "quantity", e.target.value)}
               className={cn(
-                "min-w-0 flex-1",
+                "min-w-0 max-w-[100px]",
                 showErrors && errors.includes("Quantity") && "border-destructive",
                 exceedsStock && "border-amber-500",
               )}
@@ -132,11 +132,11 @@ export function PartLineCard({
             {availableQuantity != null && (
               <span
                 className={cn(
-                  "shrink-0 text-sm tabular-nums",
+                  "shrink-0 text-sm",
                   exceedsStock ? "font-medium text-amber-600" : "text-muted-foreground",
                 )}
               >
-                /{availableQuantity}
+                out of {availableQuantity}
               </span>
             )}
           </div>
