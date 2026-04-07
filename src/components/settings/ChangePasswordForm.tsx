@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,8 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 export function ChangePasswordForm() {
-  const { user, changePassword } = useAuth();
+  const { user, changePassword, signOut } = useAuth();
+  const navigate = useNavigate();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -38,6 +40,8 @@ export function ChangePasswordForm() {
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
+        await signOut();
+        navigate("/login", { replace: true });
       }
     } catch {
       toast.error("An unexpected error occurred");
