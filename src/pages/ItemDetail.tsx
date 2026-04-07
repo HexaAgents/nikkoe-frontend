@@ -304,93 +304,95 @@ export default function ItemDetailPage() {
                 <Skeleton className="h-[120px] w-full" />
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Supplier</TableHead>
-                    <TableHead>Reference</TableHead>
-                    <TableHead className="text-right">Qty</TableHead>
-                    <TableHead className="text-right">Unit Cost</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead>Currency</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Received By</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {!receiptsHistory || receiptsHistory.length === 0 ? (
+              <>
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
-                        No receipts recorded for this item
-                      </TableCell>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Supplier</TableHead>
+                      <TableHead>Reference</TableHead>
+                      <TableHead className="text-right">Qty</TableHead>
+                      <TableHead className="text-right">Unit Cost</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead>Currency</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Received By</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ) : (
-                    (showAllReceipts ? receiptsHistory : receiptsHistory.slice(0, PREVIEW_ROWS)).map((receipt: ItemReceiptHistory) => {
-                      const unitCost = receipt.unit_price ?? 0;
-                      const total = unitCost * (receipt.quantity ?? 0);
-                      const isVoided = receipt.status === "VOIDED";
-                      return (
-                        <TableRow
-                          key={receipt.id}
-                          className={`${isVoided ? "text-muted-foreground line-through" : ""} cursor-pointer`}
-                          onClick={() => navigate(`/receipts/${receipt.receipt_id}`)}
-                        >
-                          <TableCell className="whitespace-nowrap">
-                            {receipt.date ? new Date(receipt.date).toLocaleDateString() : "-"}
-                          </TableCell>
-                          <TableCell>{receipt.suppliers?.name ?? "-"}</TableCell>
-                          <TableCell>{receipt.reference ?? "-"}</TableCell>
-                          <TableCell className="text-right tabular-nums">{receipt.quantity ?? 0}</TableCell>
-                          <TableCell className="text-right tabular-nums">{unitCost.toFixed(2)}</TableCell>
-                          <TableCell className="text-right tabular-nums font-medium">{total.toFixed(2)}</TableCell>
-                          <TableCell>{receipt.currencies?.name ?? "-"}</TableCell>
-                          <TableCell>{receipt.locations?.code ?? "-"}</TableCell>
-                          <TableCell>
-                            {receipt.users
-                              ? `${receipt.users.first_name} ${receipt.users.last_name}`
-                              : "-"}
-                          </TableCell>
-                          <TableCell>
-                            {isVoided ? (
-                              <span className="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
-                                Voided
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
-                                Completed
-                              </span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-              {receiptsHistory && receiptsHistory.length > PREVIEW_ROWS && (
-                <div className="border-t px-4 py-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-muted-foreground"
-                    onClick={() => setShowAllReceipts(!showAllReceipts)}
-                  >
-                    {showAllReceipts ? (
-                      <>
-                        <ChevronUp className="mr-2 h-4 w-4" />
-                        Show less
-                      </>
+                  </TableHeader>
+                  <TableBody>
+                    {!receiptsHistory || receiptsHistory.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
+                          No receipts recorded for this item
+                        </TableCell>
+                      </TableRow>
                     ) : (
-                      <>
-                        <ChevronDown className="mr-2 h-4 w-4" />
-                        See all {receiptsHistory.length} receipts
-                      </>
+                      (showAllReceipts ? receiptsHistory : receiptsHistory.slice(0, PREVIEW_ROWS)).map((receipt: ItemReceiptHistory) => {
+                        const unitCost = receipt.unit_price ?? 0;
+                        const total = unitCost * (receipt.quantity ?? 0);
+                        const isVoided = receipt.status === "VOIDED";
+                        return (
+                          <TableRow
+                            key={receipt.id}
+                            className={`${isVoided ? "text-muted-foreground line-through" : ""} cursor-pointer`}
+                            onClick={() => navigate(`/receipts/${receipt.receipt_id}`)}
+                          >
+                            <TableCell className="whitespace-nowrap">
+                              {receipt.date ? new Date(receipt.date).toLocaleDateString() : "-"}
+                            </TableCell>
+                            <TableCell>{receipt.suppliers?.name ?? "-"}</TableCell>
+                            <TableCell>{receipt.reference ?? "-"}</TableCell>
+                            <TableCell className="text-right tabular-nums">{receipt.quantity ?? 0}</TableCell>
+                            <TableCell className="text-right tabular-nums">{unitCost.toFixed(2)}</TableCell>
+                            <TableCell className="text-right tabular-nums font-medium">{total.toFixed(2)}</TableCell>
+                            <TableCell>{receipt.currencies?.name ?? "-"}</TableCell>
+                            <TableCell>{receipt.locations?.code ?? "-"}</TableCell>
+                            <TableCell>
+                              {receipt.users
+                                ? `${receipt.users.first_name} ${receipt.users.last_name}`
+                                : "-"}
+                            </TableCell>
+                            <TableCell>
+                              {isVoided ? (
+                                <span className="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+                                  Voided
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
+                                  Completed
+                                </span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
                     )}
-                  </Button>
-                </div>
-              )}
+                  </TableBody>
+                </Table>
+                {receiptsHistory && receiptsHistory.length > PREVIEW_ROWS && (
+                  <div className="border-t px-4 py-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-muted-foreground"
+                      onClick={() => setShowAllReceipts(!showAllReceipts)}
+                    >
+                      {showAllReceipts ? (
+                        <>
+                          <ChevronUp className="mr-2 h-4 w-4" />
+                          Show less
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="mr-2 h-4 w-4" />
+                          See all {receiptsHistory.length} receipts
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
@@ -412,93 +414,95 @@ export default function ItemDetailPage() {
                 <Skeleton className="h-[120px] w-full" />
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Channel</TableHead>
-                    <TableHead className="text-right">Qty</TableHead>
-                    <TableHead className="text-right">Unit Price</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead>Currency</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Sold By</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {!salesHistory || salesHistory.length === 0 ? (
+              <>
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
-                        No sales recorded for this item
-                      </TableCell>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Channel</TableHead>
+                      <TableHead className="text-right">Qty</TableHead>
+                      <TableHead className="text-right">Unit Price</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead>Currency</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Sold By</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ) : (
-                    (showAllSales ? salesHistory : salesHistory.slice(0, PREVIEW_ROWS)).map((sale: ItemSaleHistory) => {
-                      const unitPrice = parseFloat(sale.unit_price) || 0;
-                      const total = unitPrice * (sale.quantity ?? 0);
-                      const isVoided = sale.status === "VOIDED";
-                      return (
-                        <TableRow
-                          key={sale.id}
-                          className={`${isVoided ? "text-muted-foreground line-through" : ""} cursor-pointer`}
-                          onClick={() => navigate(`/sales/${sale.sale_id}`)}
-                        >
-                          <TableCell className="whitespace-nowrap">
-                            {sale.date ? new Date(sale.date).toLocaleDateString() : "-"}
-                          </TableCell>
-                          <TableCell>{sale.customers?.name ?? "-"}</TableCell>
-                          <TableCell>{sale.channels?.name ?? "-"}</TableCell>
-                          <TableCell className="text-right tabular-nums">{sale.quantity ?? 0}</TableCell>
-                          <TableCell className="text-right tabular-nums">{unitPrice.toFixed(2)}</TableCell>
-                          <TableCell className="text-right tabular-nums font-medium">{total.toFixed(2)}</TableCell>
-                          <TableCell>{sale.currencies?.name ?? "-"}</TableCell>
-                          <TableCell>{sale.locations?.code ?? "-"}</TableCell>
-                          <TableCell>
-                            {sale.users
-                              ? `${sale.users.first_name} ${sale.users.last_name}`
-                              : "-"}
-                          </TableCell>
-                          <TableCell>
-                            {isVoided ? (
-                              <span className="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
-                                Voided
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
-                                Completed
-                              </span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-              {salesHistory && salesHistory.length > PREVIEW_ROWS && (
-                <div className="border-t px-4 py-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-muted-foreground"
-                    onClick={() => setShowAllSales(!showAllSales)}
-                  >
-                    {showAllSales ? (
-                      <>
-                        <ChevronUp className="mr-2 h-4 w-4" />
-                        Show less
-                      </>
+                  </TableHeader>
+                  <TableBody>
+                    {!salesHistory || salesHistory.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
+                          No sales recorded for this item
+                        </TableCell>
+                      </TableRow>
                     ) : (
-                      <>
-                        <ChevronDown className="mr-2 h-4 w-4" />
-                        See all {salesHistory.length} sales
-                      </>
+                      (showAllSales ? salesHistory : salesHistory.slice(0, PREVIEW_ROWS)).map((sale: ItemSaleHistory) => {
+                        const unitPrice = parseFloat(sale.unit_price) || 0;
+                        const total = unitPrice * (sale.quantity ?? 0);
+                        const isVoided = sale.status === "VOIDED";
+                        return (
+                          <TableRow
+                            key={sale.id}
+                            className={`${isVoided ? "text-muted-foreground line-through" : ""} cursor-pointer`}
+                            onClick={() => navigate(`/sales/${sale.sale_id}`)}
+                          >
+                            <TableCell className="whitespace-nowrap">
+                              {sale.date ? new Date(sale.date).toLocaleDateString() : "-"}
+                            </TableCell>
+                            <TableCell>{sale.customers?.name ?? "-"}</TableCell>
+                            <TableCell>{sale.channels?.name ?? "-"}</TableCell>
+                            <TableCell className="text-right tabular-nums">{sale.quantity ?? 0}</TableCell>
+                            <TableCell className="text-right tabular-nums">{unitPrice.toFixed(2)}</TableCell>
+                            <TableCell className="text-right tabular-nums font-medium">{total.toFixed(2)}</TableCell>
+                            <TableCell>{sale.currencies?.name ?? "-"}</TableCell>
+                            <TableCell>{sale.locations?.code ?? "-"}</TableCell>
+                            <TableCell>
+                              {sale.users
+                                ? `${sale.users.first_name} ${sale.users.last_name}`
+                                : "-"}
+                            </TableCell>
+                            <TableCell>
+                              {isVoided ? (
+                                <span className="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+                                  Voided
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
+                                  Completed
+                                </span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
                     )}
-                  </Button>
-                </div>
-              )}
+                  </TableBody>
+                </Table>
+                {salesHistory && salesHistory.length > PREVIEW_ROWS && (
+                  <div className="border-t px-4 py-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-muted-foreground"
+                      onClick={() => setShowAllSales(!showAllSales)}
+                    >
+                      {showAllSales ? (
+                        <>
+                          <ChevronUp className="mr-2 h-4 w-4" />
+                          Show less
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="mr-2 h-4 w-4" />
+                          See all {salesHistory.length} sales
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
