@@ -258,14 +258,14 @@ export default function ItemDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {inventory?.length === 0 ? (
+                  {inventory?.filter((inv) => inv.quantity > 0).length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={3} className="text-center text-muted-foreground">
                         No inventory records
                       </TableCell>
                     </TableRow>
                   ) : (
-                    inventory?.map((inv) => (
+                    inventory?.filter((inv) => inv.quantity > 0).map((inv) => (
                       <TableRow key={`${inv.item_id}-${inv.location_id}`}>
                         <TableCell>{inv.location?.code ?? "-"}</TableCell>
                         <TableCell>{inv.quantity}</TableCell>
