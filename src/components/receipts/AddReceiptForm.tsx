@@ -94,13 +94,17 @@ export function AddReceiptForm({
   const [showErrors, setShowErrors] = useState(false);
 
   const validation = useMemo(() => {
+    const headerErrors: string[] = [];
+    if (!supplierId) headerErrors.push("Supplier");
+    if (!reference.trim()) headerErrors.push("Reference");
+
     const errors: { partIndex: number; fields: string[] }[] = [];
     parts.forEach((part, index) => {
       const fields = getPartLineFieldErrors(part);
       if (fields.length > 0) errors.push({ partIndex: index, fields });
     });
-    return { isValid: errors.length === 0, errors };
-  }, [parts]);
+    return { isValid: headerErrors.length === 0 && errors.length === 0, headerErrors, errors };
+  }, [parts, supplierId, reference]);
 
   const getInventoryRowsForItem = (itemId: string) => {
     if (!inventoryOnHand || !itemId) return [];
@@ -190,8 +194,11 @@ export function AddReceiptForm({
     <>
       <form onSubmit={handleSubmit} className={cn(className)}>
         <div className={cn("space-y-6", variant === "inline" ? "py-0" : "py-4")}>
+          {showErrors && validation.headerErrors.length > 0 && (
+            <p className="text-sm text-destructive">Missing: {validation.headerErrors.join(", ")}</p>
+          )}
           <div className="flex flex-wrap items-center gap-4">
-            <Label className="w-24 shrink-0 text-muted-foreground">Supplier:</Label>
+            <Label className={`w-24 shrink-0 ${showErrors && !supplierId ? "text-destructive" : "text-muted-foreground"}`}>Supplier:</Label>
             <Select key={`supplier-${formKey}`} value={supplierId || undefined} onValueChange={setSupplierId}>
               <SelectTrigger className="min-w-0 flex-1">
                 <SelectValue placeholder="Select supplier" />
@@ -207,11 +214,11 @@ export function AddReceiptForm({
           </div>
 
           <div className="flex items-center gap-4">
-            <Label className="w-24 shrink-0 text-muted-foreground">Reference:</Label>
+            <Label className={`w-24 shrink-0 ${showErrors && !reference.trim() ? "text-destructive" : "text-muted-foreground"}`}>Reference:</Label>
             <Input
               value={reference}
               onChange={(e) => setReference(e.target.value)}
-              className="min-w-0 flex-1"
+              className={cn("min-w-0 flex-1", showErrors && !reference.trim() && "border-destructive")}
               placeholder="PO, ASN, or other reference"
             />
           </div>
