@@ -90,15 +90,13 @@ export function AddReceiptForm({
   const validation = useMemo(() => {
     const headerErrors: string[] = [];
     if (!supplierId) headerErrors.push("Supplier");
-    if (!reference.trim()) headerErrors.push("Reference");
-
     const errors: { partIndex: number; fields: string[] }[] = [];
     parts.forEach((part, index) => {
       const fields = getPartLineFieldErrors(part);
       if (fields.length > 0) errors.push({ partIndex: index, fields });
     });
     return { isValid: headerErrors.length === 0 && errors.length === 0, headerErrors, errors };
-  }, [parts, supplierId, reference]);
+  }, [parts, supplierId]);
 
   const getInventoryRowsForItem = (itemId: string) => {
     if (!inventoryOnHand || !itemId) return [];
@@ -203,12 +201,12 @@ export function AddReceiptForm({
           </div>
 
           <div className="flex items-center gap-4">
-            <Label className={`w-24 shrink-0 ${showErrors && !reference.trim() ? "text-destructive" : "text-muted-foreground"}`}>Reference:</Label>
+            <Label className="w-24 shrink-0 text-muted-foreground">Reference:</Label>
             <Input
               value={reference}
               onChange={(e) => setReference(e.target.value)}
-              className={cn("min-w-0 flex-1", showErrors && !reference.trim() && "border-destructive")}
-              placeholder="PO, ASN, or other reference"
+              className="min-w-0 flex-1"
+              placeholder="PO, ASN, or other reference (optional)"
             />
           </div>
 
