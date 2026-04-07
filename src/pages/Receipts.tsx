@@ -11,35 +11,58 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ReceiptWithRelations } from "@/types/domain.types";
 
+const receiptColumns = [
+  {
+    key: "dateTime",
+    header: "Date/Time",
+    render: (receipt: ReceiptWithRelations) => receipt.dateTime ? new Date(receipt.dateTime).toLocaleString() : "—",
+  },
+  {
+    key: "supplier",
+    header: "Supplier",
+    render: (receipt: ReceiptWithRelations) => receipt.suppliers?.name || "—",
+  },
+  {
+    key: "reference",
+    header: "Reference",
+    render: (receipt: ReceiptWithRelations) => receipt.reference?.trim() || "—",
+  },
+];
+
+const receiptExportColumns = [
+  {
+    key: "dateTime",
+    header: "Date/Time",
+    render: (r: ReceiptWithRelations) => r.dateTime ? new Date(r.dateTime).toLocaleString() : "",
+  },
+  {
+    key: "supplier",
+    header: "Supplier",
+    render: (r: ReceiptWithRelations) => r.suppliers?.name ?? "",
+  },
+  {
+    key: "reference",
+    header: "Reference",
+    render: (r: ReceiptWithRelations) => r.reference?.trim() ?? "",
+  },
+  {
+    key: "note",
+    header: "Note",
+    render: (r: ReceiptWithRelations) => r.note?.trim() ?? "",
+  },
+];
+
 export default function ReceiptsPage() {
   const navigate = useNavigate();
   const [showVoided, setShowVoided] = useState(false);
   const [showReceiptsHistory, setShowReceiptsHistory] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { data: receipts, isLoading, isFetching } = useReceipts(searchQuery || undefined);
+  const { data: receipts, isLoading, isFetching } = useReceipts(searchQuery || undefined, showReceiptsHistory);
 
   const filteredReceipts = useMemo(() => {
     if (!receipts) return [];
     return showVoided ? receipts : receipts.filter((r) => r.status !== "VOIDED");
   }, [receipts, showVoided]);
-
-  const columns = [
-    {
-      key: "dateTime",
-      header: "Date/Time",
-      render: (receipt: ReceiptWithRelations) => receipt.dateTime ? new Date(receipt.dateTime).toLocaleString() : "—",
-    },
-    {
-      key: "supplier",
-      header: "Supplier",
-      render: (receipt: ReceiptWithRelations) => receipt.suppliers?.name || "—",
-    },
-    {
-      key: "reference",
-      header: "Reference",
-      render: (receipt: ReceiptWithRelations) => receipt.reference?.trim() || "—",
-    },
-  ];
 
   const handleRowClick = (receipt: ReceiptWithRelations) => {
     navigate(`/receipts/${receipt.id}`);
@@ -76,33 +99,12 @@ export default function ReceiptsPage() {
           ) : (
             <DataTable
               data={filteredReceipts}
-              columns={columns}
+              columns={receiptColumns}
               searchPlaceholder="Search by part number..."
               onServerSearch={setSearchQuery}
               isSearching={isFetching}
               exportFilename="receipts"
-              exportColumns={[
-                {
-                  key: "dateTime",
-                  header: "Date/Time",
-                  render: (r: ReceiptWithRelations) => r.dateTime ? new Date(r.dateTime).toLocaleString() : "",
-                },
-                {
-                  key: "supplier",
-                  header: "Supplier",
-                  render: (r: ReceiptWithRelations) => r.suppliers?.name ?? "",
-                },
-                {
-                  key: "reference",
-                  header: "Reference",
-                  render: (r: ReceiptWithRelations) => r.reference?.trim() ?? "",
-                },
-                {
-                  key: "note",
-                  header: "Note",
-                  render: (r: ReceiptWithRelations) => r.note?.trim() ?? "",
-                },
-              ]}
+              exportColumns={receiptExportColumns}
               onRowClick={handleRowClick}
               idKey="id"
               rowClassName={(receipt) => (receipt.status === "VOIDED" ? "text-destructive" : "")}

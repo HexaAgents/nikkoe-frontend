@@ -26,13 +26,14 @@ import type {
   UserProfile,
 } from "@/types/domain.types";
 
-export function useReceipts(search?: string) {
+export function useReceipts(search?: string, enabled = true) {
   const qs = new URLSearchParams({ limit: "5000" });
   if (search) qs.set("search", search);
   return useQuery({
     queryKey: ["receipts", { search }],
     queryFn: () => api.getList<ReceiptWithRelations>(`/receipts/?${qs}`),
     placeholderData: keepPreviousData,
+    enabled,
   });
 }
 

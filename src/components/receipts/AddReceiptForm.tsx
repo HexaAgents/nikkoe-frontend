@@ -5,17 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useAddReceipt } from "@/hooks/mutations";
 import type { ReceiptLineInput } from "@/types/domain.types";
 import { AddItemModal } from "@/components/modals/AddItemModal";
 import { AddLocationModal } from "@/components/modals/AddLocationModal";
+import { SearchableSupplierPicker } from "@/components/common/SearchableSupplierPicker";
 import { PartLineCard } from "@/components/common/PartLineCard";
 import type { PartLine } from "@/components/common/PartLineCard";
 import { cn } from "@/lib/utils";
@@ -199,18 +193,13 @@ export function AddReceiptForm({
           )}
           <div className="flex flex-wrap items-center gap-4">
             <Label className={`w-24 shrink-0 ${showErrors && !supplierId ? "text-destructive" : "text-muted-foreground"}`}>Supplier:</Label>
-            <Select key={`supplier-${formKey}`} value={supplierId || undefined} onValueChange={setSupplierId}>
-              <SelectTrigger className="min-w-0 flex-1">
-                <SelectValue placeholder="Select supplier" />
-              </SelectTrigger>
-              <SelectContent>
-                {suppliers?.map((supplier) => (
-                  <SelectItem key={supplier.id} value={supplier.id.toString()}>
-                    {supplier.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSupplierPicker
+              key={`supplier-${formKey}`}
+              suppliers={suppliers}
+              value={supplierId}
+              onSelect={setSupplierId}
+              hasError={showErrors && !supplierId}
+            />
           </div>
 
           <div className="flex items-center gap-4">
