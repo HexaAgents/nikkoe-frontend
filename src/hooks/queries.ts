@@ -268,6 +268,7 @@ export function useInventoryOnHand() {
   return useQuery({
     queryKey: ["inventory_on_hand"],
     queryFn: () => api.get<InventoryOnHand[]>("/inventory/on-hand"),
+    staleTime: 0,
   });
 }
 
