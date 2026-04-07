@@ -22,6 +22,7 @@ vi.mock("@/hooks/queries", () => ({
   useItems: () => ({ data: { data: [{ id: 1, item_id: "PART-001" }], total: 1 } }),
   useItemSearch: () => ({ data: { data: [{ id: 1, item_id: "PART-001" }], total: 1 }, isFetching: false }),
   useLocations: () => ({ data: [{ id: 1, code: "SHELF-A" }] }),
+  useInventoryOnHand: () => ({ data: [] }),
   useCurrentUser: () => ({ data: { user_id: 1, name: "Test User" } }),
   useCategories: () => ({ data: [] }),
 }));
@@ -46,7 +47,7 @@ describe("Create Receipt Form", () => {
     await userEvent.click(screen.getByRole("button", { name: /create receipt/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/missing/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/missing/i).length).toBeGreaterThan(0);
     });
     expect(mockMutateAsync).not.toHaveBeenCalled();
   });
