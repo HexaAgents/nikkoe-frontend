@@ -134,7 +134,7 @@ export default function ReceiptsPage() {
             <DataTable
               data={receipts}
               columns={receiptColumns}
-              searchPlaceholder="Search by part number..."
+              searchPlaceholder="Search receipts..."
               onServerSearch={handleServerSearch}
               isSearching={isFetching}
               exportFilename="receipts"

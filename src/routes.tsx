@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { DataPrefetcher } from "@/components/DataPrefetcher";
 import Index from "./pages/Index";
 import Items from "./pages/Items";
 import ItemDetail from "./pages/ItemDetail";
@@ -25,6 +26,8 @@ function Protected({ children }: { children: React.ReactNode }) {
 
 export function AppRoutes() {
   return (
+    <>
+    <DataPrefetcher />
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
@@ -45,5 +48,6 @@ export function AppRoutes() {
       <Route path="/settings" element={<Protected><Settings /></Protected>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
+    </>
   );
 }

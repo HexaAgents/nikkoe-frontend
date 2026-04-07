@@ -150,7 +150,7 @@ export default function SalesPage() {
             <DataTable
               data={sales}
               columns={columns}
-              searchPlaceholder="Search by part number..."
+              searchPlaceholder="Search sales..."
               onServerSearch={setSearchQuery}
               defaultSearchValue={searchQuery}
               isSearching={isFetching}

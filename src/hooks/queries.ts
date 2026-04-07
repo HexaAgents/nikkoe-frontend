@@ -218,6 +218,31 @@ export function useCategories() {
   });
 }
 
+function categoriesPageUrl(page: number, pageSize: number, search?: string) {
+  const qs = new URLSearchParams({
+    limit: String(pageSize),
+    offset: String((page - 1) * pageSize),
+  });
+  if (search) qs.set("search", search);
+  return `/categories/?${qs}`;
+}
+
+export function useCategoriesPaginated(page = 1, pageSize = 20, search?: string) {
+  return useQuery({
+    queryKey: ["categories_page", { pageSize, search }, { page }],
+    queryFn: () => api.getListPaginated<Category>(categoriesPageUrl(page, pageSize, search)),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function buildCategoriesQueryFn(page: number, pageSize: number, search?: string) {
+  return () => api.getListPaginated<Category>(categoriesPageUrl(page, pageSize, search));
+}
+
+export function categoriesPageQueryKeyBase(pageSize: number, search?: string) {
+  return ["categories_page", { pageSize, search }];
+}
+
 export function useCategory(categoryId: string | number) {
   return useQuery({
     queryKey: ["categories", String(categoryId)],
@@ -245,6 +270,31 @@ export function useSuppliers() {
   });
 }
 
+function suppliersPageUrl(page: number, pageSize: number, search?: string) {
+  const qs = new URLSearchParams({
+    limit: String(pageSize),
+    offset: String((page - 1) * pageSize),
+  });
+  if (search) qs.set("search", search);
+  return `/suppliers/?${qs}`;
+}
+
+export function useSuppliersPaginated(page = 1, pageSize = 20, search?: string) {
+  return useQuery({
+    queryKey: ["suppliers_page", { pageSize, search }, { page }],
+    queryFn: () => api.getListPaginated<Supplier>(suppliersPageUrl(page, pageSize, search)),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function buildSuppliersQueryFn(page: number, pageSize: number, search?: string) {
+  return () => api.getListPaginated<Supplier>(suppliersPageUrl(page, pageSize, search));
+}
+
+export function suppliersPageQueryKeyBase(pageSize: number, search?: string) {
+  return ["suppliers_page", { pageSize, search }];
+}
+
 export function useSupplier(supplierId: string | number) {
   return useQuery({
     queryKey: ["suppliers", String(supplierId)],
@@ -266,6 +316,31 @@ export function useLocations() {
     queryKey: ["locations"],
     queryFn: () => api.getList<Location>("/locations/"),
   });
+}
+
+function locationsPageUrl(page: number, pageSize: number, search?: string) {
+  const qs = new URLSearchParams({
+    limit: String(pageSize),
+    offset: String((page - 1) * pageSize),
+  });
+  if (search) qs.set("search", search);
+  return `/locations/?${qs}`;
+}
+
+export function useLocationsPaginated(page = 1, pageSize = 20, search?: string) {
+  return useQuery({
+    queryKey: ["locations_page", { pageSize, search }, { page }],
+    queryFn: () => api.getListPaginated<Location>(locationsPageUrl(page, pageSize, search)),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function buildLocationsQueryFn(page: number, pageSize: number, search?: string) {
+  return () => api.getListPaginated<Location>(locationsPageUrl(page, pageSize, search));
+}
+
+export function locationsPageQueryKeyBase(pageSize: number, search?: string) {
+  return ["locations_page", { pageSize, search }];
 }
 
 export function useLocationItems(locationId: string | number) {
@@ -305,6 +380,31 @@ export function useTransfers() {
 }
 
 export const useInventoryMovements = useTransfers;
+
+function movementsPageUrl(page: number, pageSize: number, search?: string) {
+  const qs = new URLSearchParams({
+    limit: String(pageSize),
+    offset: String((page - 1) * pageSize),
+  });
+  if (search) qs.set("search", search);
+  return `/inventory/movements?${qs}`;
+}
+
+export function useMovementsPaginated(page = 1, pageSize = 20, search?: string) {
+  return useQuery({
+    queryKey: ["movements_page", { pageSize, search }, { page }],
+    queryFn: () => api.getListPaginated<Transfer>(movementsPageUrl(page, pageSize, search)),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function buildMovementsQueryFn(page: number, pageSize: number, search?: string) {
+  return () => api.getListPaginated<Transfer>(movementsPageUrl(page, pageSize, search));
+}
+
+export function movementsPageQueryKeyBase(pageSize: number, search?: string) {
+  return ["movements_page", { pageSize, search }];
+}
 
 export function useInventoryOnHand() {
   return useQuery({

@@ -1,96 +1,110 @@
+import { useState, useCallback } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DataTable } from "@/components/common/DataTable";
-import { useInventoryMovements } from "@/hooks/queries";
+import {
+  useMovementsPaginated,
+  buildMovementsQueryFn,
+  movementsPageQueryKeyBase,
+} from "@/hooks/queries";
+import { usePrefetchPages } from "@/hooks/usePrefetchPages";
+import { fetchAllPages } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { InventoryMovementWithRelations } from "@/types/domain.types";
+import type { Transfer } from "@/types/domain.types";
+
+const PAGE_SIZE = 20;
 
 interface LogPageProps {
   embedded?: boolean;
 }
 
 export default function LogPage({ embedded = false }: LogPageProps) {
-  const { data: movements, isLoading } = useInventoryMovements();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+
+  const search = searchQuery || undefined;
+
+  const { data: result, isLoading, isFetching } = useMovementsPaginated(page, PAGE_SIZE, search);
+
+  const movements = result?.data ?? [];
+  const total = result?.total ?? 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  usePrefetchPages(
+    movementsPageQueryKeyBase(PAGE_SIZE, search),
+    (p) => buildMovementsQueryFn(p, PAGE_SIZE, search),
+    page,
+    totalPages,
+  );
+
+  const handleServerSearch = useCallback((q: string) => {
+    setSearchQuery(q);
+    setPage(1);
+  }, []);
+
+  const handleExportAll = useCallback(() => {
+    const params: Record<string, string> = {};
+    if (search) params.search = search;
+    return fetchAllPages<Transfer>("/inventory/movements", params);
+  }, [search]);
 
   const columns = [
-    { key: "movement_id", header: "ID" },
+    { key: "id", header: "ID" },
     {
-      key: "moved_at",
+      key: "date",
       header: "Date/Time",
-      render: (m: InventoryMovementWithRelations) => new Date(m.moved_at).toLocaleString(),
+      render: (m: Transfer) => m.date ? new Date(m.date).toLocaleString() : "-",
     },
-    { key: "movement_type", header: "Type" },
     {
       key: "item",
       header: "Item",
-      render: (m: InventoryMovementWithRelations) => m.items?.part_number || "-",
-    },
-    { key: "quantity", header: "Qty" },
-    {
-      key: "from",
-      header: "From",
-      render: (m: InventoryMovementWithRelations) => m.from_location?.location_code || "-",
+      render: (m: Transfer) => m.items?.item_id || "-",
     },
     {
-      key: "to",
-      header: "To",
-      render: (m: InventoryMovementWithRelations) => m.to_location?.location_code || "-",
+      key: "quantity",
+      header: "Qty",
+      render: (m: Transfer) => m.quantity,
     },
     {
       key: "user",
       header: "User",
-      render: (m: InventoryMovementWithRelations) => m.users?.name || "-",
-    },
-    {
-      key: "reference",
-      header: "Reference",
-      render: (m: InventoryMovementWithRelations) => {
-        if (m.receipt_id) return `Receipt #${m.receipt_id}`;
-        if (m.sale_id) return `Sale #${m.sale_id}`;
-        return "-";
+      render: (m: Transfer) => {
+        if (!m.users) return "-";
+        return [m.users.first_name, m.users.last_name].filter(Boolean).join(" ") || "-";
       },
     },
-    { key: "note", header: "Note", render: (m: InventoryMovementWithRelations) => m.note || "-" },
+    {
+      key: "notes",
+      header: "Notes",
+      render: (m: Transfer) => m.notes || "-",
+    },
   ];
 
   const exportColumns = [
-    { key: "movement_id", header: "ID" },
+    { key: "id", header: "ID" },
     {
-      key: "moved_at",
+      key: "date",
       header: "Date/Time",
-      render: (m: InventoryMovementWithRelations) => new Date(m.moved_at).toLocaleString(),
+      render: (m: Transfer) => m.date ? new Date(m.date).toLocaleString() : "",
     },
-    { key: "movement_type", header: "Type" },
     {
       key: "item",
       header: "Item",
-      render: (m: InventoryMovementWithRelations) => m.items?.part_number || "",
+      render: (m: Transfer) => m.items?.item_id || "",
     },
     { key: "quantity", header: "Qty" },
     {
-      key: "from",
-      header: "From",
-      render: (m: InventoryMovementWithRelations) => m.from_location?.location_code || "",
-    },
-    {
-      key: "to",
-      header: "To",
-      render: (m: InventoryMovementWithRelations) => m.to_location?.location_code || "",
-    },
-    {
       key: "user",
       header: "User",
-      render: (m: InventoryMovementWithRelations) => m.users?.name || "",
-    },
-    {
-      key: "reference",
-      header: "Reference",
-      render: (m: InventoryMovementWithRelations) => {
-        if (m.receipt_id) return `Receipt #${m.receipt_id}`;
-        if (m.sale_id) return `Sale #${m.sale_id}`;
-        return "";
+      render: (m: Transfer) => {
+        if (!m.users) return "";
+        return [m.users.first_name, m.users.last_name].filter(Boolean).join(" ");
       },
     },
-    { key: "note", header: "Note", render: (m: InventoryMovementWithRelations) => m.note || "" },
+    {
+      key: "notes",
+      header: "Notes",
+      render: (m: Transfer) => m.notes || "",
+    },
   ];
 
   const loadingView = (
@@ -108,13 +122,16 @@ export default function LogPage({ embedded = false }: LogPageProps) {
     <div className="space-y-6">
       {!embedded && <h1 className="font-display text-[28px] font-normal text-foreground">Log</h1>}
       <DataTable
-        data={movements || []}
+        data={movements}
         columns={columns}
-        searchPlaceholder="Search movements..."
-        searchKeys={["movement_type", "note"]}
+        searchPlaceholder="Search by part number or notes..."
+        onServerSearch={handleServerSearch}
+        isSearching={isFetching}
         exportFilename="inventory_movements"
-        idKey="movement_id"
+        idKey="id"
         exportColumns={exportColumns}
+        serverPagination={{ total, page, pageSize: PAGE_SIZE, onPageChange: setPage }}
+        onExportAll={handleExportAll}
       />
     </div>
   );
