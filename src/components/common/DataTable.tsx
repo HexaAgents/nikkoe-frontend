@@ -58,6 +58,8 @@ interface DataTableProps<T> {
   defaultSearchValue?: string;
   /** When provided, pagination is driven by the server instead of client-side slicing. */
   serverPagination?: ServerPaginationProps;
+  /** Fetch the full dataset for Excel export (server-paginated tables only). */
+  onExportAll?: () => Promise<T[]>;
 }
 
 const DEBOUNCE_MS = 300;
@@ -81,8 +83,10 @@ export function DataTable<T extends object>({
   isSearching = false,
   defaultSearchValue = "",
   serverPagination,
+  onExportAll,
 }: DataTableProps<T>) {
   const [searchQuery, setSearchQuery] = useState(defaultSearchValue);
+  const [isExporting, setIsExporting] = useState(false);
   const [clientPage, setClientPage] = useState(1);
   const [pageInput, setPageInput] = useState("1");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
@@ -170,22 +174,29 @@ export function DataTable<T extends object>({
     handlePageChange(nextPage);
   };
 
-  const handleExport = () => {
-    if (exportColumnsProp) {
-      const exportData = filteredData.map((item) => {
-        const row: Record<string, unknown> = {};
-        exportColumnsProp.forEach((col) => {
-          row[col.key] = col.render ? col.render(item) : (item[col.key as keyof T] ?? "");
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const sourceData = onExportAll ? await onExportAll() : filteredData;
+
+      if (exportColumnsProp) {
+        const exportData = sourceData.map((item) => {
+          const row: Record<string, unknown> = {};
+          exportColumnsProp.forEach((col) => {
+            row[col.key] = col.render ? col.render(item) : (item[col.key as keyof T] ?? "");
+          });
+          return row;
         });
-        return row;
-      });
-      const cols = exportColumnsProp.map((col) => ({ key: col.key, header: col.header }));
-      exportToExcel(exportData, cols, exportFilename || "export", exportOptions as ExportOptions<Record<string, unknown>>);
-    } else {
-      const exportCols = columns
-        .filter((col) => col.key !== "actions")
-        .map((col) => ({ key: String(col.key), header: col.header }));
-      exportToExcel(filteredData, exportCols, exportFilename || "export", exportOptions);
+        const cols = exportColumnsProp.map((col) => ({ key: col.key, header: col.header }));
+        exportToExcel(exportData, cols, exportFilename || "export", exportOptions as ExportOptions<Record<string, unknown>>);
+      } else {
+        const exportCols = columns
+          .filter((col) => col.key !== "actions")
+          .map((col) => ({ key: String(col.key), header: col.header }));
+        exportToExcel(sourceData, exportCols, exportFilename || "export", exportOptions);
+      }
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -198,9 +209,13 @@ export function DataTable<T extends object>({
             {addButtonText}
           </Button>
         )}
-        <Button variant="outline" onClick={handleExport}>
-          <Download className="mr-2 h-4 w-4" />
-          Export Excel
+        <Button variant="outline" onClick={handleExport} disabled={isExporting}>
+          {isExporting ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="mr-2 h-4 w-4" />
+          )}
+          {isExporting ? "Exporting…" : "Export Excel"}
         </Button>
         <div className="relative w-52">
           {isSearching ? (

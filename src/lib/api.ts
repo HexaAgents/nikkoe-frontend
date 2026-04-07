@@ -40,6 +40,29 @@ export interface PaginatedResponse<T> {
   total: number;
 }
 
+/**
+ * Fetch every row for a paginated endpoint, batching in chunks of 5 000.
+ * Used by the Excel export so it gets the full dataset, not just one page.
+ */
+export async function fetchAllPages<T>(
+  basePath: string,
+  params: Record<string, string> = {},
+): Promise<T[]> {
+  const BATCH = 5000;
+  const qs = new URLSearchParams({ ...params, limit: String(BATCH), offset: "0" });
+
+  const first = await apiFetch<PaginatedResponse<T>>(`${basePath}?${qs}`);
+  if (first.total <= BATCH) return first.data;
+
+  const promises: Promise<PaginatedResponse<T>>[] = [];
+  for (let offset = BATCH; offset < first.total; offset += BATCH) {
+    const nextQs = new URLSearchParams({ ...params, limit: String(BATCH), offset: String(offset) });
+    promises.push(apiFetch<PaginatedResponse<T>>(`${basePath}?${nextQs}`));
+  }
+  const rest = await Promise.all(promises);
+  return [first.data, ...rest.map((r) => r.data)].flat();
+}
+
 export const api = {
   get: <T = unknown>(path: string) => apiFetch<T>(path),
 

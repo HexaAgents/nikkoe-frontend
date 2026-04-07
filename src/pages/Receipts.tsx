@@ -4,6 +4,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { DataTable } from "@/components/common/DataTable";
 import { useReceipts, buildReceiptsQueryFn, receiptsQueryKeyBase } from "@/hooks/queries";
 import { usePrefetchPages } from "@/hooks/usePrefetchPages";
+import { fetchAllPages } from "@/lib/api";
 import { AddReceiptForm } from "@/components/receipts/AddReceiptForm";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -80,6 +81,13 @@ export default function ReceiptsPage() {
     totalPages,
   );
 
+  const handleExportAll = useCallback(() => {
+    const params: Record<string, string> = {};
+    if (search) params.search = search;
+    if (status) params.status = status;
+    return fetchAllPages<ReceiptWithRelations>("/receipts/", params);
+  }, [search, status]);
+
   const handleServerSearch = useCallback((q: string) => {
     setSearchQuery(q);
     setPage(1);
@@ -134,6 +142,7 @@ export default function ReceiptsPage() {
               onRowClick={handleRowClick}
               idKey="id"
               serverPagination={{ total, page, pageSize: PAGE_SIZE, onPageChange: setPage }}
+              onExportAll={handleExportAll}
               rowClassName={(receipt) => (receipt.status === "VOIDED" ? "text-destructive" : "")}
               exportOptions={{ isVoided: (receipt) => receipt.status === "VOIDED" }}
               toolbarExtra={

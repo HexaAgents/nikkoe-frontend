@@ -4,6 +4,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { DataTable, DataTableSkeleton } from "@/components/common/DataTable";
 import { useItems, useItemSearch, buildItemsQueryFn, itemsQueryKeyBase } from "@/hooks/queries";
 import { usePrefetchPages } from "@/hooks/usePrefetchPages";
+import { fetchAllPages } from "@/lib/api";
 import { AddItemModal } from "@/components/modals/AddItemModal";
 import type { ItemWithRelations } from "@/types/domain.types";
 
@@ -66,6 +67,13 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
       else setPage(newPage);
     },
   }), [total, activePage, isActiveSearch]);
+
+  const handleExportAll = useCallback(() => {
+    if (isActiveSearch) {
+      return fetchAllPages<ItemWithRelations>("/items/search", { q: searchQuery });
+    }
+    return fetchAllPages<ItemWithRelations>("/items/");
+  }, [searchQuery, isActiveSearch]);
 
   const handleServerSearch = useCallback((query: string) => {
     setSearchQuery(query);
@@ -132,6 +140,7 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
           onRowClick={handleRowClick}
           idKey="id"
           serverPagination={serverPagination}
+          onExportAll={handleExportAll}
           exportColumns={[
             { key: "item_id", header: "Part Number" },
             { key: "description", header: "Description" },

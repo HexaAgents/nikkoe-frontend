@@ -4,6 +4,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { DataTable } from "@/components/common/DataTable";
 import { useSales, buildSalesQueryFn, salesQueryKeyBase } from "@/hooks/queries";
 import { usePrefetchPages } from "@/hooks/usePrefetchPages";
+import { fetchAllPages } from "@/lib/api";
 import { AddSaleForm } from "@/components/sales/AddSaleForm";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -88,6 +89,13 @@ export default function SalesPage() {
     totalPages,
   );
 
+  const handleExportAll = useCallback(() => {
+    const params: Record<string, string> = {};
+    if (search) params.search = search;
+    if (status) params.status = status;
+    return fetchAllPages<SaleWithRelations>("/sales/", params);
+  }, [search, status]);
+
   const columns = [
     {
       key: "customer",
@@ -150,6 +158,7 @@ export default function SalesPage() {
               onRowClick={handleRowClick}
               idKey="id"
               serverPagination={{ total, page, pageSize: PAGE_SIZE, onPageChange: setPage }}
+              onExportAll={handleExportAll}
               rowClassName={(sale) => (sale.status === "VOIDED" ? "text-destructive" : "")}
               exportOptions={{ isVoided: (sale) => sale.status === "VOIDED" }}
               exportColumns={[
