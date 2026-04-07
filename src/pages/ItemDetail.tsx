@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Edit, Trash2, Plus, ArrowRightLeft } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Plus, ArrowRightLeft, ChevronDown, ChevronUp } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +50,10 @@ export default function ItemDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isAddQuoteModalOpen, setIsAddQuoteModalOpen] = useState(false);
   const [transferStock, setTransferStock] = useState<StockWithLocation | null>(null);
+  const [showAllReceipts, setShowAllReceipts] = useState(false);
+  const [showAllSales, setShowAllSales] = useState(false);
+
+  const PREVIEW_ROWS = 5;
 
   const handleDeleteQuote = async (quoteId: number) => {
     if (!confirm("Are you sure you want to delete this quote?")) return;
@@ -323,7 +327,7 @@ export default function ItemDetailPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    receiptsHistory.map((receipt: ItemReceiptHistory) => {
+                    (showAllReceipts ? receiptsHistory : receiptsHistory.slice(0, PREVIEW_ROWS)).map((receipt: ItemReceiptHistory) => {
                       const unitCost = receipt.unit_price ?? 0;
                       const total = unitCost * (receipt.quantity ?? 0);
                       const isVoided = receipt.status === "VOIDED";
@@ -365,6 +369,28 @@ export default function ItemDetailPage() {
                   )}
                 </TableBody>
               </Table>
+              {receiptsHistory && receiptsHistory.length > PREVIEW_ROWS && (
+                <div className="border-t px-4 py-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-muted-foreground"
+                    onClick={() => setShowAllReceipts(!showAllReceipts)}
+                  >
+                    {showAllReceipts ? (
+                      <>
+                        <ChevronUp className="mr-2 h-4 w-4" />
+                        Show less
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="mr-2 h-4 w-4" />
+                        See all {receiptsHistory.length} receipts
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             )}
           </CardContent>
         </Card>
@@ -409,7 +435,7 @@ export default function ItemDetailPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    salesHistory.map((sale: ItemSaleHistory) => {
+                    (showAllSales ? salesHistory : salesHistory.slice(0, PREVIEW_ROWS)).map((sale: ItemSaleHistory) => {
                       const unitPrice = parseFloat(sale.unit_price) || 0;
                       const total = unitPrice * (sale.quantity ?? 0);
                       const isVoided = sale.status === "VOIDED";
@@ -451,6 +477,28 @@ export default function ItemDetailPage() {
                   )}
                 </TableBody>
               </Table>
+              {salesHistory && salesHistory.length > PREVIEW_ROWS && (
+                <div className="border-t px-4 py-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-muted-foreground"
+                    onClick={() => setShowAllSales(!showAllSales)}
+                  >
+                    {showAllSales ? (
+                      <>
+                        <ChevronUp className="mr-2 h-4 w-4" />
+                        Show less
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="mr-2 h-4 w-4" />
+                        See all {salesHistory.length} sales
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             )}
           </CardContent>
         </Card>
