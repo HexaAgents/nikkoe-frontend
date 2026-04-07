@@ -136,7 +136,7 @@ export function PartLineCard({
         </div>
 
         <div className="flex items-center gap-4">
-          <Label className="w-32 shrink-0 text-muted-foreground">Currency:</Label>
+          <Label className={`w-32 shrink-0 ${showErrors && errors.includes("Currency") ? "text-destructive" : "text-muted-foreground"}`}>Currency:</Label>
           <Select value={part.currency_id} onValueChange={(v) => onFieldChange(index, "currency_id", v)}>
             <SelectTrigger className="min-w-0 flex-1">
               <SelectValue placeholder="Select currency" />

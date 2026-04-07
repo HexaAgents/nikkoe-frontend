@@ -39,6 +39,8 @@ function getPartLineFieldErrors(part: PartLine): string[] {
     if (!Number.isFinite(n) || n < 0) bad.push("Unit Cost");
   }
 
+  if (!part.currency_id?.trim()) bad.push("Currency");
+
   return bad;
 }
 
