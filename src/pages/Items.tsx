@@ -29,11 +29,21 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
   const isActiveSearch = searchQuery.length > 0;
   const backfillReady = !isActiveSearch && !!allItemsResult;
 
-  const items = useMemo(() => {
+  const rawItems = useMemo(() => {
     if (isActiveSearch) return searchResult?.data ?? [];
     if (backfillReady) return allItemsResult.data;
     return browseResult?.data ?? [];
   }, [isActiveSearch, backfillReady, searchResult, allItemsResult, browseResult]);
+
+  const items = useMemo(() => {
+    return [...rawItems].sort((a, b) => {
+      const aQty = (a as Record<string, unknown>).total_quantity as number ?? 0;
+      const bQty = (b as Record<string, unknown>).total_quantity as number ?? 0;
+      if (aQty < 0 && bQty >= 0) return -1;
+      if (bQty < 0 && aQty >= 0) return 1;
+      return 0;
+    });
+  }, [rawItems]);
 
   const total = isActiveSearch
     ? searchResult?.total ?? 0
@@ -93,8 +103,9 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
       key: "total_quantity",
       header: "Quantity",
       render: (item: ItemWithRelations) => {
-        const qty = (item as Record<string, unknown>).total_quantity as number;
-        if (!qty) return <span className="text-muted-foreground italic">Not in stock</span>;
+        const qty = (item as Record<string, unknown>).total_quantity as number ?? 0;
+        if (qty < 0) return <span className="font-medium text-destructive">{qty}</span>;
+        if (qty === 0) return <span className="text-muted-foreground italic">Not in stock</span>;
         return qty;
       },
     },
