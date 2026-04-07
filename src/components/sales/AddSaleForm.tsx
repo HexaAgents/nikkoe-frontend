@@ -67,6 +67,7 @@ export function AddSaleForm({
   const [customerOpen, setCustomerOpen] = useState(false);
   const [parts, setParts] = useState<PartLine[]>([{ ...emptyPart }]);
   const [showErrors, setShowErrors] = useState(false);
+  const [formKey, setFormKey] = useState(0);
 
   const isNewCustomer = customerName.trim().length > 0 &&
     !customers?.some((c) => c.name.toLowerCase() === customerName.trim().toLowerCase());
@@ -138,6 +139,7 @@ export function AddSaleForm({
     setCustomerName("");
     setParts([{ ...emptyPart }]);
     setShowErrors(false);
+    setFormKey((k) => k + 1);
   };
 
   const handlePartSelect = (index: number, itemId: string) => {
@@ -203,7 +205,7 @@ export function AddSaleForm({
         )}
         <div className="flex items-center gap-4">
           <Label className={`w-24 shrink-0 ${showErrors && !channelId ? "text-destructive" : "text-muted-foreground"}`}>Channel:</Label>
-          <Select value={channelId || undefined} onValueChange={setChannelId}>
+          <Select key={`channel-${formKey}`} value={channelId || undefined} onValueChange={setChannelId}>
             <SelectTrigger className="min-w-0 flex-1">
               <SelectValue placeholder="Select channel" />
             </SelectTrigger>
