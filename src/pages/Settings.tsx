@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Settings2,
   Users,
@@ -37,8 +38,20 @@ const navSections: {
   },
 ];
 
+const VALID_SECTIONS: SettingsSection[] = ["general", "suppliers", "categories", "locations"];
+
 export default function Settings() {
-  const [activeSection, setActiveSection] = useState<SettingsSection>("general");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sectionParam = searchParams.get("section") as SettingsSection | null;
+  const initialSection = sectionParam && VALID_SECTIONS.includes(sectionParam) ? sectionParam : "general";
+  const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
+
+  useEffect(() => {
+    const param = searchParams.get("section") as SettingsSection | null;
+    if (param && VALID_SECTIONS.includes(param) && param !== activeSection) {
+      setActiveSection(param);
+    }
+  }, [searchParams]);
 
   return (
     <MainLayout>

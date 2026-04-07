@@ -1,21 +1,42 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DataTable } from "@/components/common/DataTable";
 import { useCategories } from "@/hooks/queries";
 import { AddCategoryModal } from "@/components/modals/AddCategoryModal";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { Category } from "@/types/domain.types";
 
 interface CategoriesPageProps {
   embedded?: boolean;
 }
 
 export default function CategoriesPage({ embedded = false }: CategoriesPageProps) {
+  const navigate = useNavigate();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const { data: categories, isLoading } = useCategories();
 
   const columns = [
     { key: "name", header: "Name" },
+    {
+      key: "item_count",
+      header: "Items",
+      render: (cat: Category) => (
+        <span className="tabular-nums">{cat.item_count ?? 0}</span>
+      ),
+    },
+    {
+      key: "total_quantity",
+      header: "Total Qty",
+      render: (cat: Category) => (
+        <span className="tabular-nums">{cat.total_quantity ?? 0}</span>
+      ),
+    },
   ];
+
+  const handleRowClick = (category: Category) => {
+    navigate(`/categories/${category.id}`);
+  };
 
   const loadingView = (
     <div className="space-y-6">
@@ -40,7 +61,8 @@ export default function CategoriesPage({ embedded = false }: CategoriesPageProps
           addButtonText="Add Category"
           searchKeys={["name"]}
           exportFilename="categories"
-          idKey="name"
+          idKey="id"
+          onRowClick={handleRowClick}
         />
       </div>
       <AddCategoryModal open={isAddModalOpen} onOpenChange={setIsAddModalOpen} />

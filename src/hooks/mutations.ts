@@ -261,7 +261,7 @@ export function useAddSupplierQuote() {
   return useMutation({
     mutationFn: (quote: SupplierQuoteInput) => api.post("/supplier-quotes/", quote),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["supplier_quotes", variables.item_id] });
+      queryClient.invalidateQueries({ queryKey: ["supplier_quotes", String(variables.item_id)] });
       toast.success("Quote added successfully");
     },
     onError: (error) => {
@@ -274,9 +274,9 @@ export function useDeleteSupplierQuote() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ quoteId }: { quoteId: string; itemId: string }) => api.del(`/supplier-quotes/${quoteId}`),
+    mutationFn: ({ quoteId }: { quoteId: number; itemId: number }) => api.del(`/supplier-quotes/${quoteId}`),
     onSuccess: (_, { itemId }) => {
-      queryClient.invalidateQueries({ queryKey: ["supplier_quotes", itemId] });
+      queryClient.invalidateQueries({ queryKey: ["supplier_quotes", String(itemId)] });
       toast.success("Quote deleted successfully");
     },
     onError: (error) => {

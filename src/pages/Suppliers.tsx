@@ -1,21 +1,24 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DataTable } from "@/components/common/DataTable";
 import { useSuppliers } from "@/hooks/queries";
 import { AddSupplierModal } from "@/components/modals/AddSupplierModal";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { Supplier } from "@/types/domain.types";
 
 interface SuppliersPageProps {
   embedded?: boolean;
 }
 
 export default function SuppliersPage({ embedded = false }: SuppliersPageProps) {
+  const navigate = useNavigate();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const { data: suppliers, isLoading } = useSuppliers();
 
   const columns = [
     { key: "name", header: "Name" },
-    { key: "address", header: "Address" },
+    { key: "address", header: "Address", className: "max-w-[300px] truncate" },
     { key: "email", header: "Email" },
     { key: "phone", header: "Phone" },
   ];
@@ -44,6 +47,7 @@ export default function SuppliersPage({ embedded = false }: SuppliersPageProps) 
           searchKeys={["name", "email", "address"]}
           exportFilename="suppliers"
           idKey="id"
+          onRowClick={(supplier: Supplier) => navigate(`/suppliers/${supplier.id}`)}
         />
       </div>
       <AddSupplierModal open={isAddModalOpen} onOpenChange={setIsAddModalOpen} />

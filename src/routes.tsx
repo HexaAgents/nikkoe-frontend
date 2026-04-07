@@ -4,8 +4,11 @@ import Index from "./pages/Index";
 import Items from "./pages/Items";
 import ItemDetail from "./pages/ItemDetail";
 import Suppliers from "./pages/Suppliers";
+import SupplierDetail from "./pages/SupplierDetail";
 import Categories from "./pages/Categories";
+import CategoryDetail from "./pages/CategoryDetail";
 import Locations from "./pages/Locations";
+import LocationDetail from "./pages/LocationDetail";
 import Sales from "./pages/Sales";
 import SaleDetail from "./pages/SaleDetail";
 import Receipts from "./pages/Receipts";
@@ -29,8 +32,11 @@ export function AppRoutes() {
       <Route path="/items" element={<Protected><Items /></Protected>} />
       <Route path="/items/:id" element={<Protected><ItemDetail /></Protected>} />
       <Route path="/suppliers" element={<Protected><Suppliers /></Protected>} />
+      <Route path="/suppliers/:id" element={<Protected><SupplierDetail /></Protected>} />
       <Route path="/categories" element={<Protected><Categories /></Protected>} />
+      <Route path="/categories/:id" element={<Protected><CategoryDetail /></Protected>} />
       <Route path="/locations" element={<Protected><Locations /></Protected>} />
+      <Route path="/locations/:id" element={<Protected><LocationDetail /></Protected>} />
       <Route path="/sales" element={<Protected><Sales /></Protected>} />
       <Route path="/sales/:id" element={<Protected><SaleDetail /></Protected>} />
       <Route path="/receipts" element={<Protected><Receipts /></Protected>} />

@@ -15,7 +15,9 @@ import type {
   StockWithLocation,
   Category,
   Supplier,
+  SupplierReceiptHistory,
   Location,
+  LocationItem,
   Channel,
   Customer,
   Currency,
@@ -174,6 +176,26 @@ export function useCategories() {
   });
 }
 
+export function useCategory(categoryId: string | number) {
+  return useQuery({
+    queryKey: ["categories", String(categoryId)],
+    queryFn: () => api.get<Category>(`/categories/${categoryId}`),
+    enabled: !!categoryId,
+  });
+}
+
+export function useCategoryItems(categoryId: string | number) {
+  return useQuery({
+    queryKey: ["categories", String(categoryId), "items"],
+    queryFn: () =>
+      api.getListPaginated<ItemWithRelations>(
+        `/categories/${categoryId}/items?limit=5000&offset=0`,
+      ),
+    enabled: !!categoryId,
+    staleTime: 60_000,
+  });
+}
+
 export function useSuppliers() {
   return useQuery({
     queryKey: ["suppliers"],
@@ -181,10 +203,34 @@ export function useSuppliers() {
   });
 }
 
+export function useSupplier(supplierId: string | number) {
+  return useQuery({
+    queryKey: ["suppliers", String(supplierId)],
+    queryFn: () => api.get<Supplier>(`/suppliers/${supplierId}`),
+    enabled: !!supplierId,
+  });
+}
+
+export function useSupplierReceipts(supplierId: string | number) {
+  return useQuery({
+    queryKey: ["supplier_receipts", String(supplierId)],
+    queryFn: () => api.get<SupplierReceiptHistory[]>(`/suppliers/${supplierId}/receipts`),
+    enabled: !!supplierId,
+  });
+}
+
 export function useLocations() {
   return useQuery({
     queryKey: ["locations"],
     queryFn: () => api.getList<Location>("/locations/"),
+  });
+}
+
+export function useLocationItems(locationId: string | number) {
+  return useQuery({
+    queryKey: ["locations", String(locationId), "items"],
+    queryFn: () => api.get<LocationItem[]>(`/locations/${locationId}/items`),
+    enabled: !!locationId,
   });
 }
 

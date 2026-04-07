@@ -25,6 +25,7 @@ interface Column<T> {
   key: keyof T | string;
   header: string;
   render?: (item: T) => React.ReactNode;
+  className?: string;
 }
 
 export interface ServerPaginationProps {
@@ -206,7 +207,7 @@ export function DataTable<T extends object>({
           <TableHeader>
             <TableRow>
               {columns.map((column) => (
-                <TableHead key={String(column.key)}>{column.header}</TableHead>
+                <TableHead key={String(column.key)} className={column.className}>{column.header}</TableHead>
               ))}
             </TableRow>
           </TableHeader>
@@ -225,10 +226,12 @@ export function DataTable<T extends object>({
                   className={`${onRowClick ? "cursor-pointer" : ""} ${rowClassName?.(item) || ""}`}
                 >
                   {columns.map((column) => (
-                    <TableCell key={String(column.key)}>
-                      {column.render
-                        ? column.render(item)
-                        : String(item[column.key as keyof T] ?? "")}
+                    <TableCell key={String(column.key)} className={column.className}>
+                      <span className={column.className?.includes("truncate") ? "block truncate" : undefined}>
+                        {column.render
+                          ? column.render(item)
+                          : String(item[column.key as keyof T] ?? "")}
+                      </span>
                     </TableCell>
                   ))}
                 </TableRow>

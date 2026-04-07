@@ -28,6 +28,8 @@ import type { SaleLineInput } from "@/types/domain.types";
 import { useChannels, useCurrencies, useCustomers, useLocations, useInventoryOnHand } from "@/hooks/queries";
 import { PartLineCard } from "@/components/common/PartLineCard";
 import type { PartLine } from "@/components/common/PartLineCard";
+import { AddItemModal } from "@/components/modals/AddItemModal";
+import { AddLocationModal } from "@/components/modals/AddLocationModal";
 import { cn } from "@/lib/utils";
 
 const emptyPart: PartLine = {
@@ -68,6 +70,8 @@ export function AddSaleForm({
   const [parts, setParts] = useState<PartLine[]>([{ ...emptyPart }]);
   const [showErrors, setShowErrors] = useState(false);
   const [formKey, setFormKey] = useState(0);
+  const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
+  const [isAddLocationModalOpen, setIsAddLocationModalOpen] = useState(false);
 
   const isNewCustomer = customerName.trim().length > 0 &&
     !customers?.some((c) => c.name.toLowerCase() === customerName.trim().toLowerCase());
@@ -205,7 +209,8 @@ export function AddSaleForm({
     validation.errors.find((e) => e.partIndex === index)?.fields || [];
 
   return (
-    <form onSubmit={handleSubmit} className={cn(className)}>
+    <>
+      <form onSubmit={handleSubmit} className={cn(className)}>
       <div className={cn("space-y-6", variant === "inline" ? "py-0" : "py-4")}>
         {showErrors && validation.headerErrors.length > 0 && (
           <p className="text-sm text-destructive">Missing: {validation.headerErrors.join(", ")}</p>
@@ -310,6 +315,16 @@ export function AddSaleForm({
             onRemove={(i) => setParts(parts.filter((_, j) => j !== i))}
             inStockOnly
             availableQuantity={getAvailableQuantity(part.item_id)}
+            extraPartActions={
+              <Button type="button" variant="secondary" onClick={() => setIsAddItemModalOpen(true)}>
+                New Part
+              </Button>
+            }
+            extraLocationActions={
+              <Button type="button" variant="secondary" onClick={() => setIsAddLocationModalOpen(true)}>
+                New Location
+              </Button>
+            }
           />
         ))}
       </div>
@@ -332,5 +347,9 @@ export function AddSaleForm({
         )}
       </div>
     </form>
+
+      <AddItemModal open={isAddItemModalOpen} onOpenChange={setIsAddItemModalOpen} />
+      <AddLocationModal open={isAddLocationModalOpen} onOpenChange={setIsAddLocationModalOpen} />
+    </>
   );
 }

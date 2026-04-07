@@ -14,6 +14,8 @@ const mockAddCustomer = vi.fn().mockResolvedValue({ customer_id: "c1" });
 vi.mock("@/hooks/mutations", () => ({
   useAddSale: () => ({ mutateAsync: mockMutateAsync, isPending: false }),
   useAddCustomer: () => ({ mutateAsync: mockAddCustomer, isPending: false }),
+  useAddItem: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useAddLocation: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 vi.mock("@/hooks/queries", () => ({
@@ -24,6 +26,7 @@ vi.mock("@/hooks/queries", () => ({
   useItemSearch: () => ({ data: { data: [{ id: 1, item_id: "PART-001" }], total: 1 }, isFetching: false }),
   useLocations: () => ({ data: [{ id: 1, code: "SHELF-A" }] }),
   useInventoryOnHand: () => ({ data: [{ id: 1, item_id: 1, location_id: 1, quantity: 10 }] }),
+  useCategories: () => ({ data: [{ id: 1, name: "Electronics" }] }),
   useCurrentUser: () => ({ data: null }),
 }));
 

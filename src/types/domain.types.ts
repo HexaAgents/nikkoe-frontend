@@ -111,6 +111,8 @@ export interface ItemInput {
 export interface Category {
   id: number;
   name: string;
+  item_count?: number;
+  total_quantity?: number;
 }
 
 export interface Supplier {
@@ -128,9 +130,35 @@ export interface SupplierInput {
   phone?: string;
 }
 
+export interface SupplierReceiptHistory {
+  id: number;
+  receipt_id: number;
+  quantity: number;
+  unit_price: number;
+  date: string | null;
+  status: string | null;
+  reference: string | null;
+  note: string | null;
+  items: { id: number; item_id: string } | null;
+  users: { id: number; first_name: string; last_name: string } | null;
+  currencies: { id: number; name: string } | null;
+  locations: { id: number; code: string } | null;
+}
+
 export interface Location {
   id: number;
   code: string;
+  total_quantity?: number;
+  part_count?: number;
+}
+
+export interface LocationItem {
+  id: number;
+  item_id: string;
+  description: string | null;
+  category: string | null;
+  quantity: number;
+  last_unit_price: number | null;
 }
 
 export interface Channel {
