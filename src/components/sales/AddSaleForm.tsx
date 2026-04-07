@@ -123,6 +123,13 @@ export function AddSaleForm({
     return best.location_id?.toString() || "";
   };
 
+  const getAvailableQuantity = (itemId: string): number | null => {
+    if (!inventoryOnHand || !itemId) return null;
+    const rows = inventoryOnHand.filter((r) => r.item_id === Number(itemId));
+    if (rows.length === 0) return 0;
+    return rows.reduce((sum, r) => sum + (r.quantity ?? 0), 0);
+  };
+
   const getLocationsForItem = (itemId: string) => {
     if (!itemId) return locations?.map((l) => ({ location_id: l.id, location_code: l.code }));
     const rows = getInventoryRowsForItem(itemId);
@@ -302,6 +309,7 @@ export function AddSaleForm({
             onFieldChange={handlePartChange}
             onRemove={(i) => setParts(parts.filter((_, j) => j !== i))}
             inStockOnly
+            availableQuantity={getAvailableQuantity(part.item_id)}
           />
         ))}
       </div>

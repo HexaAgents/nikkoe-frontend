@@ -1,4 +1,5 @@
 import { Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +37,7 @@ interface PartLineCardProps {
   extraPartActions?: React.ReactNode;
   extraLocationActions?: React.ReactNode;
   inStockOnly?: boolean;
+  availableQuantity?: number | null;
 }
 
 export function PartLineCard({
@@ -53,7 +55,12 @@ export function PartLineCard({
   extraPartActions,
   extraLocationActions,
   inStockOnly,
+  availableQuantity,
 }: PartLineCardProps) {
+  const qty = Number(part.quantity);
+  const exceedsStock =
+    availableQuantity != null && Number.isFinite(qty) && qty > availableQuantity;
+
   return (
     <Card className={`border-primary/20 ${showErrors && errors.length > 0 ? "border-destructive" : ""}`}>
       <CardHeader className="pb-2">
@@ -110,13 +117,29 @@ export function PartLineCard({
           >
             Quantity:
           </Label>
-          <Input
-            type="number"
-            min="1"
-            value={part.quantity}
-            onChange={(e) => onFieldChange(index, "quantity", e.target.value)}
-            className={`min-w-0 flex-1 ${showErrors && errors.includes("Quantity") ? "border-destructive" : ""}`}
-          />
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <Input
+              type="number"
+              min="1"
+              value={part.quantity}
+              onChange={(e) => onFieldChange(index, "quantity", e.target.value)}
+              className={cn(
+                "min-w-0 flex-1",
+                showErrors && errors.includes("Quantity") && "border-destructive",
+                exceedsStock && "border-amber-500",
+              )}
+            />
+            {availableQuantity != null && (
+              <span
+                className={cn(
+                  "shrink-0 text-sm tabular-nums",
+                  exceedsStock ? "font-medium text-amber-600" : "text-muted-foreground",
+                )}
+              >
+                /{availableQuantity}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-4">
