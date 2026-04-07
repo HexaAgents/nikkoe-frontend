@@ -106,16 +106,30 @@ export function AddSaleForm({
     };
   }, [parts, channelId, customerId]);
 
-  const getAutoLocation = (itemId: string) => {
-    if (!inventoryOnHand || !itemId) return "";
+  const getInventoryRowsForItem = (itemId: string) => {
+    if (!inventoryOnHand || !itemId) return [];
     const numId = Number(itemId);
-    const allRows = inventoryOnHand.filter((row) => row.item_id === numId);
+    return inventoryOnHand.filter((row) => row.item_id === numId);
+  };
+
+  const getAutoLocation = (itemId: string) => {
+    const allRows = getInventoryRowsForItem(itemId);
     if (allRows.length === 0) return "";
     const withStock = allRows
       .filter((row) => (row.quantity ?? 0) > 0)
       .sort((a, b) => (a.quantity ?? 0) - (b.quantity ?? 0));
     const best = withStock.length > 0 ? withStock[0] : allRows[0];
     return best.location_id?.toString() || "";
+  };
+
+  const getLocationsForItem = (itemId: string) => {
+    if (!itemId) return locations?.map((l) => ({ location_id: l.id, location_code: l.code }));
+    const rows = getInventoryRowsForItem(itemId);
+    if (rows.length === 0) return locations?.map((l) => ({ location_id: l.id, location_code: l.code }));
+    const itemLocationIds = new Set(rows.map((r) => r.location_id));
+    return locations
+      ?.filter((l) => itemLocationIds.has(l.id))
+      .map((l) => ({ location_id: l.id, location_code: l.code }));
   };
 
   const resetForm = () => {
@@ -276,7 +290,7 @@ export function AddSaleForm({
             key={index}
             index={index}
             part={part}
-            locations={locations?.map((l) => ({ location_id: l.id, location_code: l.code }))}
+            locations={getLocationsForItem(part.item_id)}
             currencies={currencies}
             priceLabel="Unit Price"
             showErrors={showErrors}
