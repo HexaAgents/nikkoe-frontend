@@ -1,8 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DataTable, DataTableSkeleton } from "@/components/common/DataTable";
-import { useItems, useItemSearch } from "@/hooks/queries";
+import { useItems, useAllItems, useItemSearch } from "@/hooks/queries";
 import { AddItemModal } from "@/components/modals/AddItemModal";
 import type { ItemWithRelations } from "@/types/domain.types";
 
@@ -20,16 +20,41 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
   const [searchPage, setSearchPage] = useState(1);
 
   const { data: browseResult, isLoading } = useItems({ page, pageSize: PAGE_SIZE });
+  const { data: allItemsResult } = useAllItems(!isLoading);
   const { data: searchResult, isFetching: isSearching } = useItemSearch(searchQuery, {
     page: searchPage,
     pageSize: PAGE_SIZE,
   });
 
   const isActiveSearch = searchQuery.length > 0;
-  const activeResult = isActiveSearch ? searchResult : browseResult;
-  const items = activeResult?.data ?? [];
-  const total = activeResult?.total ?? 0;
+  const backfillReady = !isActiveSearch && !!allItemsResult;
+
+  const items = useMemo(() => {
+    if (isActiveSearch) return searchResult?.data ?? [];
+    if (backfillReady) return allItemsResult.data;
+    return browseResult?.data ?? [];
+  }, [isActiveSearch, backfillReady, searchResult, allItemsResult, browseResult]);
+
+  const total = isActiveSearch
+    ? searchResult?.total ?? 0
+    : backfillReady
+      ? allItemsResult.total
+      : browseResult?.total ?? 0;
+
   const activePage = isActiveSearch ? searchPage : page;
+
+  const serverPagination = useMemo(() => {
+    if (backfillReady) return undefined;
+    return {
+      total,
+      page: activePage,
+      pageSize: PAGE_SIZE,
+      onPageChange: (newPage: number) => {
+        if (isActiveSearch) setSearchPage(newPage);
+        else setPage(newPage);
+      },
+    };
+  }, [backfillReady, total, activePage, isActiveSearch]);
 
   const handleServerSearch = useCallback((query: string) => {
     setSearchQuery(query);
@@ -105,12 +130,7 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
           exportFilename="items"
           onRowClick={handleRowClick}
           idKey="id"
-          serverPagination={{
-            total,
-            page: activePage,
-            pageSize: PAGE_SIZE,
-            onPageChange: handlePageChange,
-          }}
+          serverPagination={serverPagination}
           exportColumns={[
             { key: "item_id", header: "Part Number" },
             { key: "description", header: "Description" },

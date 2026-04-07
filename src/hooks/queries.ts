@@ -86,6 +86,16 @@ export function useItems({ page = 1, pageSize = 20 } = {}) {
   });
 }
 
+export function useAllItems(enabled: boolean) {
+  return useQuery({
+    queryKey: ["items", "all"],
+    queryFn: () =>
+      api.getListPaginated<ItemWithRelations>("/items/?limit=5000&offset=0"),
+    enabled,
+    staleTime: 60_000,
+  });
+}
+
 export function useItemSearch(
   query: string,
   { page = 1, pageSize = 20, inStockOnly = false } = {},
