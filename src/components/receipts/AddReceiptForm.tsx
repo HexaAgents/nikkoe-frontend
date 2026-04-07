@@ -86,6 +86,7 @@ export function AddReceiptForm({
   const [supplierId, setSupplierId] = useState<string>("");
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
+  const [formKey, setFormKey] = useState(0);
   const [parts, setParts] = useState<PartLine[]>([{ ...emptyPart }]);
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
   const [isAddLocationModalOpen, setIsAddLocationModalOpen] = useState(false);
@@ -104,6 +105,7 @@ export function AddReceiptForm({
     setSupplierId("");
     setReference("");
     setNote("");
+    setFormKey((k) => k + 1);
     setParts([{ ...emptyPart }]);
     setShowErrors(false);
   };
@@ -162,7 +164,7 @@ export function AddReceiptForm({
         <div className={cn("space-y-6", variant === "inline" ? "py-0" : "py-4")}>
           <div className="flex flex-wrap items-center gap-4">
             <Label className="w-24 shrink-0 text-muted-foreground">Supplier:</Label>
-            <Select value={supplierId || undefined} onValueChange={setSupplierId}>
+            <Select key={`supplier-${formKey}`} value={supplierId || undefined} onValueChange={setSupplierId}>
               <SelectTrigger className="min-w-0 flex-1">
                 <SelectValue placeholder="Select supplier" />
               </SelectTrigger>
