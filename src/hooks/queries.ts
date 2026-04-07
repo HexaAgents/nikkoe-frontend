@@ -11,6 +11,7 @@ import type {
   ItemReceiptHistory,
   ItemSaleHistory,
   ItemSupplierQuote,
+  ItemTransferHistory,
   StockWithLocation,
   Category,
   Supplier,
@@ -154,6 +155,14 @@ export function useItemSales(itemId: string | number) {
   return useQuery({
     queryKey: ["sale_lines", "by_item", String(itemId)],
     queryFn: () => api.get<ItemSaleHistory[]>(`/items/${itemId}/sales`),
+    enabled: !!itemId,
+  });
+}
+
+export function useItemTransfers(itemId: string | number) {
+  return useQuery({
+    queryKey: ["transfers", "by_item", String(itemId)],
+    queryFn: () => api.get<ItemTransferHistory[]>(`/items/${itemId}/transfers`),
     enabled: !!itemId,
   });
 }

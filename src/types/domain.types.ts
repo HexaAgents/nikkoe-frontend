@@ -235,6 +235,16 @@ export interface SupplierQuoteInput {
   note?: string;
 }
 
+export interface ItemTransferHistory {
+  id: number;
+  quantity: number;
+  date: string | null;
+  notes: string | null;
+  from_location: { id: number; code: string } | null;
+  to_location: { id: number; code: string } | null;
+  users: { id: number; first_name: string; last_name: string } | null;
+}
+
 export interface TransferInput {
   from_stock_id: number;
   to_location_id: number;

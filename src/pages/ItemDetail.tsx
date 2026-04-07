@@ -23,12 +23,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useItem, useItemSupplierQuotes, useItemInventory, useItemReceipts, useItemSales, useCategories } from "@/hooks/queries";
+import { useItem, useItemSupplierQuotes, useItemInventory, useItemReceipts, useItemSales, useItemTransfers, useCategories } from "@/hooks/queries";
 import { useUpdateItem, useDeleteItem, useDeleteSupplierQuote } from "@/hooks/mutations";
 import { AddSupplierQuoteModal } from "@/components/modals/AddSupplierQuoteModal";
 import { TransferStockModal } from "@/components/modals/TransferStockModal";
 import { toast } from "sonner";
-import type { ItemReceiptHistory, ItemSaleHistory, StockWithLocation } from "@/types/domain.types";
+import type { ItemReceiptHistory, ItemSaleHistory, ItemTransferHistory, StockWithLocation } from "@/types/domain.types";
 
 export default function ItemDetailPage() {
   const { id } = useParams();
@@ -41,6 +41,7 @@ export default function ItemDetailPage() {
   const { data: inventory } = useItemInventory(itemId);
   const { data: receiptsHistory, isLoading: isReceiptsLoading } = useItemReceipts(itemId);
   const { data: salesHistory, isLoading: isSalesLoading } = useItemSales(itemId);
+  const { data: transfersHistory, isLoading: isTransfersLoading } = useItemTransfers(itemId);
   const updateItem = useUpdateItem();
   const deleteItem = useDeleteItem();
   const deleteQuote = useDeleteSupplierQuote();
@@ -52,6 +53,7 @@ export default function ItemDetailPage() {
   const [transferStock, setTransferStock] = useState<StockWithLocation | null>(null);
   const [showAllReceipts, setShowAllReceipts] = useState(false);
   const [showAllSales, setShowAllSales] = useState(false);
+  const [showAllTransfers, setShowAllTransfers] = useState(false);
 
   const PREVIEW_ROWS = 5;
 
@@ -497,6 +499,87 @@ export default function ItemDetailPage() {
                         <>
                           <ChevronDown className="mr-2 h-4 w-4" />
                           See all {salesHistory.length} sales
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="border-b pb-6">
+            <div className="flex items-center justify-between">
+              <CardTitle>Stock Movements</CardTitle>
+              {transfersHistory && transfersHistory.length > 0 && (
+                <span className="text-sm text-muted-foreground">
+                  {transfersHistory.length} transfer{transfersHistory.length !== 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {isTransfersLoading ? (
+              <div className="p-6">
+                <Skeleton className="h-[120px] w-full" />
+              </div>
+            ) : (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>From</TableHead>
+                      <TableHead>To</TableHead>
+                      <TableHead className="text-right">Qty</TableHead>
+                      <TableHead>User</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {!transfersHistory || transfersHistory.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                          No stock movements for this item
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      (showAllTransfers ? transfersHistory : transfersHistory.slice(0, PREVIEW_ROWS)).map((transfer: ItemTransferHistory) => (
+                        <TableRow key={transfer.id}>
+                          <TableCell className="whitespace-nowrap">
+                            {transfer.date ? new Date(transfer.date).toLocaleDateString() : "-"}
+                          </TableCell>
+                          <TableCell>{transfer.from_location?.code ?? "-"}</TableCell>
+                          <TableCell>{transfer.to_location?.code ?? "-"}</TableCell>
+                          <TableCell className="text-right tabular-nums">{transfer.quantity ?? 0}</TableCell>
+                          <TableCell>
+                            {transfer.users
+                              ? `${transfer.users.first_name} ${transfer.users.last_name}`
+                              : "-"}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+                {transfersHistory && transfersHistory.length > PREVIEW_ROWS && (
+                  <div className="border-t px-4 py-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-muted-foreground"
+                      onClick={() => setShowAllTransfers(!showAllTransfers)}
+                    >
+                      {showAllTransfers ? (
+                        <>
+                          <ChevronUp className="mr-2 h-4 w-4" />
+                          Show less
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="mr-2 h-4 w-4" />
+                          See all {transfersHistory.length} transfers
                         </>
                       )}
                     </Button>
