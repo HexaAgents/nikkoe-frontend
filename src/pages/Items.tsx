@@ -2,7 +2,8 @@ import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DataTable, DataTableSkeleton } from "@/components/common/DataTable";
-import { useItems, useAllItems, useItemSearch } from "@/hooks/queries";
+import { useItems, useItemSearch, buildItemsQueryFn, itemsQueryKeyBase } from "@/hooks/queries";
+import { usePrefetchPages } from "@/hooks/usePrefetchPages";
 import { AddItemModal } from "@/components/modals/AddItemModal";
 import type { ItemWithRelations } from "@/types/domain.types";
 
@@ -20,20 +21,17 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
   const [searchPage, setSearchPage] = useState(1);
 
   const { data: browseResult, isLoading } = useItems({ page, pageSize: PAGE_SIZE });
-  const { data: allItemsResult } = useAllItems(!isLoading);
   const { data: searchResult, isFetching: isSearching } = useItemSearch(searchQuery, {
     page: searchPage,
     pageSize: PAGE_SIZE,
   });
 
   const isActiveSearch = searchQuery.length > 0;
-  const backfillReady = !isActiveSearch && !!allItemsResult;
 
   const rawItems = useMemo(() => {
     if (isActiveSearch) return searchResult?.data ?? [];
-    if (backfillReady) return allItemsResult.data;
     return browseResult?.data ?? [];
-  }, [isActiveSearch, backfillReady, searchResult, allItemsResult, browseResult]);
+  }, [isActiveSearch, searchResult, browseResult]);
 
   const items = useMemo(() => {
     return [...rawItems].sort((a, b) => {
@@ -47,40 +45,32 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
 
   const total = isActiveSearch
     ? searchResult?.total ?? 0
-    : backfillReady
-      ? allItemsResult.total
-      : browseResult?.total ?? 0;
+    : browseResult?.total ?? 0;
 
   const activePage = isActiveSearch ? searchPage : page;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  const serverPagination = useMemo(() => {
-    if (backfillReady) return undefined;
-    return {
-      total,
-      page: activePage,
-      pageSize: PAGE_SIZE,
-      onPageChange: (newPage: number) => {
-        if (isActiveSearch) setSearchPage(newPage);
-        else setPage(newPage);
-      },
-    };
-  }, [backfillReady, total, activePage, isActiveSearch]);
+  usePrefetchPages(
+    itemsQueryKeyBase(PAGE_SIZE),
+    (p) => buildItemsQueryFn(p, PAGE_SIZE),
+    page,
+    totalPages,
+  );
+
+  const serverPagination = useMemo(() => ({
+    total,
+    page: activePage,
+    pageSize: PAGE_SIZE,
+    onPageChange: (newPage: number) => {
+      if (isActiveSearch) setSearchPage(newPage);
+      else setPage(newPage);
+    },
+  }), [total, activePage, isActiveSearch]);
 
   const handleServerSearch = useCallback((query: string) => {
     setSearchQuery(query);
     setSearchPage(1);
   }, []);
-
-  const handlePageChange = useCallback(
-    (newPage: number) => {
-      if (isActiveSearch) {
-        setSearchPage(newPage);
-      } else {
-        setPage(newPage);
-      }
-    },
-    [isActiveSearch],
-  );
 
   const columns = [
     { key: "item_id", header: "Part Number" },

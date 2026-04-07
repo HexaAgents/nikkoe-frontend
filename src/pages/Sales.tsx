@@ -1,8 +1,9 @@
-import { useMemo, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DataTable } from "@/components/common/DataTable";
-import { useSales } from "@/hooks/queries";
+import { useSales, buildSalesQueryFn, salesQueryKeyBase } from "@/hooks/queries";
+import { usePrefetchPages } from "@/hooks/usePrefetchPages";
 import { AddSaleForm } from "@/components/sales/AddSaleForm";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,13 +12,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { SaleWithRelations } from "@/types/domain.types";
 
+const PAGE_SIZE = 20;
+
 export default function SalesPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [page, setPage] = useState(1);
 
   const searchQuery = searchParams.get("search") ?? "";
   const showVoided = searchParams.get("voided") === "1";
   const showSalesHistory = searchParams.get("history") === "1" || searchQuery !== "";
+
+  const status = showVoided ? undefined : "ACTIVE";
+  const search = searchQuery || undefined;
 
   const setSearchQuery = useCallback(
     (q: string) => {
@@ -31,6 +38,7 @@ export default function SalesPage() {
         }
         return next;
       }, { replace: true });
+      setPage(1);
     },
     [setSearchParams],
   );
@@ -43,6 +51,7 @@ export default function SalesPage() {
         else next.delete("voided");
         return next;
       }, { replace: true });
+      setPage(1);
     },
     [setSearchParams],
   );
@@ -59,16 +68,25 @@ export default function SalesPage() {
         }
         return next;
       }, { replace: true });
+      setPage(1);
     },
     [setSearchParams],
   );
 
-  const { data: sales, isLoading, isFetching } = useSales(searchQuery || undefined);
+  const { data: result, isLoading, isFetching } = useSales(
+    page, PAGE_SIZE, search, status, showSalesHistory,
+  );
 
-  const filteredSales = useMemo(() => {
-    if (!sales) return [];
-    return showVoided ? sales : sales.filter((s) => s.status !== "VOIDED");
-  }, [sales, showVoided]);
+  const sales = result?.data ?? [];
+  const total = result?.total ?? 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  usePrefetchPages(
+    salesQueryKeyBase(PAGE_SIZE, search, status),
+    (p) => buildSalesQueryFn(p, PAGE_SIZE, search, status),
+    page,
+    totalPages,
+  );
 
   const columns = [
     {
@@ -122,7 +140,7 @@ export default function SalesPage() {
             <Skeleton className="h-[400px] w-full" />
           ) : (
             <DataTable
-              data={filteredSales}
+              data={sales}
               columns={columns}
               searchPlaceholder="Search by part number..."
               onServerSearch={setSearchQuery}
@@ -131,6 +149,7 @@ export default function SalesPage() {
               exportFilename="sales"
               onRowClick={handleRowClick}
               idKey="id"
+              serverPagination={{ total, page, pageSize: PAGE_SIZE, onPageChange: setPage }}
               rowClassName={(sale) => (sale.status === "VOIDED" ? "text-destructive" : "")}
               exportOptions={{ isVoided: (sale) => sale.status === "VOIDED" }}
               exportColumns={[

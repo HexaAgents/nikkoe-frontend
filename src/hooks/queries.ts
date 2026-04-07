@@ -26,15 +26,34 @@ import type {
   UserProfile,
 } from "@/types/domain.types";
 
-export function useReceipts(search?: string, enabled = true) {
-  const qs = new URLSearchParams({ limit: "5000" });
+function receiptsUrl(page: number, pageSize: number, search?: string, status?: string) {
+  const qs = new URLSearchParams({
+    limit: String(pageSize),
+    offset: String((page - 1) * pageSize),
+  });
   if (search) qs.set("search", search);
+  if (status) qs.set("status", status);
+  return `/receipts/?${qs}`;
+}
+
+export function useReceipts(
+  page = 1, pageSize = 20,
+  search?: string, status?: string, enabled = true,
+) {
   return useQuery({
-    queryKey: ["receipts", { search }],
-    queryFn: () => api.getList<ReceiptWithRelations>(`/receipts/?${qs}`),
+    queryKey: ["receipts", { pageSize, search, status }, { page }],
+    queryFn: () => api.getListPaginated<ReceiptWithRelations>(receiptsUrl(page, pageSize, search, status)),
     placeholderData: keepPreviousData,
     enabled,
   });
+}
+
+export function buildReceiptsQueryFn(page: number, pageSize: number, search?: string, status?: string) {
+  return () => api.getListPaginated<ReceiptWithRelations>(receiptsUrl(page, pageSize, search, status));
+}
+
+export function receiptsQueryKeyBase(pageSize: number, search?: string, status?: string) {
+  return ["receipts", { pageSize, search, status }];
 }
 
 export function useReceipt(receiptId: string | number) {
@@ -53,14 +72,34 @@ export function useReceiptLines(receiptId: string | number) {
   });
 }
 
-export function useSales(search?: string) {
-  const qs = new URLSearchParams({ limit: "5000" });
-  if (search) qs.set("search", search);
-  return useQuery({
-    queryKey: ["sales", { search }],
-    queryFn: () => api.getList<SaleWithRelations>(`/sales/?${qs}`),
-    placeholderData: keepPreviousData,
+function salesUrl(page: number, pageSize: number, search?: string, status?: string) {
+  const qs = new URLSearchParams({
+    limit: String(pageSize),
+    offset: String((page - 1) * pageSize),
   });
+  if (search) qs.set("search", search);
+  if (status) qs.set("status", status);
+  return `/sales/?${qs}`;
+}
+
+export function useSales(
+  page = 1, pageSize = 20,
+  search?: string, status?: string, enabled = true,
+) {
+  return useQuery({
+    queryKey: ["sales", { pageSize, search, status }, { page }],
+    queryFn: () => api.getListPaginated<SaleWithRelations>(salesUrl(page, pageSize, search, status)),
+    placeholderData: keepPreviousData,
+    enabled,
+  });
+}
+
+export function buildSalesQueryFn(page: number, pageSize: number, search?: string, status?: string) {
+  return () => api.getListPaginated<SaleWithRelations>(salesUrl(page, pageSize, search, status));
+}
+
+export function salesQueryKeyBase(pageSize: number, search?: string, status?: string) {
+  return ["sales", { pageSize, search, status }];
 }
 
 export function useSale(saleId: string | number) {
@@ -82,7 +121,7 @@ export function useSaleLines(saleId: string | number) {
 export function useItems({ page = 1, pageSize = 20 } = {}) {
   const offset = (page - 1) * pageSize;
   return useQuery({
-    queryKey: ["items", { page, pageSize }],
+    queryKey: ["items", { pageSize }, { page }],
     queryFn: () =>
       api.getListPaginated<ItemWithRelations>(
         `/items/?limit=${pageSize}&offset=${offset}`,
@@ -92,14 +131,14 @@ export function useItems({ page = 1, pageSize = 20 } = {}) {
   });
 }
 
-export function useAllItems(enabled: boolean) {
-  return useQuery({
-    queryKey: ["items", "all"],
-    queryFn: () =>
-      api.getListPaginated<ItemWithRelations>("/items/?limit=5000&offset=0"),
-    enabled,
-    staleTime: 60_000,
-  });
+export function buildItemsQueryFn(page: number, pageSize: number) {
+  return () => api.getListPaginated<ItemWithRelations>(
+    `/items/?limit=${pageSize}&offset=${(page - 1) * pageSize}`,
+  );
+}
+
+export function itemsQueryKeyBase(pageSize: number) {
+  return ["items", { pageSize }];
 }
 
 export function useItemSearch(
