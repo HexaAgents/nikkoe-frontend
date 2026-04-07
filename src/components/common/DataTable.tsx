@@ -84,6 +84,7 @@ export function DataTable<T extends object>({
 }: DataTableProps<T>) {
   const [searchQuery, setSearchQuery] = useState(defaultSearchValue);
   const [clientPage, setClientPage] = useState(1);
+  const [pageInput, setPageInput] = useState("1");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const isServerPaginated = !!serverPagination;
@@ -152,6 +153,21 @@ export function DataTable<T extends object>({
     } else {
       setClientPage(page);
     }
+  };
+
+  useEffect(() => {
+    setPageInput(String(currentPage));
+  }, [currentPage]);
+
+  const handleJumpToPage = () => {
+    if (totalPages < 1) return;
+    const parsedPage = Number.parseInt(pageInput, 10);
+    if (Number.isNaN(parsedPage)) {
+      setPageInput(String(currentPage));
+      return;
+    }
+    const nextPage = Math.min(totalPages, Math.max(1, parsedPage));
+    handlePageChange(nextPage);
   };
 
   const handleExport = () => {
@@ -242,47 +258,79 @@ export function DataTable<T extends object>({
       </div>
 
       {totalPages > 1 && (
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                onClick={() => handlePageChange(currentPage - 1)}
-                className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-              />
-            </PaginationItem>
+        <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <Pagination className="mx-0 w-auto justify-start">
+            <PaginationContent className="flex-wrap gap-2">
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
 
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum: number;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (currentPage <= 3) {
-                pageNum = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = currentPage - 2 + i;
-              }
-              return (
-                <PaginationItem key={pageNum}>
-                  <PaginationLink
-                    onClick={() => handlePageChange(pageNum)}
-                    isActive={currentPage === pageNum}
-                    className="cursor-pointer"
-                  >
-                    {pageNum}
-                  </PaginationLink>
-                </PaginationItem>
-              );
-            })}
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum: number;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                return (
+                  <PaginationItem key={pageNum}>
+                    <PaginationLink
+                      onClick={() => handlePageChange(pageNum)}
+                      isActive={currentPage === pageNum}
+                      className="cursor-pointer"
+                    >
+                      {pageNum}
+                    </PaginationLink>
+                  </PaginationItem>
+                );
+              })}
 
-            <PaginationItem>
-              <PaginationNext
-                onClick={() => handlePageChange(currentPage + 1)}
-                className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+
+          <div className="flex items-center justify-center gap-2 rounded-md border bg-muted/20 px-3 py-2 sm:justify-end">
+            <span className="text-sm text-muted-foreground">Page {currentPage} of {totalPages}</span>
+            <Input
+              type="number"
+              min={1}
+              max={totalPages}
+              value={pageInput}
+              onChange={(e) => setPageInput(e.target.value)}
+              onBlur={handleJumpToPage}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleJumpToPage();
+                }
+              }}
+              placeholder="Go to"
+              className="h-8 w-20 [appearance:textfield] text-center text-sm [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              aria-label="Jump to page number"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleJumpToPage}
+              className="h-8 px-3"
+            >
+              Go
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );
