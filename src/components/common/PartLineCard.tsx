@@ -111,51 +111,56 @@ export function PartLineCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <Label
-            className={`w-32 shrink-0 ${showErrors && errors.includes("Quantity") ? "text-destructive" : "text-muted-foreground"}`}
-          >
-            Quantity:
-          </Label>
-          <div className="flex min-w-0 flex-1 items-center gap-2">
+        <div className="flex flex-wrap items-start gap-x-6 gap-y-4">
+          <div className="flex items-center gap-4">
+            <Label
+              className={`w-32 shrink-0 ${showErrors && errors.includes("Quantity") ? "text-destructive" : "text-muted-foreground"}`}
+            >
+              Quantity:
+            </Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min="1"
+                value={part.quantity}
+                onChange={(e) => onFieldChange(index, "quantity", e.target.value)}
+                className={cn(
+                  "w-24",
+                  showErrors && errors.includes("Quantity") && "border-destructive",
+                  exceedsStock && "border-amber-500",
+                )}
+              />
+              {availableQuantity != null && (
+                <span
+                  className={cn(
+                    "shrink-0 text-sm",
+                    exceedsStock ? "font-medium text-amber-600" : "text-muted-foreground",
+                  )}
+                >
+                  out of {availableQuantity}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex min-w-0 flex-1 items-center gap-4">
+            <Label
+              className={`shrink-0 ${showErrors && errors.includes(priceLabel) ? "text-destructive" : "text-muted-foreground"}`}
+            >
+              {priceLabel}:
+            </Label>
             <Input
               type="number"
-              min="1"
-              value={part.quantity}
-              onChange={(e) => onFieldChange(index, "quantity", e.target.value)}
+              step="0.01"
+              min="0"
+              value={part.price}
+              onChange={(e) => onFieldChange(index, "price", e.target.value)}
               className={cn(
-                "min-w-0 max-w-[100px]",
-                showErrors && errors.includes("Quantity") && "border-destructive",
-                exceedsStock && "border-amber-500",
+                "min-w-0 flex-1",
+                showErrors && errors.includes(priceLabel) && "border-destructive",
               )}
             />
-            {availableQuantity != null && (
-              <span
-                className={cn(
-                  "shrink-0 text-sm",
-                  exceedsStock ? "font-medium text-amber-600" : "text-muted-foreground",
-                )}
-              >
-                out of {availableQuantity}
-              </span>
-            )}
           </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <Label
-            className={`w-32 shrink-0 ${showErrors && errors.includes(priceLabel) ? "text-destructive" : "text-muted-foreground"}`}
-          >
-            {priceLabel}:
-          </Label>
-          <Input
-            type="number"
-            step="0.01"
-            min="0"
-            value={part.price}
-            onChange={(e) => onFieldChange(index, "price", e.target.value)}
-            className={`min-w-0 flex-1 ${showErrors && errors.includes(priceLabel) ? "border-destructive" : ""}`}
-          />
         </div>
 
         <div className="flex items-center gap-4">
