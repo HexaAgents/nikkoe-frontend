@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { analytics } from "@/lib/analytics";
 import { useCurrentUser, useCurrencies, useSuppliers, useLocations, useInventoryOnHand } from "@/hooks/queries";
 import { Button } from "@/components/ui/button";
@@ -104,15 +104,29 @@ export function AddReceiptForm({
     return inventoryOnHand.filter((row) => row.item_id === numId);
   };
 
+  const defaultLocationId = locations?.[0]?.id?.toString() ?? "";
+  const defaultCurrencyId = currencies?.find((c) => c.name === "£")?.id?.toString() ?? "";
+
   const getAutoLocation = (itemId: string) => {
     const allRows = getInventoryRowsForItem(itemId);
-    if (allRows.length === 0) return "";
+    if (allRows.length === 0) return defaultLocationId;
     const withStock = allRows
       .filter((row) => (row.quantity ?? 0) > 0)
       .sort((a, b) => (a.quantity ?? 0) - (b.quantity ?? 0));
     const best = withStock.length > 0 ? withStock[0] : allRows[0];
-    return best.location_id?.toString() || "";
+    return best.location_id?.toString() || defaultLocationId;
   };
+
+  useEffect(() => {
+    if (!defaultLocationId && !defaultCurrencyId) return;
+    setParts((prev) =>
+      prev.map((p) => ({
+        ...p,
+        location_id: p.location_id || defaultLocationId,
+        currency_id: p.currency_id || defaultCurrencyId,
+      }))
+    );
+  }, [defaultLocationId, defaultCurrencyId]);
 
   const getLocationsForItem = (itemId: string) => {
     if (!itemId) return locations?.map((l) => ({ location_id: l.id, location_code: l.code }));
@@ -129,7 +143,7 @@ export function AddReceiptForm({
     setReference("");
     setNote("");
     setFormKey((k) => k + 1);
-    setParts([{ ...emptyPart }]);
+    setParts([{ ...emptyPart, location_id: defaultLocationId, currency_id: defaultCurrencyId }]);
     setShowErrors(false);
   };
 
@@ -251,7 +265,7 @@ export function AddReceiptForm({
           <Button type="submit" disabled={addReceipt.isPending}>
             {addReceipt.isPending ? "Creating..." : variant === "inline" ? "Create receipt" : "Create"}
           </Button>
-          <Button type="button" variant="outline" onClick={() => setParts([...parts, { ...emptyPart }])}>
+          <Button type="button" variant="outline" onClick={() => setParts([...parts, { ...emptyPart, location_id: defaultLocationId, currency_id: defaultCurrencyId }])}>
             Add Part
           </Button>
           {variant === "inline" ? (

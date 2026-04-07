@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { analytics } from "@/lib/analytics";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -117,15 +117,24 @@ export function AddSaleForm({
     return inventoryOnHand.filter((row) => row.item_id === numId);
   };
 
+  const defaultLocationId = locations?.[0]?.id?.toString() ?? "";
+
   const getAutoLocation = (itemId: string) => {
     const allRows = getInventoryRowsForItem(itemId);
-    if (allRows.length === 0) return "";
+    if (allRows.length === 0) return defaultLocationId;
     const withStock = allRows
       .filter((row) => (row.quantity ?? 0) > 0)
       .sort((a, b) => (a.quantity ?? 0) - (b.quantity ?? 0));
     const best = withStock.length > 0 ? withStock[0] : allRows[0];
-    return best.location_id?.toString() || "";
+    return best.location_id?.toString() || defaultLocationId;
   };
+
+  useEffect(() => {
+    if (!defaultLocationId) return;
+    setParts((prev) =>
+      prev.map((p) => (p.location_id ? p : { ...p, location_id: defaultLocationId }))
+    );
+  }, [defaultLocationId]);
 
   const getAvailableQuantity = (itemId: string): number | null => {
     if (!inventoryOnHand || !itemId) return null;
@@ -148,7 +157,7 @@ export function AddSaleForm({
     setChannelId("");
     setCustomerId("");
     setCustomerName("");
-    setParts([{ ...emptyPart }]);
+    setParts([{ ...emptyPart, location_id: defaultLocationId }]);
     setShowErrors(false);
     setFormKey((k) => k + 1);
   };
@@ -333,7 +342,7 @@ export function AddSaleForm({
         <Button type="submit" disabled={addSale.isPending}>
           {addSale.isPending ? "Creating..." : variant === "inline" ? "Create sale" : "Create"}
         </Button>
-        <Button type="button" variant="outline" onClick={() => setParts([...parts, { ...emptyPart }])}>
+        <Button type="button" variant="outline" onClick={() => setParts([...parts, { ...emptyPart, location_id: defaultLocationId }])}>
           Add Part
         </Button>
         {variant === "inline" ? (

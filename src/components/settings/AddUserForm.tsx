@@ -30,7 +30,7 @@ export function AddUserForm() {
     setLoading(true);
 
     try {
-      await apiFetch("/users", {
+      await apiFetch("/users/", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });

@@ -178,9 +178,9 @@ export function PartLineCard({
                 ))
               ) : (
                 <>
-                  <SelectItem value="1">GBP</SelectItem>
-                  <SelectItem value="2">USD</SelectItem>
-                  <SelectItem value="3">EUR</SelectItem>
+                  <SelectItem value="1">£</SelectItem>
+                  <SelectItem value="2">$</SelectItem>
+                  <SelectItem value="3">€</SelectItem>
                 </>
               )}
             </SelectContent>
