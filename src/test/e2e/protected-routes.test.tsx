@@ -7,20 +7,45 @@ vi.mock("@/lib/analytics", () => ({
   analytics: { identify: vi.fn(), track: vi.fn(), reset: vi.fn() },
 }));
 
+vi.mock("@/lib/prefetch", () => ({
+  prefetchAppData: vi.fn(),
+}));
+
+const _stubKey = (...args: unknown[]) => ["stub", ...args];
+const _stubFn = () => () => Promise.resolve({ data: [], total: 0 });
+
 vi.mock("@/hooks/queries", () => ({
-  useSales: () => ({ data: [], isLoading: false }),
-  useReceipts: () => ({ data: [], isLoading: false }),
+  useSales: () => ({ data: { data: [], total: 0 }, isLoading: false, isFetching: false }),
+  salesQueryKeyBase: _stubKey,
+  buildSalesQueryFn: _stubFn,
+  useReceipts: () => ({ data: { data: [], total: 0 }, isLoading: false, isFetching: false }),
+  receiptsQueryKeyBase: _stubKey,
+  buildReceiptsQueryFn: _stubFn,
   useItems: () => ({ data: { data: [], total: 0 }, isLoading: false }),
   useItemSearch: () => ({ data: { data: [], total: 0 }, isFetching: false }),
+  itemsQueryKeyBase: _stubKey,
+  buildItemsQueryFn: _stubFn,
   useCategories: () => ({ data: [], isLoading: false }),
+  useCategoriesPaginated: () => ({ data: { data: [], total: 0 }, isLoading: false, isFetching: false }),
+  categoriesPageQueryKeyBase: _stubKey,
+  buildCategoriesQueryFn: _stubFn,
   useSuppliers: () => ({ data: [], isLoading: false }),
+  useSuppliersPaginated: () => ({ data: { data: [], total: 0 }, isLoading: false, isFetching: false }),
+  suppliersPageQueryKeyBase: _stubKey,
+  buildSuppliersQueryFn: _stubFn,
   useLocations: () => ({ data: [], isLoading: false }),
+  useLocationsPaginated: () => ({ data: { data: [], total: 0 }, isLoading: false, isFetching: false }),
+  locationsPageQueryKeyBase: _stubKey,
+  buildLocationsQueryFn: _stubFn,
   useChannels: () => ({ data: [], isLoading: false }),
   useCurrencies: () => ({ data: [], isLoading: false }),
   useCustomers: () => ({ data: [], isLoading: false }),
   useInventoryOnHand: () => ({ data: [], isLoading: false }),
   useInventoryMovements: () => ({ data: [], isLoading: false }),
   useTransfers: () => ({ data: [], isLoading: false }),
+  useMovementsPaginated: () => ({ data: { data: [], total: 0 }, isLoading: false, isFetching: false }),
+  movementsPageQueryKeyBase: _stubKey,
+  buildMovementsQueryFn: _stubFn,
   useCurrentUser: () => ({ data: null, isLoading: false }),
 }));
 
