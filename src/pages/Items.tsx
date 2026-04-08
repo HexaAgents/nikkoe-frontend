@@ -81,16 +81,18 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
   }, []);
 
   const columns = [
-    { key: "item_id", header: "Part Number" },
-    { key: "description", header: "Description" },
+    { key: "item_id", header: "Part Number", className: "max-w-[180px] truncate" },
+    { key: "description", header: "Description", className: "max-w-[280px] truncate" },
     {
       key: "category",
       header: "Category",
+      className: "max-w-[150px] truncate",
       render: (item: ItemWithRelations) => item.categories?.name || "-",
     },
     {
       key: "locations",
       header: "Locations",
+      className: "max-w-[180px] truncate",
       render: (item: ItemWithRelations) => {
         const locs = item.locations ?? [];
         if (locs.length === 0) return "-";

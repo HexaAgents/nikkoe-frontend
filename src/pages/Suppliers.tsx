@@ -51,9 +51,9 @@ export default function SuppliersPage({ embedded = false }: SuppliersPageProps) 
   }, [search]);
 
   const columns = [
-    { key: "name", header: "Name" },
-    { key: "address", header: "Address", className: "max-w-[300px] truncate" },
-    { key: "email", header: "Email" },
+    { key: "name", header: "Name", className: "max-w-[200px] truncate" },
+    { key: "address", header: "Address", className: "max-w-[250px] truncate" },
+    { key: "email", header: "Email", className: "max-w-[220px] truncate" },
     { key: "phone", header: "Phone" },
   ];
 
