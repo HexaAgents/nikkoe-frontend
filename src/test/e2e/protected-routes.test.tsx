@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { AppRoutes } from "@/routes";
 import { createMockAuthContext, createLoggedInAuthContext, renderWithProviders } from "./helpers";
@@ -53,10 +53,10 @@ vi.mock("@/hooks/queries", () => {
 describe("Protected Routes", () => {
   it.each(["/sales", "/receipts", "/items", "/settings"])(
     "redirects to /login when unauthenticated and visiting %s",
-    (route) => {
+    async (route) => {
       const auth = createMockAuthContext({ session: null, loading: false });
       renderWithProviders(<AppRoutes />, { auth, route });
-      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+      expect(await screen.findByLabelText(/email/i)).toBeInTheDocument();
     }
   );
 
@@ -72,15 +72,15 @@ describe("Protected Routes", () => {
     expect(screen.queryByLabelText(/email/i)).not.toBeInTheDocument();
   });
 
-  it("allows unauthenticated access to /login", () => {
+  it("allows unauthenticated access to /login", async () => {
     const auth = createMockAuthContext({ session: null, loading: false });
     renderWithProviders(<AppRoutes />, { auth, route: "/login" });
-    expect(screen.getByRole("button", { name: /sign in/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /sign in/i })).toBeInTheDocument();
   });
 
-  it("allows unauthenticated access to /signup", () => {
+  it("allows unauthenticated access to /signup", async () => {
     const auth = createMockAuthContext({ session: null, loading: false });
     renderWithProviders(<AppRoutes />, { auth, route: "/signup" });
-    expect(screen.getByRole("button", { name: /create account/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /create account/i })).toBeInTheDocument();
   });
 });

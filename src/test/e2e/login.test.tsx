@@ -49,7 +49,7 @@ describe("Login Page", () => {
     });
     renderWithProviders(<AppRoutes />, { auth, route: "/login" });
 
-    await userEvent.type(screen.getByLabelText(/email/i), "test@example.com");
+    await userEvent.type(await screen.findByLabelText(/email/i), "test@example.com");
     await userEvent.type(screen.getByLabelText(/password/i), "correctpass");
     await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
