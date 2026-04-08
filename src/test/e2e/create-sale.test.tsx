@@ -28,6 +28,7 @@ vi.mock("@/hooks/queries", () => ({
   useInventoryOnHand: () => ({ data: [{ id: 1, item_id: 1, location_id: 1, quantity: 10 }] }),
   useCategories: () => ({ data: [{ id: 1, name: "Electronics" }] }),
   useCurrentUser: () => ({ data: null }),
+  useItemInventory: () => ({ data: [], isLoading: false }),
 }));
 
 describe("Create Sale Form", () => {

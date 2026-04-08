@@ -47,6 +47,7 @@ vi.mock("@/hooks/queries", () => {
     movementsPageQueryKeyBase: stubKey,
     buildMovementsQueryFn: stubFn,
     useCurrentUser: () => ({ data: null, isLoading: false }),
+    useItemInventory: () => ({ data: [], isLoading: false }),
   };
 });
 

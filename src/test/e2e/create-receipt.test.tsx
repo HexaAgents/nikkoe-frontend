@@ -25,6 +25,7 @@ vi.mock("@/hooks/queries", () => ({
   useInventoryOnHand: () => ({ data: [] }),
   useCurrentUser: () => ({ data: { user_id: 1, name: "Test User" } }),
   useCategories: () => ({ data: [] }),
+  useItemInventory: () => ({ data: [], isLoading: false }),
 }));
 
 describe("Create Receipt Form", () => {
