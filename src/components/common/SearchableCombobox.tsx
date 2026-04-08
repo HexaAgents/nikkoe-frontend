@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -9,9 +9,7 @@ import {
 } from "@/components/ui/popover";
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
-  CommandInput,
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
@@ -35,41 +33,63 @@ export function SearchableCombobox<T extends Record<string, unknown>>({
   idKey,
   labelKey,
   placeholder = "Select...",
-  searchPlaceholder = "Search...",
   emptyMessage = "No results found.",
   hasError,
 }: SearchableComboboxProps<T>) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const skipClose = useRef(false);
 
   const selectedItem = useMemo(
     () => items?.find((i) => String(i[idKey]) === value),
     [items, value, idKey]
   );
 
+  const displayValue = selectedItem ? String(selectedItem[labelKey]) : "";
+
+  const filtered = useMemo(() => {
+    if (!items) return [];
+    if (!search.trim()) return items;
+    const q = search.trim().toLowerCase();
+    return items.filter((i) => String(i[labelKey]).toLowerCase().includes(q));
+  }, [items, search, labelKey]);
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(newOpen) => {
+      if (!newOpen && skipClose.current) { skipClose.current = false; return; }
+      setOpen(newOpen);
+      if (newOpen) setSearch("");
+    }}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className={cn(
-            "flex-1 justify-between font-normal",
-            !value && "text-muted-foreground",
-            hasError && "border-destructive"
-          )}
+        <div
+          className="relative min-w-0 flex-1"
+          onPointerDown={() => { skipClose.current = true; }}
         >
-          {selectedItem ? String(selectedItem[labelKey]) : placeholder}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
+          <Input
+            placeholder={placeholder}
+            value={open ? search : displayValue}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              if (!open) setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
+            className={cn(hasError && "border-destructive")}
+          />
+          <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
+        </div>
       </PopoverTrigger>
-      <PopoverContent className="w-[300px] p-0" align="start">
-        <Command>
-          <CommandInput placeholder={searchPlaceholder} />
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] p-0"
+        align="start"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        <Command shouldFilter={false}>
           <CommandList>
-            <CommandEmpty>{emptyMessage}</CommandEmpty>
+            {filtered.length === 0 && (
+              <div className="py-6 text-center text-sm text-muted-foreground">{emptyMessage}</div>
+            )}
             <CommandGroup>
-              {items?.map((item) => {
+              {filtered.map((item) => {
                 const id = String(item[idKey]);
                 const label = String(item[labelKey]);
                 return (
@@ -78,6 +98,7 @@ export function SearchableCombobox<T extends Record<string, unknown>>({
                     value={label}
                     onSelect={() => {
                       onSelect(id);
+                      setSearch("");
                       setOpen(false);
                     }}
                   >

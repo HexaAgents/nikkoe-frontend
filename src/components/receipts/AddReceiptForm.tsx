@@ -118,15 +118,14 @@ export function AddReceiptForm({
   };
 
   useEffect(() => {
-    if (!defaultLocationId && !defaultCurrencyId) return;
+    if (!defaultCurrencyId) return;
     setParts((prev) =>
       prev.map((p) => ({
         ...p,
-        location_id: p.location_id || defaultLocationId,
         currency_id: p.currency_id || defaultCurrencyId,
       }))
     );
-  }, [defaultLocationId, defaultCurrencyId]);
+  }, [defaultCurrencyId]);
 
   const getLocationsForItem = (itemId: string) => {
     if (!itemId) return locations?.map((l) => ({ location_id: l.id, location_code: l.code }));
@@ -143,7 +142,7 @@ export function AddReceiptForm({
     setReference("");
     setNote("");
     setFormKey((k) => k + 1);
-    setParts([{ ...emptyPart, location_id: defaultLocationId, currency_id: defaultCurrencyId }]);
+    setParts([{ ...emptyPart, currency_id: defaultCurrencyId }]);
     setShowErrors(false);
   };
 
@@ -265,7 +264,7 @@ export function AddReceiptForm({
           <Button type="submit" disabled={addReceipt.isPending}>
             {addReceipt.isPending ? "Creating..." : variant === "inline" ? "Create receipt" : "Create"}
           </Button>
-          <Button type="button" variant="outline" onClick={() => setParts([...parts, { ...emptyPart, location_id: defaultLocationId, currency_id: defaultCurrencyId }])}>
+          <Button type="button" variant="outline" onClick={() => setParts([...parts, { ...emptyPart, currency_id: defaultCurrencyId }])}>
             Add Part
           </Button>
           {variant === "inline" ? (

@@ -1,15 +1,9 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { analytics } from "@/lib/analytics";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Popover,
   PopoverContent,
@@ -17,9 +11,7 @@ import {
 } from "@/components/ui/popover";
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
-  CommandInput,
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
@@ -64,6 +56,8 @@ export function AddSaleForm({
   const addCustomer = useAddCustomer();
 
   const [channelId, setChannelId] = useState<string>("");
+  const [channelSearch, setChannelSearch] = useState("");
+  const [channelOpen, setChannelOpen] = useState(false);
   const [customerId, setCustomerId] = useState<string>("");
   const [customerName, setCustomerName] = useState("");
   const [customerOpen, setCustomerOpen] = useState(false);
@@ -72,6 +66,27 @@ export function AddSaleForm({
   const [formKey, setFormKey] = useState(0);
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
   const [isAddLocationModalOpen, setIsAddLocationModalOpen] = useState(false);
+  const skipChannelClose = useRef(false);
+  const skipCustomerClose = useRef(false);
+
+  const selectedChannel = useMemo(
+    () => channels?.find((c) => String(c.id) === channelId),
+    [channels, channelId]
+  );
+
+  const filteredChannels = useMemo(() => {
+    if (!channels) return [];
+    if (!channelSearch.trim()) return channels;
+    const q = channelSearch.trim().toLowerCase();
+    return channels.filter((c) => c.name.toLowerCase().includes(q));
+  }, [channels, channelSearch]);
+
+  const filteredCustomers = useMemo(() => {
+    if (!customers) return [];
+    if (!customerName.trim()) return customers;
+    const q = customerName.trim().toLowerCase();
+    return customers.filter((c) => c.name.toLowerCase().includes(q));
+  }, [customers, customerName]);
 
   const isNewCustomer = customerName.trim().length > 0 &&
     !customers?.some((c) => c.name.toLowerCase() === customerName.trim().toLowerCase());
@@ -79,7 +94,9 @@ export function AddSaleForm({
   const handleAddNewCustomer = async () => {
     const trimmed = customerName.trim();
     if (!trimmed) return;
-    await addCustomer.mutateAsync(trimmed);
+    const result = await addCustomer.mutateAsync(trimmed) as { id: number };
+    setCustomerName(trimmed);
+    if (result?.id) setCustomerId(String(result.id));
     setCustomerOpen(false);
   };
 
@@ -132,7 +149,7 @@ export function AddSaleForm({
   useEffect(() => {
     if (!defaultLocationId) return;
     setParts((prev) =>
-      prev.map((p) => (p.location_id ? p : { ...p, location_id: defaultLocationId }))
+      prev.map((p) => (p.location_id && p.item_id ? p : p.item_id ? { ...p, location_id: defaultLocationId } : p))
     );
   }, [defaultLocationId]);
 
@@ -155,9 +172,10 @@ export function AddSaleForm({
 
   const resetForm = () => {
     setChannelId("");
+    setChannelSearch("");
     setCustomerId("");
     setCustomerName("");
-    setParts([{ ...emptyPart, location_id: defaultLocationId }]);
+    setParts([{ ...emptyPart }]);
     setShowErrors(false);
     setFormKey((k) => k + 1);
   };
@@ -226,62 +244,115 @@ export function AddSaleForm({
         )}
         <div className="flex items-center gap-4">
           <Label className={`w-24 shrink-0 ${showErrors && !channelId ? "text-destructive" : "text-muted-foreground"}`}>Channel:</Label>
-          <Select key={`channel-${formKey}`} value={channelId || undefined} onValueChange={setChannelId}>
-            <SelectTrigger className="min-w-0 flex-1">
-              <SelectValue placeholder="Select channel" />
-            </SelectTrigger>
-            <SelectContent>
-              {channels?.map((channel) => (
-                <SelectItem key={channel.id} value={channel.id.toString()}>
-                  {channel.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover open={channelOpen} onOpenChange={(newOpen) => {
+            if (!newOpen && skipChannelClose.current) { skipChannelClose.current = false; return; }
+            setChannelOpen(newOpen);
+            if (newOpen) setChannelSearch("");
+          }}>
+            <PopoverTrigger asChild>
+              <div
+                className="relative min-w-0 flex-1"
+                onPointerDown={() => { skipChannelClose.current = true; }}
+              >
+                <Input
+                  placeholder="Select channel..."
+                  value={channelOpen ? channelSearch : (selectedChannel?.name ?? "")}
+                  onChange={(e) => {
+                    setChannelSearch(e.target.value);
+                    if (!channelOpen) setChannelOpen(true);
+                  }}
+                  onFocus={() => setChannelOpen(true)}
+                  className={cn(showErrors && !channelId && "border-destructive")}
+                />
+                <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
+              </div>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-[--radix-popover-trigger-width] p-0"
+              align="start"
+              onOpenAutoFocus={(e) => e.preventDefault()}
+            >
+              <Command shouldFilter={false}>
+                <CommandList>
+                  {filteredChannels.length === 0 && (
+                    <div className="py-6 text-center text-sm text-muted-foreground">No channels found.</div>
+                  )}
+                  <CommandGroup>
+                    {filteredChannels.map((channel) => (
+                      <CommandItem
+                        key={channel.id}
+                        value={channel.name}
+                        onSelect={() => {
+                          setChannelId(channel.id.toString());
+                          setChannelSearch("");
+                          setChannelOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            channelId === channel.id.toString() ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {channel.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div className="flex items-center gap-4">
           <Label className={`w-24 shrink-0 ${showErrors && !customerId ? "text-destructive" : "text-muted-foreground"}`}>Customer:</Label>
-          <Popover open={customerOpen} onOpenChange={setCustomerOpen}>
+          <Popover open={customerOpen} onOpenChange={(newOpen) => {
+            if (!newOpen && skipCustomerClose.current) { skipCustomerClose.current = false; return; }
+            setCustomerOpen(newOpen);
+          }}>
             <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={customerOpen}
-                className={cn(
-                  "min-w-0 flex-1 justify-between font-normal",
-                  !customerName && "text-muted-foreground"
-                )}
+              <div
+                className="relative min-w-0 flex-1"
+                onPointerDown={() => { skipCustomerClose.current = true; }}
               >
-                {customerName || "Select or type customer..."}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[300px] p-0" align="start">
-              <Command>
-                <CommandInput
-                  placeholder="Search or type new..."
+                <Input
+                  placeholder="Select or type customer..."
                   value={customerName}
-                  onValueChange={setCustomerName}
+                  onChange={(e) => {
+                    setCustomerName(e.target.value);
+                    setCustomerId("");
+                    if (!customerOpen) setCustomerOpen(true);
+                  }}
+                  onFocus={() => setCustomerOpen(true)}
                 />
+                <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
+              </div>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-[--radix-popover-trigger-width] p-0"
+              align="start"
+              onOpenAutoFocus={(e) => e.preventDefault()}
+            >
+              <Command shouldFilter={false}>
                 <CommandList>
-                  <CommandEmpty>No matching customers.</CommandEmpty>
+                  {filteredCustomers.length === 0 && !isNewCustomer && (
+                    <div className="py-6 text-center text-sm text-muted-foreground">No matching customers.</div>
+                  )}
                   <CommandGroup>
-                    {customers?.map((c) => (
+                    {filteredCustomers.map((c) => (
                       <CommandItem
                         key={c.id}
                         value={c.name}
-                        onSelect={(val) => {
-                          setCustomerName(val);
-                          const match = customers?.find((cu) => cu.name.toLowerCase() === val.toLowerCase());
-                          if (match) setCustomerId(String(match.id));
+                        onSelect={() => {
+                          setCustomerName(c.name);
+                          setCustomerId(String(c.id));
                           setCustomerOpen(false);
                         }}
                       >
                         <Check
                           className={cn(
                             "mr-2 h-4 w-4",
-                            customerName.toLowerCase() === c.name.toLowerCase() ? "opacity-100" : "opacity-0"
+                            customerId === String(c.id) ? "opacity-100" : "opacity-0"
                           )}
                         />
                         {c.name}
@@ -342,7 +413,7 @@ export function AddSaleForm({
         <Button type="submit" disabled={addSale.isPending}>
           {addSale.isPending ? "Creating..." : variant === "inline" ? "Create sale" : "Create"}
         </Button>
-        <Button type="button" variant="outline" onClick={() => setParts([...parts, { ...emptyPart, location_id: defaultLocationId }])}>
+        <Button type="button" variant="outline" onClick={() => setParts([...parts, { ...emptyPart }])}>
           Add Part
         </Button>
         {variant === "inline" ? (

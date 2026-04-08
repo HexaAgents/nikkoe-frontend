@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -9,9 +9,7 @@ import {
 } from "@/components/ui/popover";
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
-  CommandInput,
   CommandItem,
   CommandList,
   CommandSeparator,
@@ -27,12 +25,13 @@ interface SearchablePartPickerProps {
   inStockOnly?: boolean;
 }
 
-export function SearchablePartPicker({ value, onSelect, hasError, inStockOnly }: SearchablePartPickerProps) {
+export function SearchablePartPicker({ value, onSelect, hasError }: SearchablePartPickerProps) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const labelCacheRef = useRef<Map<string, string>>(new Map());
+  const skipClose = useRef(false);
 
   const { data: results, isFetching } = useItemSearch(debouncedQuery);
 
@@ -65,6 +64,7 @@ export function SearchablePartPicker({ value, onSelect, hasError, inStockOnly }:
     debounceRef.current = setTimeout(() => {
       setDebouncedQuery(val.trim());
     }, DEBOUNCE_MS);
+    if (!open) setOpen(true);
   };
 
   const handleSelect = (id: string) => {
@@ -77,40 +77,44 @@ export function SearchablePartPicker({ value, onSelect, hasError, inStockOnly }:
   const selectedLabel = labelCacheRef.current.get(value);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(newOpen) => {
+      if (!newOpen && skipClose.current) { skipClose.current = false; return; }
+      setOpen(newOpen);
+      if (newOpen) {
+        setInputValue("");
+        setDebouncedQuery("");
+      }
+    }}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className={cn(
-            "flex-1 justify-between font-normal",
-            !value && "text-muted-foreground",
-            hasError && "border-destructive",
-          )}
+        <div
+          className="relative min-w-0 flex-1"
+          onPointerDown={() => { skipClose.current = true; }}
         >
-          {selectedLabel || (value ? value : "Select part...")}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[300px] p-0" align="start">
-        <Command shouldFilter={false}>
-          <CommandInput
-            placeholder="Search parts..."
-            value={inputValue}
-            onValueChange={handleInputChange}
+          <Input
+            placeholder="Select part..."
+            value={open ? inputValue : (selectedLabel || (value ? value : ""))}
+            onChange={(e) => handleInputChange(e.target.value)}
+            onFocus={() => setOpen(true)}
+            className={cn(hasError && "border-destructive")}
           />
+          <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
+        </div>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] p-0"
+        align="start"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        <Command shouldFilter={false}>
           <CommandList>
             {isFetching ? (
               <div className="flex items-center justify-center py-6">
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               </div>
-            ) : !debouncedQuery ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                Type to search parts...
-              </div>
             ) : items.length === 0 ? (
-              <CommandEmpty>No parts found.</CommandEmpty>
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                {debouncedQuery ? "No parts found." : "Start typing to search..."}
+              </div>
             ) : null}
 
             {inStock.length > 0 && (

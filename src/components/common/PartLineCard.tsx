@@ -1,15 +1,21 @@
-import { Trash2 } from "lucide-react";
+import { useState, useMemo, useRef } from "react";
+
+import { Trash2, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SearchablePartPicker } from "@/components/common/SearchablePartPicker";
 import { SearchableLocationPicker } from "@/components/common/SearchableLocationPicker";
@@ -40,6 +46,12 @@ interface PartLineCardProps {
   availableQuantity?: number | null;
 }
 
+const fallbackCurrencies = [
+  { id: 1, name: "£" },
+  { id: 2, name: "$" },
+  { id: 3, name: "€" },
+];
+
 export function PartLineCard({
   index,
   part,
@@ -60,6 +72,23 @@ export function PartLineCard({
   const qty = Number(part.quantity);
   const exceedsStock =
     availableQuantity != null && Number.isFinite(qty) && qty > availableQuantity;
+
+  const currencyList = currencies && currencies.length > 0 ? currencies : fallbackCurrencies;
+
+  const [currencyOpen, setCurrencyOpen] = useState(false);
+  const [currencySearch, setCurrencySearch] = useState("");
+  const skipCurrencyClose = useRef(false);
+
+  const selectedCurrency = useMemo(
+    () => currencyList.find((c) => String(c.id) === part.currency_id),
+    [currencyList, part.currency_id]
+  );
+
+  const filteredCurrencies = useMemo(() => {
+    if (!currencySearch.trim()) return currencyList;
+    const q = currencySearch.trim().toLowerCase();
+    return currencyList.filter((c) => c.name.toLowerCase().includes(q));
+  }, [currencyList, currencySearch]);
 
   return (
     <Card className={`border-primary/20 ${showErrors && errors.length > 0 ? "border-destructive" : ""}`}>
@@ -165,26 +194,64 @@ export function PartLineCard({
 
         <div className="flex items-center gap-4">
           <Label className={`w-32 shrink-0 ${showErrors && errors.includes("Currency") ? "text-destructive" : "text-muted-foreground"}`}>Currency:</Label>
-          <Select value={part.currency_id} onValueChange={(v) => onFieldChange(index, "currency_id", v)}>
-            <SelectTrigger className="min-w-0 flex-1">
-              <SelectValue placeholder="Select currency" />
-            </SelectTrigger>
-            <SelectContent>
-              {currencies && currencies.length > 0 ? (
-                currencies.map((c) => (
-                  <SelectItem key={c.id} value={c.id.toString()}>
-                    {c.name}
-                  </SelectItem>
-                ))
-              ) : (
-                <>
-                  <SelectItem value="1">£</SelectItem>
-                  <SelectItem value="2">$</SelectItem>
-                  <SelectItem value="3">€</SelectItem>
-                </>
-              )}
-            </SelectContent>
-          </Select>
+          <Popover open={currencyOpen} onOpenChange={(newOpen) => {
+            if (!newOpen && skipCurrencyClose.current) { skipCurrencyClose.current = false; return; }
+            setCurrencyOpen(newOpen);
+            if (newOpen) setCurrencySearch("");
+          }}>
+            <PopoverTrigger asChild>
+              <div
+                className="relative min-w-0 flex-1"
+                onPointerDown={() => { skipCurrencyClose.current = true; }}
+              >
+                <Input
+                  placeholder="Select currency..."
+                  value={currencyOpen ? currencySearch : (selectedCurrency?.name ?? "")}
+                  onChange={(e) => {
+                    setCurrencySearch(e.target.value);
+                    if (!currencyOpen) setCurrencyOpen(true);
+                  }}
+                  onFocus={() => setCurrencyOpen(true)}
+                  className={cn(showErrors && errors.includes("Currency") && "border-destructive")}
+                />
+                <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
+              </div>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-[--radix-popover-trigger-width] p-0"
+              align="start"
+              onOpenAutoFocus={(e) => e.preventDefault()}
+            >
+              <Command shouldFilter={false}>
+                <CommandList>
+                  {filteredCurrencies.length === 0 && (
+                    <div className="py-6 text-center text-sm text-muted-foreground">No currencies found.</div>
+                  )}
+                  <CommandGroup>
+                    {filteredCurrencies.map((c) => (
+                      <CommandItem
+                        key={c.id}
+                        value={c.name}
+                        onSelect={() => {
+                          onFieldChange(index, "currency_id", c.id.toString());
+                          setCurrencySearch("");
+                          setCurrencyOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            part.currency_id === c.id.toString() ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {c.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
       </CardContent>
     </Card>
