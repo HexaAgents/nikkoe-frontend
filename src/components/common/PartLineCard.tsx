@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 
 import { Trash2, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -10,15 +10,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Command,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SearchablePartPicker } from "@/components/common/SearchablePartPicker";
 import { SearchableLocationPicker } from "@/components/common/SearchableLocationPicker";
+import { useItemInventory } from "@/hooks/queries";
 
 export interface PartLine {
   item_id: string;
@@ -67,8 +62,46 @@ export function PartLineCard({
   extraPartActions,
   extraLocationActions,
   inStockOnly,
-  availableQuantity,
+  availableQuantity: availableQuantityProp,
 }: PartLineCardProps) {
+  const { data: itemInventory } = useItemInventory(part.item_id);
+
+  const derivedLocations = useMemo(() => {
+    if (!part.item_id || !itemInventory || itemInventory.length === 0) {
+      return locations;
+    }
+    return itemInventory.map((row) => ({
+      location_id: String(row.location_id),
+      location_code: row.location?.code ?? `Location ${row.location_id}`,
+    }));
+  }, [part.item_id, itemInventory, locations]);
+
+  const computedAvailableQty = useMemo(() => {
+    if (!part.item_id || !itemInventory) return null;
+    if (itemInventory.length === 0) return 0;
+    return itemInventory.reduce((sum, r) => sum + (r.quantity ?? 0), 0);
+  }, [itemInventory, part.item_id]);
+
+  const availableQuantity = availableQuantityProp ?? computedAvailableQty;
+
+  const onFieldChangeRef = useRef(onFieldChange);
+  onFieldChangeRef.current = onFieldChange;
+
+  useEffect(() => {
+    if (!part.item_id || !itemInventory || itemInventory.length === 0) return;
+
+    const validIds = new Set(itemInventory.map((r) => String(r.location_id)));
+    if (part.location_id && validIds.has(part.location_id)) return;
+
+    const withStock = [...itemInventory]
+      .filter((r) => (r.quantity ?? 0) > 0)
+      .sort((a, b) => (b.quantity ?? 0) - (a.quantity ?? 0));
+    const best = withStock[0] ?? itemInventory[0];
+    if (best) {
+      onFieldChangeRef.current(index, "location_id", String(best.location_id));
+    }
+  }, [itemInventory, part.item_id, part.location_id, index]);
+
   const qty = Number(part.quantity);
   const exceedsStock =
     availableQuantity != null && Number.isFinite(qty) && qty > availableQuantity;
@@ -131,7 +164,7 @@ export function PartLineCard({
           </Label>
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
             <SearchableLocationPicker
-              locations={locations}
+              locations={derivedLocations}
               value={part.location_id}
               onSelect={(id) => onFieldChange(index, "location_id", id)}
               hasError={showErrors && errors.includes("Location")}
@@ -197,7 +230,7 @@ export function PartLineCard({
           <Popover open={currencyOpen} onOpenChange={(newOpen) => {
             if (!newOpen && skipCurrencyClose.current) { skipCurrencyClose.current = false; return; }
             setCurrencyOpen(newOpen);
-            if (newOpen) setCurrencySearch("");
+            if (newOpen) { setCurrencySearch(""); skipCurrencyClose.current = false; }
           }}>
             <PopoverTrigger asChild>
               <div
@@ -222,34 +255,36 @@ export function PartLineCard({
               align="start"
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
-              <Command shouldFilter={false}>
-                <CommandList>
-                  {filteredCurrencies.length === 0 && (
-                    <div className="py-6 text-center text-sm text-muted-foreground">No currencies found.</div>
-                  )}
-                  <CommandGroup>
-                    {filteredCurrencies.map((c) => (
-                      <CommandItem
-                        key={c.id}
-                        value={c.name}
-                        onSelect={() => {
-                          onFieldChange(index, "currency_id", c.id.toString());
-                          setCurrencySearch("");
-                          setCurrencyOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            part.currency_id === c.id.toString() ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {c.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
+              <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">
+                {filteredCurrencies.length === 0 ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">No currencies found.</div>
+                ) : (
+                  filteredCurrencies.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className={cn(
+                        "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                        part.currency_id === c.id.toString() && "bg-accent text-accent-foreground"
+                      )}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        onFieldChange(index, "currency_id", c.id.toString());
+                        setCurrencySearch("");
+                        setCurrencyOpen(false);
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          part.currency_id === c.id.toString() ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {c.name}
+                    </button>
+                  ))
+                )}
+              </div>
             </PopoverContent>
           </Popover>
         </div>

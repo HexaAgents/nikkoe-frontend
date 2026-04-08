@@ -61,4 +61,5 @@ export function prefetchAppData(qc: QueryClient) {
   qc.prefetchQuery({ queryKey: ["channels"], queryFn: () => api.getList("/channels/") });
   qc.prefetchQuery({ queryKey: ["customers"], queryFn: () => api.getList("/customers/") });
   qc.prefetchQuery({ queryKey: ["currencies"], queryFn: () => api.getList("/currencies/") });
+  qc.prefetchQuery({ queryKey: ["inventory_on_hand"], queryFn: () => api.get("/inventory/on-hand") });
 }

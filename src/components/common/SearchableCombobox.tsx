@@ -7,12 +7,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Command,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 
 interface SearchableComboboxProps<T> {
   items: T[] | undefined;
@@ -58,7 +52,7 @@ export function SearchableCombobox<T extends Record<string, unknown>>({
     <Popover open={open} onOpenChange={(newOpen) => {
       if (!newOpen && skipClose.current) { skipClose.current = false; return; }
       setOpen(newOpen);
-      if (newOpen) setSearch("");
+      if (newOpen) { setSearch(""); skipClose.current = false; }
     }}>
       <PopoverTrigger asChild>
         <div
@@ -83,38 +77,40 @@ export function SearchableCombobox<T extends Record<string, unknown>>({
         align="start"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <Command shouldFilter={false}>
-          <CommandList>
-            {filtered.length === 0 && (
-              <div className="py-6 text-center text-sm text-muted-foreground">{emptyMessage}</div>
-            )}
-            <CommandGroup>
-              {filtered.map((item) => {
-                const id = String(item[idKey]);
-                const label = String(item[labelKey]);
-                return (
-                  <CommandItem
-                    key={id}
-                    value={label}
-                    onSelect={() => {
-                      onSelect(id);
-                      setSearch("");
-                      setOpen(false);
-                    }}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        value === id ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    {label}
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
-          </CommandList>
-        </Command>
+        <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">
+          {filtered.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">{emptyMessage}</div>
+          ) : (
+            filtered.map((item) => {
+              const id = String(item[idKey]);
+              const label = String(item[labelKey]);
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className={cn(
+                    "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                    value === id && "bg-accent text-accent-foreground"
+                  )}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    onSelect(id);
+                    setSearch("");
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {label}
+                </button>
+              );
+            })
+          )}
+        </div>
       </PopoverContent>
     </Popover>
   );

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { analytics } from "@/lib/analytics";
-import { useCurrentUser, useCurrencies, useSuppliers, useLocations, useInventoryOnHand } from "@/hooks/queries";
+import { useCurrentUser, useCurrencies, useSuppliers, useLocations } from "@/hooks/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -75,7 +75,6 @@ export function AddReceiptForm({
   const { data: currentUser } = useCurrentUser();
   const { data: suppliers } = useSuppliers();
   const { data: locations } = useLocations();
-  const { data: inventoryOnHand } = useInventoryOnHand();
   const { data: currencies } = useCurrencies();
 
   const [supplierId, setSupplierId] = useState<string>("");
@@ -98,24 +97,12 @@ export function AddReceiptForm({
     return { isValid: headerErrors.length === 0 && errors.length === 0, headerErrors, errors };
   }, [parts, supplierId]);
 
-  const getInventoryRowsForItem = (itemId: string) => {
-    if (!inventoryOnHand || !itemId) return [];
-    const numId = Number(itemId);
-    return inventoryOnHand.filter((row) => row.item_id === numId);
-  };
-
-  const defaultLocationId = locations?.[0]?.id?.toString() ?? "";
   const defaultCurrencyId = currencies?.find((c) => c.name === "£")?.id?.toString() ?? "";
 
-  const getAutoLocation = (itemId: string) => {
-    const allRows = getInventoryRowsForItem(itemId);
-    if (allRows.length === 0) return defaultLocationId;
-    const withStock = allRows
-      .filter((row) => (row.quantity ?? 0) > 0)
-      .sort((a, b) => (a.quantity ?? 0) - (b.quantity ?? 0));
-    const best = withStock.length > 0 ? withStock[0] : allRows[0];
-    return best.location_id?.toString() || defaultLocationId;
-  };
+  const allLocations = useMemo(
+    () => locations?.map((l) => ({ location_id: String(l.id), location_code: l.code })),
+    [locations],
+  );
 
   useEffect(() => {
     if (!defaultCurrencyId) return;
@@ -126,16 +113,6 @@ export function AddReceiptForm({
       }))
     );
   }, [defaultCurrencyId]);
-
-  const getLocationsForItem = (itemId: string) => {
-    if (!itemId) return locations?.map((l) => ({ location_id: l.id, location_code: l.code }));
-    const rows = getInventoryRowsForItem(itemId);
-    if (rows.length === 0) return locations?.map((l) => ({ location_id: l.id, location_code: l.code }));
-    const itemLocationIds = new Set(rows.map((r) => r.location_id));
-    return locations
-      ?.filter((l) => itemLocationIds.has(l.id))
-      .map((l) => ({ location_id: l.id, location_code: l.code }));
-  };
 
   const resetForm = () => {
     setSupplierId("");
@@ -149,8 +126,7 @@ export function AddReceiptForm({
   const handlePartSelect = (index: number, itemId: string) => {
     setParts((prev) => {
       const updated = [...prev];
-      const locationId = getAutoLocation(itemId);
-      updated[index] = { ...updated[index], item_id: itemId, location_id: locationId };
+      updated[index] = { ...updated[index], item_id: itemId, location_id: "" };
       return updated;
     });
   };
@@ -237,7 +213,7 @@ export function AddReceiptForm({
               key={index}
               index={index}
               part={part}
-              locations={getLocationsForItem(part.item_id)}
+              locations={allLocations}
               currencies={currencies}
               priceLabel="Unit Cost"
               showErrors={showErrors}

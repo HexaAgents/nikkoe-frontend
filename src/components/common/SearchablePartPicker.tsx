@@ -7,13 +7,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Command,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-} from "@/components/ui/command";
 import { useItemSearch } from "@/hooks/queries";
 
 const DEBOUNCE_MS = 300;
@@ -83,6 +76,7 @@ export function SearchablePartPicker({ value, onSelect, hasError }: SearchablePa
       if (newOpen) {
         setInputValue("");
         setDebouncedQuery("");
+        skipClose.current = false;
       }
     }}>
       <PopoverTrigger asChild>
@@ -105,63 +99,67 @@ export function SearchablePartPicker({ value, onSelect, hasError }: SearchablePa
         align="start"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <Command shouldFilter={false}>
-          <CommandList>
-            {isFetching ? (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              </div>
-            ) : items.length === 0 ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                {debouncedQuery ? "No parts found." : "Start typing to search..."}
-              </div>
-            ) : null}
+        <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">
+          {isFetching ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          ) : items.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              {debouncedQuery ? "No parts found." : "Start typing to search..."}
+            </div>
+          ) : null}
 
-            {inStock.length > 0 && (
-              <CommandGroup>
-                {inStock.map((item) => (
-                  <CommandItem
-                    key={item.id}
-                    value={item.id}
-                    onSelect={() => handleSelect(item.id)}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        value === item.id ? "opacity-100" : "opacity-0",
-                      )}
-                    />
-                    {item.partNumber}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
+          {inStock.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={cn(
+                "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                value === item.id && "bg-accent text-accent-foreground",
+              )}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => handleSelect(item.id)}
+            >
+              <Check
+                className={cn(
+                  "mr-2 h-4 w-4",
+                  value === item.id ? "opacity-100" : "opacity-0",
+                )}
+              />
+              {item.partNumber}
+            </button>
+          ))}
 
-            {inStock.length > 0 && outOfStock.length > 0 && <CommandSeparator />}
+          {inStock.length > 0 && outOfStock.length > 0 && <div className="-mx-1 h-px bg-border" />}
 
-            {outOfStock.length > 0 && (
-              <CommandGroup heading="No stock">
-                {outOfStock.map((item) => (
-                  <CommandItem
-                    key={item.id}
-                    value={item.id}
-                    onSelect={() => handleSelect(item.id)}
-                    className="text-muted-foreground"
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        value === item.id ? "opacity-100" : "opacity-0",
-                      )}
-                    />
-                    <span className="flex-1">{item.partNumber}</span>
-                    <span className="ml-2 text-xs text-destructive">No stock</span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
-          </CommandList>
-        </Command>
+          {outOfStock.length > 0 && (
+            <>
+              <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">No stock</div>
+              {outOfStock.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={cn(
+                    "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground",
+                    value === item.id && "bg-accent text-accent-foreground",
+                  )}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleSelect(item.id)}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === item.id ? "opacity-100" : "opacity-0",
+                    )}
+                  />
+                  <span className="flex-1">{item.partNumber}</span>
+                  <span className="ml-2 text-xs text-destructive">No stock</span>
+                </button>
+              ))}
+            </>
+          )}
+        </div>
       </PopoverContent>
     </Popover>
   );

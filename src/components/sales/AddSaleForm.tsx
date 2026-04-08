@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useRef } from "react";
 import { analytics } from "@/lib/analytics";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,15 +9,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Command,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 import { useAddSale, useAddCustomer } from "@/hooks/mutations";
 import type { SaleLineInput } from "@/types/domain.types";
-import { useChannels, useCurrencies, useCustomers, useLocations, useInventoryOnHand } from "@/hooks/queries";
+import { useChannels, useCurrencies, useCustomers, useLocations } from "@/hooks/queries";
 import { PartLineCard } from "@/components/common/PartLineCard";
 import type { PartLine } from "@/components/common/PartLineCard";
 import { AddItemModal } from "@/components/modals/AddItemModal";
@@ -50,7 +44,6 @@ export function AddSaleForm({
   const addSale = useAddSale();
   const { data: channels } = useChannels();
   const { data: locations } = useLocations();
-  const { data: inventoryOnHand } = useInventoryOnHand();
   const { data: customers } = useCustomers();
   const { data: currencies } = useCurrencies();
   const addCustomer = useAddCustomer();
@@ -128,47 +121,10 @@ export function AddSaleForm({
     };
   }, [parts, channelId, customerId]);
 
-  const getInventoryRowsForItem = (itemId: string) => {
-    if (!inventoryOnHand || !itemId) return [];
-    const numId = Number(itemId);
-    return inventoryOnHand.filter((row) => row.item_id === numId);
-  };
-
-  const defaultLocationId = locations?.[0]?.id?.toString() ?? "";
-
-  const getAutoLocation = (itemId: string) => {
-    const allRows = getInventoryRowsForItem(itemId);
-    if (allRows.length === 0) return defaultLocationId;
-    const withStock = allRows
-      .filter((row) => (row.quantity ?? 0) > 0)
-      .sort((a, b) => (a.quantity ?? 0) - (b.quantity ?? 0));
-    const best = withStock.length > 0 ? withStock[0] : allRows[0];
-    return best.location_id?.toString() || defaultLocationId;
-  };
-
-  useEffect(() => {
-    if (!defaultLocationId) return;
-    setParts((prev) =>
-      prev.map((p) => (p.location_id && p.item_id ? p : p.item_id ? { ...p, location_id: defaultLocationId } : p))
-    );
-  }, [defaultLocationId]);
-
-  const getAvailableQuantity = (itemId: string): number | null => {
-    if (!inventoryOnHand || !itemId) return null;
-    const rows = inventoryOnHand.filter((r) => r.item_id === Number(itemId));
-    if (rows.length === 0) return 0;
-    return rows.reduce((sum, r) => sum + (r.quantity ?? 0), 0);
-  };
-
-  const getLocationsForItem = (itemId: string) => {
-    if (!itemId) return locations?.map((l) => ({ location_id: l.id, location_code: l.code }));
-    const rows = getInventoryRowsForItem(itemId);
-    if (rows.length === 0) return locations?.map((l) => ({ location_id: l.id, location_code: l.code }));
-    const itemLocationIds = new Set(rows.map((r) => r.location_id));
-    return locations
-      ?.filter((l) => itemLocationIds.has(l.id))
-      .map((l) => ({ location_id: l.id, location_code: l.code }));
-  };
+  const allLocations = useMemo(
+    () => locations?.map((l) => ({ location_id: String(l.id), location_code: l.code })),
+    [locations],
+  );
 
   const resetForm = () => {
     setChannelId("");
@@ -183,8 +139,7 @@ export function AddSaleForm({
   const handlePartSelect = (index: number, itemId: string) => {
     setParts((prev) => {
       const updated = [...prev];
-      const locationId = getAutoLocation(itemId);
-      updated[index] = { ...updated[index], item_id: itemId, location_id: locationId };
+      updated[index] = { ...updated[index], item_id: itemId, location_id: "" };
       return updated;
     });
   };
@@ -247,7 +202,7 @@ export function AddSaleForm({
           <Popover open={channelOpen} onOpenChange={(newOpen) => {
             if (!newOpen && skipChannelClose.current) { skipChannelClose.current = false; return; }
             setChannelOpen(newOpen);
-            if (newOpen) setChannelSearch("");
+            if (newOpen) { setChannelSearch(""); skipChannelClose.current = false; }
           }}>
             <PopoverTrigger asChild>
               <div
@@ -272,34 +227,36 @@ export function AddSaleForm({
               align="start"
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
-              <Command shouldFilter={false}>
-                <CommandList>
-                  {filteredChannels.length === 0 && (
-                    <div className="py-6 text-center text-sm text-muted-foreground">No channels found.</div>
-                  )}
-                  <CommandGroup>
-                    {filteredChannels.map((channel) => (
-                      <CommandItem
-                        key={channel.id}
-                        value={channel.name}
-                        onSelect={() => {
-                          setChannelId(channel.id.toString());
-                          setChannelSearch("");
-                          setChannelOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            channelId === channel.id.toString() ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {channel.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
+              <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">
+                {filteredChannels.length === 0 ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">No channels found.</div>
+                ) : (
+                  filteredChannels.map((channel) => (
+                    <button
+                      key={channel.id}
+                      type="button"
+                      className={cn(
+                        "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                        channelId === channel.id.toString() && "bg-accent text-accent-foreground"
+                      )}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setChannelId(channel.id.toString());
+                        setChannelSearch("");
+                        setChannelOpen(false);
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          channelId === channel.id.toString() ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {channel.name}
+                    </button>
+                  ))
+                )}
+              </div>
             </PopoverContent>
           </Popover>
         </div>
@@ -309,6 +266,7 @@ export function AddSaleForm({
           <Popover open={customerOpen} onOpenChange={(newOpen) => {
             if (!newOpen && skipCustomerClose.current) { skipCustomerClose.current = false; return; }
             setCustomerOpen(newOpen);
+            if (newOpen) skipCustomerClose.current = false;
           }}>
             <PopoverTrigger asChild>
               <div
@@ -333,48 +291,49 @@ export function AddSaleForm({
               align="start"
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
-              <Command shouldFilter={false}>
-                <CommandList>
-                  {filteredCustomers.length === 0 && !isNewCustomer && (
-                    <div className="py-6 text-center text-sm text-muted-foreground">No matching customers.</div>
-                  )}
-                  <CommandGroup>
-                    {filteredCustomers.map((c) => (
-                      <CommandItem
-                        key={c.id}
-                        value={c.name}
-                        onSelect={() => {
-                          setCustomerName(c.name);
-                          setCustomerId(String(c.id));
-                          setCustomerOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            customerId === String(c.id) ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {c.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                  {isNewCustomer && (
-                    <div className="border-t p-2">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="w-full"
-                        disabled={addCustomer.isPending}
-                        onClick={handleAddNewCustomer}
-                      >
-                        {addCustomer.isPending ? "Adding..." : `Add "${customerName.trim()}" as new customer`}
-                      </Button>
-                    </div>
-                  )}
-                </CommandList>
-              </Command>
+              <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">
+                {filteredCustomers.length === 0 && !isNewCustomer && (
+                  <div className="py-6 text-center text-sm text-muted-foreground">No matching customers.</div>
+                )}
+                {filteredCustomers.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={cn(
+                      "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                      customerId === String(c.id) && "bg-accent text-accent-foreground"
+                    )}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setCustomerName(c.name);
+                      setCustomerId(String(c.id));
+                      setCustomerOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        customerId === String(c.id) ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {c.name}
+                  </button>
+                ))}
+                {isNewCustomer && (
+                  <div className="border-t p-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="w-full"
+                      disabled={addCustomer.isPending}
+                      onClick={handleAddNewCustomer}
+                    >
+                      {addCustomer.isPending ? "Adding..." : `Add "${customerName.trim()}" as new customer`}
+                    </Button>
+                  </div>
+                )}
+              </div>
             </PopoverContent>
           </Popover>
         </div>
@@ -384,7 +343,7 @@ export function AddSaleForm({
             key={index}
             index={index}
             part={part}
-            locations={getLocationsForItem(part.item_id)}
+            locations={allLocations}
             currencies={currencies}
             priceLabel="Unit Price"
             showErrors={showErrors}
@@ -394,7 +353,6 @@ export function AddSaleForm({
             onFieldChange={handlePartChange}
             onRemove={(i) => setParts(parts.filter((_, j) => j !== i))}
             inStockOnly
-            availableQuantity={getAvailableQuantity(part.item_id)}
             extraPartActions={
               <Button type="button" variant="secondary" onClick={() => setIsAddItemModalOpen(true)}>
                 New Part
