@@ -11,43 +11,44 @@ vi.mock("@/lib/prefetch", () => ({
   prefetchAppData: vi.fn(),
 }));
 
-const _stubKey = (...args: unknown[]) => ["stub", ...args];
-const _stubFn = () => () => Promise.resolve({ data: [], total: 0 });
-
-vi.mock("@/hooks/queries", () => ({
-  useSales: () => ({ data: { data: [], total: 0 }, isLoading: false, isFetching: false }),
-  salesQueryKeyBase: _stubKey,
-  buildSalesQueryFn: _stubFn,
-  useReceipts: () => ({ data: { data: [], total: 0 }, isLoading: false, isFetching: false }),
-  receiptsQueryKeyBase: _stubKey,
-  buildReceiptsQueryFn: _stubFn,
-  useItems: () => ({ data: { data: [], total: 0 }, isLoading: false }),
-  useItemSearch: () => ({ data: { data: [], total: 0 }, isFetching: false }),
-  itemsQueryKeyBase: _stubKey,
-  buildItemsQueryFn: _stubFn,
-  useCategories: () => ({ data: [], isLoading: false }),
-  useCategoriesPaginated: () => ({ data: { data: [], total: 0 }, isLoading: false, isFetching: false }),
-  categoriesPageQueryKeyBase: _stubKey,
-  buildCategoriesQueryFn: _stubFn,
-  useSuppliers: () => ({ data: [], isLoading: false }),
-  useSuppliersPaginated: () => ({ data: { data: [], total: 0 }, isLoading: false, isFetching: false }),
-  suppliersPageQueryKeyBase: _stubKey,
-  buildSuppliersQueryFn: _stubFn,
-  useLocations: () => ({ data: [], isLoading: false }),
-  useLocationsPaginated: () => ({ data: { data: [], total: 0 }, isLoading: false, isFetching: false }),
-  locationsPageQueryKeyBase: _stubKey,
-  buildLocationsQueryFn: _stubFn,
-  useChannels: () => ({ data: [], isLoading: false }),
-  useCurrencies: () => ({ data: [], isLoading: false }),
-  useCustomers: () => ({ data: [], isLoading: false }),
-  useInventoryOnHand: () => ({ data: [], isLoading: false }),
-  useInventoryMovements: () => ({ data: [], isLoading: false }),
-  useTransfers: () => ({ data: [], isLoading: false }),
-  useMovementsPaginated: () => ({ data: { data: [], total: 0 }, isLoading: false, isFetching: false }),
-  movementsPageQueryKeyBase: _stubKey,
-  buildMovementsQueryFn: _stubFn,
-  useCurrentUser: () => ({ data: null, isLoading: false }),
-}));
+vi.mock("@/hooks/queries", () => {
+  const stubKey = (...args: unknown[]) => ["stub", ...args];
+  const stubFn = () => () => Promise.resolve({ data: [], total: 0 });
+  return {
+    useSales: () => ({ data: { data: [], total: 0 }, isLoading: false, isFetching: false }),
+    salesQueryKeyBase: stubKey,
+    buildSalesQueryFn: stubFn,
+    useReceipts: () => ({ data: { data: [], total: 0 }, isLoading: false, isFetching: false }),
+    receiptsQueryKeyBase: stubKey,
+    buildReceiptsQueryFn: stubFn,
+    useItems: () => ({ data: { data: [], total: 0 }, isLoading: false }),
+    useItemSearch: () => ({ data: { data: [], total: 0 }, isFetching: false }),
+    itemsQueryKeyBase: stubKey,
+    buildItemsQueryFn: stubFn,
+    useCategories: () => ({ data: [], isLoading: false }),
+    useCategoriesPaginated: () => ({ data: { data: [], total: 0 }, isLoading: false, isFetching: false }),
+    categoriesPageQueryKeyBase: stubKey,
+    buildCategoriesQueryFn: stubFn,
+    useSuppliers: () => ({ data: [], isLoading: false }),
+    useSuppliersPaginated: () => ({ data: { data: [], total: 0 }, isLoading: false, isFetching: false }),
+    suppliersPageQueryKeyBase: stubKey,
+    buildSuppliersQueryFn: stubFn,
+    useLocations: () => ({ data: [], isLoading: false }),
+    useLocationsPaginated: () => ({ data: { data: [], total: 0 }, isLoading: false, isFetching: false }),
+    locationsPageQueryKeyBase: stubKey,
+    buildLocationsQueryFn: stubFn,
+    useChannels: () => ({ data: [], isLoading: false }),
+    useCurrencies: () => ({ data: [], isLoading: false }),
+    useCustomers: () => ({ data: [], isLoading: false }),
+    useInventoryOnHand: () => ({ data: [], isLoading: false }),
+    useInventoryMovements: () => ({ data: [], isLoading: false }),
+    useTransfers: () => ({ data: [], isLoading: false }),
+    useMovementsPaginated: () => ({ data: { data: [], total: 0 }, isLoading: false, isFetching: false }),
+    movementsPageQueryKeyBase: stubKey,
+    buildMovementsQueryFn: stubFn,
+    useCurrentUser: () => ({ data: null, isLoading: false }),
+  };
+});
 
 describe("Protected Routes", () => {
   it.each(["/sales", "/receipts", "/items", "/settings"])(
