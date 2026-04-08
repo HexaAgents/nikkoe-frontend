@@ -23,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TableCardSkeleton } from "@/components/common/PageLoadingScreen";
 import { useItem, useItemSupplierQuotes, useItemInventory, useItemReceipts, useItemSales, useItemTransfers, useCategories } from "@/hooks/queries";
 import { useUpdateItem, useDeleteItem, useDeleteSupplierQuote } from "@/hooks/mutations";
 import { AddSupplierQuoteModal } from "@/components/modals/AddSupplierQuoteModal";
@@ -99,8 +100,42 @@ export default function ItemDetailPage() {
     return (
       <MainLayout>
         <div className="space-y-6 px-1 pt-2">
-          <Skeleton className="h-10 w-48" />
-          <Skeleton className="h-[300px] w-full" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-9 w-9" />
+              <Skeleton className="h-8 w-40" />
+            </div>
+            <div className="flex gap-2">
+              <Skeleton className="h-9 w-20" />
+              <Skeleton className="h-9 w-28" />
+            </div>
+          </div>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="grid gap-6 md:grid-cols-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-3.5 w-20" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          <div className="grid gap-6 lg:grid-cols-2">
+            {[1, 2].map((i) => (
+              <Card key={i}>
+                <CardHeader className="border-b pb-6">
+                  <Skeleton className="h-5 w-32" />
+                </CardHeader>
+                <CardContent className="space-y-3 pt-6">
+                  {[1, 2, 3].map((j) => (
+                    <Skeleton key={j} className="h-4 w-full" />
+                  ))}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </MainLayout>
     );
@@ -302,8 +337,8 @@ export default function ItemDetailPage() {
           </CardHeader>
           <CardContent className="p-0">
             {isReceiptsLoading ? (
-              <div className="p-6">
-                <Skeleton className="h-[120px] w-full" />
+              <div className="p-4">
+                <TableCardSkeleton rows={3} columns={5} />
               </div>
             ) : (
               <>
@@ -412,8 +447,8 @@ export default function ItemDetailPage() {
           </CardHeader>
           <CardContent className="p-0">
             {isSalesLoading ? (
-              <div className="p-6">
-                <Skeleton className="h-[120px] w-full" />
+              <div className="p-4">
+                <TableCardSkeleton rows={3} columns={5} />
               </div>
             ) : (
               <>
@@ -522,8 +557,8 @@ export default function ItemDetailPage() {
           </CardHeader>
           <CardContent className="p-0">
             {isTransfersLoading ? (
-              <div className="p-6">
-                <Skeleton className="h-[120px] w-full" />
+              <div className="p-4">
+                <TableCardSkeleton rows={3} columns={5} />
               </div>
             ) : (
               <>

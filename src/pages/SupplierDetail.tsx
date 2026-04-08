@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TableCardSkeleton } from "@/components/common/PageLoadingScreen";
 import { useSupplier, useSupplierReceipts } from "@/hooks/queries";
 import type { SupplierReceiptHistory } from "@/types/domain.types";
 
@@ -31,9 +32,35 @@ export default function SupplierDetailPage() {
     return (
       <MainLayout>
         <div className="space-y-6 px-1 pt-2">
-          <Skeleton className="h-10 w-48" />
-          <Skeleton className="h-[200px] w-full" />
-          <Skeleton className="h-[300px] w-full" />
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-9 w-9" />
+            <Skeleton className="h-8 w-48" />
+          </div>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <Skeleton className="mt-0.5 h-4 w-4 shrink-0" />
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-3 w-16" />
+                      <Skeleton className="h-4 w-32" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="border-b pb-6">
+              <Skeleton className="h-5 w-32" />
+            </CardHeader>
+            <CardContent className="space-y-3 pt-6">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-4 w-full" />
+              ))}
+            </CardContent>
+          </Card>
         </div>
       </MainLayout>
     );
@@ -110,8 +137,8 @@ export default function SupplierDetailPage() {
           </CardHeader>
           <CardContent className="p-0">
             {isReceiptsLoading ? (
-              <div className="p-6">
-                <Skeleton className="h-[120px] w-full" />
+              <div className="p-4">
+                <TableCardSkeleton rows={3} columns={5} />
               </div>
             ) : (
               <>

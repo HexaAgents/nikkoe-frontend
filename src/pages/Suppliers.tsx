@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { DataTable } from "@/components/common/DataTable";
+import { DataTable, DataTableSkeleton } from "@/components/common/DataTable";
 import {
   useSuppliersPaginated,
   buildSuppliersQueryFn,
@@ -10,7 +10,6 @@ import {
 import { usePrefetchPages } from "@/hooks/usePrefetchPages";
 import { fetchAllPages } from "@/lib/api";
 import { AddSupplierModal } from "@/components/modals/AddSupplierModal";
-import { Skeleton } from "@/components/ui/skeleton";
 import type { Supplier } from "@/types/domain.types";
 
 const PAGE_SIZE = 20;
@@ -61,7 +60,7 @@ export default function SuppliersPage({ embedded = false }: SuppliersPageProps) 
   const loadingView = (
     <div className="space-y-6">
       {!embedded && <h1 className="font-display text-[28px] font-normal text-foreground">Suppliers</h1>}
-      <Skeleton className="h-[400px] w-full" />
+      <DataTableSkeleton columns={4} rows={8} />
     </div>
   );
 

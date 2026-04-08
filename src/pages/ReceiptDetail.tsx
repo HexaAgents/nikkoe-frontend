@@ -67,8 +67,40 @@ export default function ReceiptDetailPage() {
     return (
       <MainLayout>
         <div className="space-y-6 px-1 pt-2">
-          <Skeleton className="h-10 w-48" />
-          <Skeleton className="h-[300px] w-full" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-9 w-9" />
+              <Skeleton className="h-8 w-36" />
+              <Skeleton className="h-6 w-16 rounded-full" />
+            </div>
+            <Skeleton className="h-9 w-28" />
+          </div>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="space-y-1.5">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-4 w-36" />
+                  </div>
+                ))}
+                <div className="sm:col-span-2 space-y-1.5">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-4 w-64" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="border-b pb-6">
+              <Skeleton className="h-5 w-28" />
+            </CardHeader>
+            <CardContent className="space-y-3 pt-6">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-4 w-full" />
+              ))}
+            </CardContent>
+          </Card>
         </div>
       </MainLayout>
     );

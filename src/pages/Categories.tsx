@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { DataTable } from "@/components/common/DataTable";
+import { DataTable, DataTableSkeleton } from "@/components/common/DataTable";
 import {
   useCategoriesPaginated,
   buildCategoriesQueryFn,
@@ -10,7 +10,6 @@ import {
 import { usePrefetchPages } from "@/hooks/usePrefetchPages";
 import { fetchAllPages } from "@/lib/api";
 import { AddCategoryModal } from "@/components/modals/AddCategoryModal";
-import { Skeleton } from "@/components/ui/skeleton";
 import type { Category } from "@/types/domain.types";
 
 const PAGE_SIZE = 20;
@@ -76,7 +75,7 @@ export default function CategoriesPage({ embedded = false }: CategoriesPageProps
   const loadingView = (
     <div className="space-y-6">
       {!embedded && <h1 className="font-display text-[28px] font-normal text-foreground">Categories</h1>}
-      <Skeleton className="h-[400px] w-full" />
+      <DataTableSkeleton columns={3} rows={8} />
     </div>
   );
 

@@ -1,12 +1,11 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { DataTable } from "@/components/common/DataTable";
+import { DataTable, DataTableSkeleton } from "@/components/common/DataTable";
 import { useReceipts, buildReceiptsQueryFn, receiptsQueryKeyBase } from "@/hooks/queries";
 import { usePrefetchPages } from "@/hooks/usePrefetchPages";
 import { fetchAllPages } from "@/lib/api";
 import { AddReceiptForm } from "@/components/receipts/AddReceiptForm";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -129,7 +128,7 @@ export default function ReceiptsPage() {
 
         {showReceiptsHistory &&
           (isLoading ? (
-            <Skeleton className="h-[400px] w-full" />
+            <DataTableSkeleton columns={3} rows={8} />
           ) : (
             <DataTable
               data={receipts}

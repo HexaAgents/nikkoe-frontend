@@ -10,6 +10,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { cn } from "@/lib/utils";
 import { ChangePasswordForm } from "@/components/settings/ChangePasswordForm";
 import { AddUserForm } from "@/components/settings/AddUserForm";
+import { StockValuationExport } from "@/components/settings/StockValuationExport";
 import SuppliersPage from "@/pages/Suppliers";
 import CategoriesPage from "@/pages/Categories";
 import LocationsPage from "@/pages/Locations";
@@ -106,6 +107,7 @@ export default function Settings() {
             <div className="max-w-4xl space-y-6">
               <ChangePasswordForm />
               <AddUserForm />
+              <StockValuationExport />
             </div>
           )}
 

@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { DataTable } from "@/components/common/DataTable";
+import { DataTable, DataTableSkeleton } from "@/components/common/DataTable";
 import {
   useMovementsPaginated,
   buildMovementsQueryFn,
@@ -8,7 +8,6 @@ import {
 } from "@/hooks/queries";
 import { usePrefetchPages } from "@/hooks/usePrefetchPages";
 import { fetchAllPages } from "@/lib/api";
-import { Skeleton } from "@/components/ui/skeleton";
 import type { Transfer } from "@/types/domain.types";
 
 const PAGE_SIZE = 20;
@@ -110,7 +109,7 @@ export default function LogPage({ embedded = false }: LogPageProps) {
   const loadingView = (
     <div className="space-y-6">
       {!embedded && <h1 className="font-display text-[28px] font-normal text-foreground">Log</h1>}
-      <Skeleton className="h-[400px] w-full" />
+      <DataTableSkeleton columns={6} rows={8} />
     </div>
   );
 
