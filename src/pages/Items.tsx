@@ -1,14 +1,29 @@
 import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowUpDown } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DataTable, DataTableSkeleton } from "@/components/common/DataTable";
 import { useItems, useItemSearch, buildItemsQueryFn, itemsQueryKeyBase } from "@/hooks/queries";
 import { usePrefetchPages } from "@/hooks/usePrefetchPages";
 import { fetchAllPages } from "@/lib/api";
 import { AddItemModal } from "@/components/modals/AddItemModal";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { ItemWithRelations } from "@/types/domain.types";
 
 const PAGE_SIZE = 20;
+
+const SORT_OPTIONS = [
+  { value: "item_id", label: "Part Number (A\u2013Z)" },
+  { value: "latest_receipt", label: "Most Recent Receipt" },
+  { value: "latest_sale", label: "Most Recent Sale" },
+  { value: "total_quantity", label: "Highest Quantity" },
+] as const;
 
 interface ItemsPageProps {
   embedded?: boolean;
@@ -20,29 +35,21 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [searchPage, setSearchPage] = useState(1);
+  const [sortBy, setSortBy] = useState("item_id");
 
-  const { data: browseResult, isLoading } = useItems({ page, pageSize: PAGE_SIZE });
+  const { data: browseResult, isLoading } = useItems({ page, pageSize: PAGE_SIZE, sortBy });
   const { data: searchResult, isFetching: isSearching } = useItemSearch(searchQuery, {
     page: searchPage,
     pageSize: PAGE_SIZE,
+    sortBy,
   });
 
   const isActiveSearch = searchQuery.length > 0;
 
-  const rawItems = useMemo(() => {
+  const items = useMemo(() => {
     if (isActiveSearch) return searchResult?.data ?? [];
     return browseResult?.data ?? [];
   }, [isActiveSearch, searchResult, browseResult]);
-
-  const items = useMemo(() => {
-    return [...rawItems].sort((a, b) => {
-      const aQty = (a as Record<string, unknown>).total_quantity as number ?? 0;
-      const bQty = (b as Record<string, unknown>).total_quantity as number ?? 0;
-      if (aQty < 0 && bQty >= 0) return -1;
-      if (bQty < 0 && aQty >= 0) return 1;
-      return 0;
-    });
-  }, [rawItems]);
 
   const total = isActiveSearch
     ? searchResult?.total ?? 0
@@ -52,8 +59,8 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   usePrefetchPages(
-    itemsQueryKeyBase(PAGE_SIZE),
-    (p) => buildItemsQueryFn(p, PAGE_SIZE),
+    itemsQueryKeyBase(PAGE_SIZE, sortBy),
+    (p) => buildItemsQueryFn(p, PAGE_SIZE, sortBy),
     page,
     totalPages,
   );
@@ -77,6 +84,12 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
 
   const handleServerSearch = useCallback((query: string) => {
     setSearchQuery(query);
+    setSearchPage(1);
+  }, []);
+
+  const handleSortChange = useCallback((value: string) => {
+    setSortBy(value);
+    setPage(1);
     setSearchPage(1);
   }, []);
 
@@ -115,6 +128,22 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
     navigate(`/items/${item.id}`);
   };
 
+  const sortDropdown = (
+    <Select value={sortBy} onValueChange={handleSortChange}>
+      <SelectTrigger className="h-9 w-[200px] text-xs">
+        <ArrowUpDown className="mr-1.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {SORT_OPTIONS.map((opt) => (
+          <SelectItem key={opt.value} value={opt.value} className="text-xs">
+            {opt.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+
   const loadingView = (
     <div className="space-y-6">
       {!embedded && <h1 className="font-display text-[28px] font-normal text-foreground">Items</h1>}
@@ -143,6 +172,7 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
           idKey="id"
           serverPagination={serverPagination}
           onExportAll={handleExportAll}
+          toolbarExtra={sortDropdown}
           exportColumns={[
             { key: "item_id", header: "Part Number" },
             { key: "description", header: "Description" },

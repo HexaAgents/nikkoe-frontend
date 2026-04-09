@@ -118,36 +118,44 @@ export function useSaleLines(saleId: string | number) {
   });
 }
 
-export function useItems({ page = 1, pageSize = 20 } = {}) {
+export function useItems({ page = 1, pageSize = 20, sortBy = "item_id" } = {}) {
   const offset = (page - 1) * pageSize;
+  const params = new URLSearchParams({
+    limit: String(pageSize),
+    offset: String(offset),
+  });
+  if (sortBy !== "item_id") params.set("sort_by", sortBy);
   return useQuery({
-    queryKey: ["items", { pageSize }, { page }],
+    queryKey: ["items", { pageSize, sortBy }, { page }],
     queryFn: () =>
-      api.getListPaginated<ItemWithRelations>(
-        `/items/?limit=${pageSize}&offset=${offset}`,
-      ),
+      api.getListPaginated<ItemWithRelations>(`/items/?${params}`),
     placeholderData: keepPreviousData,
     staleTime: 60_000,
   });
 }
 
-export function buildItemsQueryFn(page: number, pageSize: number) {
-  return () => api.getListPaginated<ItemWithRelations>(
-    `/items/?limit=${pageSize}&offset=${(page - 1) * pageSize}`,
-  );
+export function buildItemsQueryFn(page: number, pageSize: number, sortBy = "item_id") {
+  return () => {
+    const params = new URLSearchParams({
+      limit: String(pageSize),
+      offset: String((page - 1) * pageSize),
+    });
+    if (sortBy !== "item_id") params.set("sort_by", sortBy);
+    return api.getListPaginated<ItemWithRelations>(`/items/?${params}`);
+  };
 }
 
-export function itemsQueryKeyBase(pageSize: number) {
-  return ["items", { pageSize }];
+export function itemsQueryKeyBase(pageSize: number, sortBy = "item_id") {
+  return ["items", { pageSize, sortBy }];
 }
 
 export function useItemSearch(
   query: string,
-  { page = 1, pageSize = 20, inStockOnly = false } = {},
+  { page = 1, pageSize = 20, inStockOnly = false, sortBy = "item_id" } = {},
 ) {
   const offset = (page - 1) * pageSize;
   return useQuery({
-    queryKey: ["items", "search", query, { page, pageSize, inStockOnly }],
+    queryKey: ["items", "search", query, { page, pageSize, inStockOnly, sortBy }],
     queryFn: () => {
       const params = new URLSearchParams({
         q: query,
@@ -155,6 +163,7 @@ export function useItemSearch(
         offset: String(offset),
       });
       if (inStockOnly) params.set("in_stock", "true");
+      if (sortBy !== "item_id") params.set("sort_by", sortBy);
       return api.getListPaginated<ItemWithRelations>(`/items/search?${params}`);
     },
     enabled: query.length > 0,

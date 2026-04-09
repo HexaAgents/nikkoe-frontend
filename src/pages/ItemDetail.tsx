@@ -52,6 +52,7 @@ export default function ItemDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isAddQuoteModalOpen, setIsAddQuoteModalOpen] = useState(false);
   const [transferStock, setTransferStock] = useState<StockWithLocation | null>(null);
+  const [showAllQuotes, setShowAllQuotes] = useState(false);
   const [showAllReceipts, setShowAllReceipts] = useState(false);
   const [showAllSales, setShowAllSales] = useState(false);
   const [showAllTransfers, setShowAllTransfers] = useState(false);
@@ -231,7 +232,14 @@ export default function ItemDetailPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between border-b pb-6">
-              <CardTitle>Supplier Quotes</CardTitle>
+              <div className="flex items-center gap-3">
+                <CardTitle>Supplier Quotes</CardTitle>
+                {supplierQuotes && supplierQuotes.length > 0 && (
+                  <span className="text-sm font-normal text-muted-foreground">
+                    {supplierQuotes.length} quote{supplierQuotes.length !== 1 ? "s" : ""}
+                  </span>
+                )}
+              </div>
               <Button size="sm" onClick={() => setIsAddQuoteModalOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Quote
@@ -249,14 +257,14 @@ export default function ItemDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {supplierQuotes?.length === 0 ? (
+                  {!supplierQuotes || supplierQuotes.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-muted-foreground">
                         No supplier quotes
                       </TableCell>
                     </TableRow>
                   ) : (
-                    supplierQuotes?.map((quote) => (
+                    (showAllQuotes ? supplierQuotes : supplierQuotes.slice(0, PREVIEW_ROWS)).map((quote) => (
                       <TableRow key={quote.id}>
                         <TableCell>{quote.date_time ? new Date(quote.date_time).toLocaleDateString() : "-"}</TableCell>
                         <TableCell className="font-medium">{quote.supplier?.name ?? "-"}</TableCell>
@@ -276,6 +284,28 @@ export default function ItemDetailPage() {
                   )}
                 </TableBody>
               </Table>
+              {supplierQuotes && supplierQuotes.length > PREVIEW_ROWS && (
+                <div className="border-t px-4 py-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-muted-foreground"
+                    onClick={() => setShowAllQuotes(!showAllQuotes)}
+                  >
+                    {showAllQuotes ? (
+                      <>
+                        <ChevronUp className="mr-2 h-4 w-4" />
+                        Show less
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="mr-2 h-4 w-4" />
+                        See all {supplierQuotes.length} quotes
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 

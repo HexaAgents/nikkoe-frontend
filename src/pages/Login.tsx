@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { prefetchAppData } from "@/lib/prefetch";
 import { analytics } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +12,6 @@ import nikkoLogo from "@/assets/nikko-logo.png";
 
 export default function Login() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,7 +32,6 @@ export default function Login() {
         analytics.identify(user.id, { email: user.email });
         analytics.track("user_signed_in", { email: user.email });
       }
-      prefetchAppData(queryClient);
       toast.success("Logged in successfully");
       navigate("/sales");
     }

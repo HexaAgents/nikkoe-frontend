@@ -34,6 +34,7 @@ export function SearchablePartPicker({ value, onSelect, hasError, initialLabel }
       results?.data.map((i) => ({
         id: String(i.id),
         partNumber: i.item_id,
+        description: i.description || null,
         totalQuantity: ((i as Record<string, unknown>).total_quantity as number) ?? 0,
       })) ?? [],
     [results],
@@ -130,11 +131,16 @@ export function SearchablePartPicker({ value, onSelect, hasError, initialLabel }
             >
               <Check
                 className={cn(
-                  "mr-2 h-4 w-4",
+                  "mr-2 h-4 w-4 shrink-0",
                   value === item.id ? "opacity-100" : "opacity-0",
                 )}
               />
-              {item.partNumber}
+              <span className="truncate">
+                {item.partNumber}
+                {item.description && (
+                  <span className="ml-2 text-xs text-muted-foreground">{item.description}</span>
+                )}
+              </span>
             </button>
           ))}
 
@@ -156,12 +162,17 @@ export function SearchablePartPicker({ value, onSelect, hasError, initialLabel }
                 >
                   <Check
                     className={cn(
-                      "mr-2 h-4 w-4",
+                      "mr-2 h-4 w-4 shrink-0",
                       value === item.id ? "opacity-100" : "opacity-0",
                     )}
                   />
-                  <span className="flex-1">{item.partNumber}</span>
-                  <span className="ml-2 text-xs text-destructive">No stock</span>
+                  <span className="min-w-0 flex-1 truncate">
+                    {item.partNumber}
+                    {item.description && (
+                      <span className="ml-2 text-xs">{item.description}</span>
+                    )}
+                  </span>
+                  <span className="ml-2 shrink-0 text-xs text-destructive">No stock</span>
                 </button>
               ))}
             </>

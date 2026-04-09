@@ -1,7 +1,14 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useEffect, useRef, useState, useCallback, ReactNode } from "react";
 import { analytics } from "@/lib/analytics";
-import { apiFetch, setStoredToken, clearStoredToken, getStoredToken } from "@/lib/api";
+import {
+  apiFetch,
+  setStoredToken,
+  setStoredRefreshToken,
+  clearStoredToken,
+  getStoredToken,
+  getStoredRefreshToken,
+} from "@/lib/api";
 
 interface AuthUser {
   id: string;
@@ -57,13 +64,42 @@ async function authPost<T>(path: string, body: unknown, token?: string | null): 
   return data as T;
 }
 
+interface RefreshResponse {
+  session: AuthSession;
+}
+
+const REFRESH_MARGIN_MS = 60_000;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const persistSession = useCallback((sess: AuthSession) => {
+    setStoredToken(sess.access_token);
+    setStoredRefreshToken(sess.refresh_token);
+    setSession(sess);
+  }, []);
+
+  const scheduleRefresh = useCallback((expiresInSec: number, refreshToken: string) => {
+    clearTimeout(refreshTimerRef.current);
+    const delayMs = Math.max((expiresInSec * 1000) - REFRESH_MARGIN_MS, 10_000);
+
+    refreshTimerRef.current = setTimeout(async () => {
+      try {
+        const data = await authPost<RefreshResponse>("/auth/refresh", { refresh_token: refreshToken });
+        persistSession(data.session);
+        scheduleRefresh(data.session.expires_in, data.session.refresh_token);
+      } catch {
+        clearStoredToken();
+        setSession(null);
+        setUser(null);
+      }
+    }, delayMs);
+  }, [persistSession]);
 
   useEffect(() => {
-    // Clean up old Supabase SDK session keys from localStorage
     Object.keys(localStorage).forEach((key) => {
       if (key.startsWith("sb-") || key.includes("supabase")) {
         localStorage.removeItem(key);
@@ -71,31 +107,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     const token = getStoredToken();
+    const refreshToken = getStoredRefreshToken();
+
     if (!token) {
-      setLoading(false);
+      if (refreshToken) {
+        authPost<RefreshResponse>("/auth/refresh", { refresh_token: refreshToken })
+          .then((data) => {
+            persistSession(data.session);
+            scheduleRefresh(data.session.expires_in, data.session.refresh_token);
+            return apiFetch<AuthMeResponse>("/auth/me");
+          })
+          .then((me) => setUser(me.user))
+          .catch(() => clearStoredToken())
+          .finally(() => setLoading(false));
+      } else {
+        setLoading(false);
+      }
       return;
     }
 
     apiFetch<AuthMeResponse>("/auth/me")
       .then((data) => {
         setUser(data.user);
-        setSession({ access_token: token, refresh_token: "", expires_in: 0, token_type: "bearer" });
+        const sess: AuthSession = {
+          access_token: token,
+          refresh_token: refreshToken ?? "",
+          expires_in: 3600,
+          token_type: "bearer",
+        };
+        setSession(sess);
+        if (refreshToken) scheduleRefresh(sess.expires_in, refreshToken);
       })
-      .catch(() => {
+      .catch(async () => {
+        if (refreshToken) {
+          try {
+            const data = await authPost<RefreshResponse>("/auth/refresh", { refresh_token: refreshToken });
+            persistSession(data.session);
+            scheduleRefresh(data.session.expires_in, data.session.refresh_token);
+            const me = await apiFetch<AuthMeResponse>("/auth/me");
+            setUser(me.user);
+            return;
+          } catch { /* fall through */ }
+        }
         clearStoredToken();
       })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
+      .finally(() => setLoading(false));
+
+    return () => clearTimeout(refreshTimerRef.current);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const signIn = async (email: string, password: string) => {
     try {
       const data = await authPost<AuthSessionResponse>("/auth/login", { email, password });
 
       if (data.session) {
-        setStoredToken(data.session.access_token);
-        setSession(data.session);
+        persistSession(data.session);
+        scheduleRefresh(data.session.expires_in, data.session.refresh_token);
       }
 
       setUser(data.user);
@@ -110,8 +177,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await authPost<AuthSessionResponse>("/auth/signup", { email, password });
 
       if (data.session) {
-        setStoredToken(data.session.access_token);
-        setSession(data.session);
+        persistSession(data.session);
+        scheduleRefresh(data.session.expires_in, data.session.refresh_token);
       }
 
       setUser(data.user);
@@ -124,6 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     analytics.track("user_signed_out");
     analytics.reset();
+    clearTimeout(refreshTimerRef.current);
     clearStoredToken();
     setSession(null);
     setUser(null);

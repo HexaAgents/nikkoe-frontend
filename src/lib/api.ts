@@ -2,6 +2,7 @@ const _raw = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 const BASE_URL = _raw.replace(/^http:\/\/(?!localhost)/, "https://");
 
 const TOKEN_KEY = "nikkoe_access_token";
+const REFRESH_KEY = "nikkoe_refresh_token";
 
 export function getStoredToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -11,8 +12,47 @@ export function setStoredToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
 }
 
+export function getStoredRefreshToken(): string | null {
+  return localStorage.getItem(REFRESH_KEY);
+}
+
+export function setStoredRefreshToken(token: string): void {
+  localStorage.setItem(REFRESH_KEY, token);
+}
+
 export function clearStoredToken(): void {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REFRESH_KEY);
+}
+
+let _refreshPromise: Promise<boolean> | null = null;
+
+async function tryRefresh(): Promise<boolean> {
+  const refreshToken = getStoredRefreshToken();
+  if (!refreshToken) return false;
+
+  try {
+    const res = await fetch(`${BASE_URL}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!res.ok) return false;
+
+    const data = await res.json();
+    setStoredToken(data.session.access_token);
+    setStoredRefreshToken(data.session.refresh_token);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function refreshOnce(): Promise<boolean> {
+  if (!_refreshPromise) {
+    _refreshPromise = tryRefresh().finally(() => { _refreshPromise = null; });
+  }
+  return _refreshPromise;
 }
 
 export async function apiFetch<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
@@ -26,6 +66,22 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
       ...options.headers,
     },
   });
+
+  if (res.status === 401 && !path.startsWith("/auth/")) {
+    const refreshed = await refreshOnce();
+    if (refreshed) {
+      const newToken = getStoredToken();
+      const retry = await fetch(`${BASE_URL}${path}`, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...(newToken ? { Authorization: `Bearer ${newToken}` } : {}),
+          ...options.headers,
+        },
+      });
+      if (retry.ok) return retry.json();
+    }
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

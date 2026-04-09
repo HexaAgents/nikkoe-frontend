@@ -108,7 +108,7 @@ export function AddReceiptForm({
     return { isValid: headerErrors.length === 0 && errors.length === 0, headerErrors, errors };
   }, [parts, supplierId]);
 
-  const defaultCurrencyId = currencies?.find((c) => c.name === "£")?.id?.toString() ?? "";
+  const defaultCurrencyId = currencies?.find((c) => c.name === "GBP")?.id?.toString() ?? "";
 
   const allLocations = useMemo(
     () => locations?.map((l) => ({ location_id: String(l.id), location_code: l.code })),
