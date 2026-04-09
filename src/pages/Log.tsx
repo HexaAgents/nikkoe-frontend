@@ -51,7 +51,7 @@ export default function LogPage({ embedded = false }: LogPageProps) {
     {
       key: "date",
       header: "Date/Time",
-      render: (m: Transfer) => m.date ? new Date(m.date).toLocaleString() : "-",
+      render: (m: Transfer) => m.date ? new Date(m.date).toLocaleString("en-GB", { timeZone: "Europe/London" }) : "-",
     },
     {
       key: "item",
@@ -83,7 +83,7 @@ export default function LogPage({ embedded = false }: LogPageProps) {
     {
       key: "date",
       header: "Date/Time",
-      render: (m: Transfer) => m.date ? new Date(m.date).toLocaleString() : "",
+      render: (m: Transfer) => m.date ? new Date(m.date).toLocaleString("en-GB", { timeZone: "Europe/London" }) : "",
     },
     {
       key: "item",

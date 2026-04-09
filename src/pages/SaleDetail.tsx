@@ -164,7 +164,7 @@ export default function SaleDetailPage() {
             <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
               <div>
                 <p className="text-[13px] text-muted-foreground">Date and Time</p>
-                <p className="text-[13px] font-medium">{sale.date ? new Date(sale.date).toLocaleString() : "—"}</p>
+                <p className="text-[13px] font-medium">{sale.date ? new Date(sale.date).toLocaleString("en-GB", { timeZone: "Europe/London" }) : "—"}</p>
               </div>
               <div>
                 <p className="text-[13px] text-muted-foreground">Sold by</p>
@@ -194,7 +194,7 @@ export default function SaleDetailPage() {
                 <>
                   <div>
                     <p className="text-[13px] text-muted-foreground">Voided At</p>
-                    <p className="text-[13px] font-medium text-destructive">{sale.voided_at ? new Date(sale.voided_at).toLocaleString() : "—"}</p>
+                    <p className="text-[13px] font-medium text-destructive">{sale.voided_at ? new Date(sale.voided_at).toLocaleString("en-GB", { timeZone: "Europe/London" }) : "—"}</p>
                   </div>
                   {sale.void_reason && (
                     <div>

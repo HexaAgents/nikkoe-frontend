@@ -18,7 +18,7 @@ const receiptColumns = [
   {
     key: "dateTime",
     header: "Date/Time",
-    render: (receipt: ReceiptWithRelations) => receipt.dateTime ? new Date(receipt.dateTime).toLocaleString() : "—",
+    render: (receipt: ReceiptWithRelations) => receipt.dateTime ? new Date(receipt.dateTime).toLocaleString("en-GB", { timeZone: "Europe/London" }) : "—",
   },
   {
     key: "supplier",
@@ -36,7 +36,7 @@ const receiptExportColumns = [
   {
     key: "dateTime",
     header: "Date/Time",
-    render: (r: ReceiptWithRelations) => r.dateTime ? new Date(r.dateTime).toLocaleString() : "",
+    render: (r: ReceiptWithRelations) => r.dateTime ? new Date(r.dateTime).toLocaleString("en-GB", { timeZone: "Europe/London" }) : "",
   },
   {
     key: "supplier",

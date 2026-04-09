@@ -168,7 +168,7 @@ export default function ReceiptDetailPage() {
             <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
               <div>
                 <p className="text-[13px] text-muted-foreground">Date and Time</p>
-                <p className="text-[13px] font-medium">{receipt.dateTime ? new Date(receipt.dateTime).toLocaleString() : "—"}</p>
+                <p className="text-[13px] font-medium">{receipt.dateTime ? new Date(receipt.dateTime).toLocaleString("en-GB", { timeZone: "Europe/London" }) : "—"}</p>
               </div>
               <div>
                 <p className="text-[13px] text-muted-foreground">Received by</p>
@@ -190,7 +190,7 @@ export default function ReceiptDetailPage() {
                 <>
                   <div>
                     <p className="text-[13px] text-muted-foreground">Voided At</p>
-                    <p className="text-[13px] font-medium text-destructive">{receipt.voided_at ? new Date(receipt.voided_at).toLocaleString() : "—"}</p>
+                    <p className="text-[13px] font-medium text-destructive">{receipt.voided_at ? new Date(receipt.voided_at).toLocaleString("en-GB", { timeZone: "Europe/London" }) : "—"}</p>
                   </div>
                   {receipt.void_reason && (
                     <div>

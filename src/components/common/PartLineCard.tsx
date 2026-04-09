@@ -80,15 +80,6 @@ export function PartLineCard({
     }));
   }, [part.item_id, itemInventory, locations]);
 
-  const stockSummary = useMemo(() => {
-    if (!part.item_id || !itemInventory || itemInventory.length === 0) return null;
-    return itemInventory
-      .filter((r) => (r.quantity ?? 0) > 0)
-      .sort((a, b) => (b.quantity ?? 0) - (a.quantity ?? 0))
-      .map((r) => `${r.location?.code ?? "?"}: ${r.quantity}`)
-      .join(", ");
-  }, [part.item_id, itemInventory]);
-
   const computedAvailableQty = useMemo(() => {
     if (!part.item_id || !itemInventory) return null;
     if (itemInventory.length === 0) return 0;
@@ -174,12 +165,6 @@ export function PartLineCard({
             {extraPartActions}
           </div>
         </div>
-
-        {stockSummary && (
-          <p className="ml-32 pl-4 text-xs text-muted-foreground">
-            Stock: {stockSummary}
-          </p>
-        )}
 
         <div className="flex flex-wrap items-center gap-4">
           <Label

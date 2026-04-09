@@ -178,7 +178,7 @@ export default function SupplierDetailPage() {
                               onClick={() => navigate(`/receipts/${line.receipt_id}`)}
                             >
                               <TableCell className="whitespace-nowrap">
-                                {line.date ? new Date(line.date).toLocaleDateString() : "-"}
+                                {line.date ? new Date(line.date).toLocaleDateString("en-GB", { timeZone: "Europe/London" }) : "-"}
                               </TableCell>
                               <TableCell className="tabular-nums">{line.receipt_id}</TableCell>
                               <TableCell className="font-medium">

@@ -266,7 +266,7 @@ export default function ItemDetailPage() {
                   ) : (
                     (showAllQuotes ? supplierQuotes : supplierQuotes.slice(0, PREVIEW_ROWS)).map((quote) => (
                       <TableRow key={quote.id}>
-                        <TableCell>{quote.date_time ? new Date(quote.date_time).toLocaleDateString() : "-"}</TableCell>
+                        <TableCell>{quote.date_time ? new Date(quote.date_time).toLocaleDateString("en-GB", { timeZone: "Europe/London" }) : "-"}</TableCell>
                         <TableCell className="font-medium">{quote.supplier?.name ?? "-"}</TableCell>
                         <TableCell>{quote.cost}</TableCell>
                         <TableCell>{quote.currency?.name ?? "-"}</TableCell>
@@ -406,7 +406,7 @@ export default function ItemDetailPage() {
                             onClick={() => navigate(`/receipts/${receipt.receipt_id}`)}
                           >
                             <TableCell className="whitespace-nowrap">
-                              {receipt.date ? new Date(receipt.date).toLocaleDateString() : "-"}
+                              {receipt.date ? new Date(receipt.date).toLocaleDateString("en-GB", { timeZone: "Europe/London" }) : "-"}
                             </TableCell>
                             <TableCell>{receipt.suppliers?.name ?? "-"}</TableCell>
                             <TableCell>{receipt.reference ?? "-"}</TableCell>
@@ -516,7 +516,7 @@ export default function ItemDetailPage() {
                             onClick={() => navigate(`/sales/${sale.sale_id}`)}
                           >
                             <TableCell className="whitespace-nowrap">
-                              {sale.date ? new Date(sale.date).toLocaleDateString() : "-"}
+                              {sale.date ? new Date(sale.date).toLocaleDateString("en-GB", { timeZone: "Europe/London" }) : "-"}
                             </TableCell>
                             <TableCell>{sale.customers?.name ?? "-"}</TableCell>
                             <TableCell>{sale.channels?.name ?? "-"}</TableCell>
@@ -613,7 +613,7 @@ export default function ItemDetailPage() {
                       (showAllTransfers ? transfersHistory : transfersHistory.slice(0, PREVIEW_ROWS)).map((transfer: ItemTransferHistory) => (
                         <TableRow key={transfer.id}>
                           <TableCell className="whitespace-nowrap">
-                            {transfer.date ? new Date(transfer.date).toLocaleDateString() : "-"}
+                            {transfer.date ? new Date(transfer.date).toLocaleDateString("en-GB", { timeZone: "Europe/London" }) : "-"}
                           </TableCell>
                           <TableCell>{transfer.from_location?.code ?? "-"}</TableCell>
                           <TableCell>{transfer.to_location?.code ?? "-"}</TableCell>

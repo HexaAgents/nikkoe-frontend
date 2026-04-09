@@ -109,7 +109,7 @@ export default function SalesPage() {
     {
       key: "date",
       header: "Date/Time",
-      render: (sale: SaleWithRelations) => sale.date ? new Date(sale.date).toLocaleString() : "—",
+      render: (sale: SaleWithRelations) => sale.date ? new Date(sale.date).toLocaleString("en-GB", { timeZone: "Europe/London" }) : "—",
     },
   ];
 
@@ -163,11 +163,11 @@ export default function SalesPage() {
               exportColumns={[
                 { key: "customer", header: "Customer", render: (sale: SaleWithRelations) => sale.customers?.name || "" },
                 { key: "channel", header: "Channel", render: (sale: SaleWithRelations) => sale.channels?.name || "" },
-                { key: "date", header: "Date/Time", render: (sale: SaleWithRelations) => sale.date ? new Date(sale.date).toLocaleString() : "" },
+                { key: "date", header: "Date/Time", render: (sale: SaleWithRelations) => sale.date ? new Date(sale.date).toLocaleString("en-GB", { timeZone: "Europe/London" }) : "" },
                 { key: "status", header: "Status" },
                 { key: "note", header: "Note" },
                 { key: "void_reason", header: "Void Reason" },
-                { key: "voided_at", header: "Voided At", render: (sale: SaleWithRelations) => (sale.voided_at ? new Date(sale.voided_at).toLocaleString() : "") },
+                { key: "voided_at", header: "Voided At", render: (sale: SaleWithRelations) => (sale.voided_at ? new Date(sale.voided_at).toLocaleString("en-GB", { timeZone: "Europe/London" }) : "") },
               ]}
               toolbarExtra={
                 <div className="flex items-center gap-2">
