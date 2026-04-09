@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { Upload, FileText, Loader2, X } from "lucide-react";
+import { FileText, X } from "lucide-react";
 import { analytics } from "@/lib/analytics";
 import { useCurrentUser, useCurrencies, useSuppliers, useLocations } from "@/hooks/queries";
 import { Button } from "@/components/ui/button";
@@ -95,7 +95,6 @@ export function AddReceiptForm({
     labels: Map<string, string>;
     unresolvedParts: Map<number, string>;
   } | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
 
   const validation = useMemo(() => {
     const headerErrors: string[] = [];
@@ -200,15 +199,6 @@ export function AddReceiptForm({
     [currencies, defaultCurrencyId],
   );
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setIsDragging(false);
-      const file = e.dataTransfer.files[0];
-      if (file) handleFileUpload(file);
-    },
-    [handleFileUpload],
-  );
 
   const resetForm = () => {
     setSupplierId("");
@@ -273,46 +263,17 @@ export function AddReceiptForm({
     <>
       <form onSubmit={handleSubmit} className={cn(className)}>
         <div className={cn("space-y-6", variant === "inline" ? "py-0" : "py-4")}>
-          <div
-            className={cn(
-              "relative rounded-lg border-2 border-dashed p-4 text-center transition-colors",
-              isDragging
-                ? "border-primary bg-primary/5"
-                : "border-muted-foreground/25 hover:border-muted-foreground/50",
-              isParsing && "pointer-events-none opacity-60",
-            )}
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={handleDrop}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,application/pdf"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleFileUpload(file);
-              }}
-            />
-            {isParsing ? (
-              <div className="flex items-center justify-center gap-2 py-2">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                <span className="text-sm font-medium text-primary">Parsing invoice...</span>
-              </div>
-            ) : (
-              <button
-                type="button"
-                className="flex w-full items-center justify-center gap-2 py-2"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">
-                  Drop a PDF invoice here, or <span className="font-medium text-primary underline">browse</span>
-                </span>
-              </button>
-            )}
-          </div>
+          {/* PDF upload zone hidden — feature temporarily disabled */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,application/pdf"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFileUpload(file);
+            }}
+          />
 
           {parsedMeta && (
             <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/50">
