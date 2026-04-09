@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, apiUpload } from "@/lib/api";
 import { toast } from "sonner";
 import type {
   ReceiptLineInput,
@@ -8,6 +8,7 @@ import type {
   SupplierInput,
   SupplierQuoteInput,
   TransferInput,
+  ParseInvoiceResponse,
 } from "@/types/domain.types";
 
 export type { ReceiptLineInput, SaleLineInput, ItemInput, SupplierInput, SupplierQuoteInput, TransferInput } from "@/types/domain.types";
@@ -23,6 +24,16 @@ export {
   supplierInputSchema,
   supplierQuoteInputSchema,
 } from "@/lib/schemas";
+
+export function useParseInvoice() {
+  return useMutation({
+    mutationFn: (file: File) =>
+      apiUpload<ParseInvoiceResponse>("/receipts/parse-invoice", file),
+    onError: (error) => {
+      toast.error(`Failed to parse invoice: ${error.message}`);
+    },
+  });
+}
 
 export function useAddReceipt() {
   const queryClient = useQueryClient();

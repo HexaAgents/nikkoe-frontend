@@ -279,3 +279,23 @@ export interface TransferInput {
   quantity: number;
   notes?: string;
 }
+
+export interface ParsedLineItem {
+  part_number: string;
+  description: string | null;
+  quantity: number;
+  unit_price: number;
+  matched_item_id: number | null;
+  matched_item_name: string | null;
+  matched_location_id: number | null;
+  matched_location_code: string | null;
+}
+
+export interface ParseInvoiceResponse {
+  supplier_name: string | null;
+  matched_supplier_id: number | null;
+  reference: string | null;
+  currency_symbol: string | null;
+  note: string | null;
+  lines: ParsedLineItem[];
+}

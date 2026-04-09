@@ -39,6 +39,8 @@ interface PartLineCardProps {
   extraLocationActions?: React.ReactNode;
   inStockOnly?: boolean;
   availableQuantity?: number | null;
+  partLabel?: string;
+  parsedPartNumber?: string;
 }
 
 const fallbackCurrencies = [
@@ -63,6 +65,8 @@ export function PartLineCard({
   extraLocationActions,
   inStockOnly,
   availableQuantity: availableQuantityProp,
+  partLabel,
+  parsedPartNumber,
 }: PartLineCardProps) {
   const { data: itemInventory } = useItemInventory(part.item_id);
 
@@ -151,7 +155,13 @@ export function PartLineCard({
               onSelect={(id) => onPartSelect(index, id)}
               hasError={showErrors && errors.includes("Part Number")}
               inStockOnly={inStockOnly}
+              initialLabel={partLabel}
             />
+            {parsedPartNumber && !part.item_id && (
+              <span className="shrink-0 text-xs text-amber-600">
+                Invoice: {parsedPartNumber}
+              </span>
+            )}
             {extraPartActions}
           </div>
         </div>

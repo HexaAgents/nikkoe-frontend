@@ -16,9 +16,10 @@ interface SearchablePartPickerProps {
   onSelect: (itemId: string) => void;
   hasError?: boolean;
   inStockOnly?: boolean;
+  initialLabel?: string;
 }
 
-export function SearchablePartPicker({ value, onSelect, hasError }: SearchablePartPickerProps) {
+export function SearchablePartPicker({ value, onSelect, hasError, initialLabel }: SearchablePartPickerProps) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -46,6 +47,12 @@ export function SearchablePartPicker({ value, onSelect, hasError }: SearchablePa
       labelCacheRef.current.set(item.id, item.partNumber);
     }
   }, [items]);
+
+  useEffect(() => {
+    if (initialLabel && value) {
+      labelCacheRef.current.set(value, initialLabel);
+    }
+  }, [initialLabel, value]);
 
   useEffect(() => {
     return () => clearTimeout(debounceRef.current);

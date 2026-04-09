@@ -63,6 +63,93 @@ export async function fetchAllPages<T>(
   return [first.data, ...rest.map((r) => r.data)].flat();
 }
 
+export async function apiUpload<T = unknown>(path: string, file: File): Promise<T> {
+  const token = getStoredToken();
+  const form = new FormData();
+  form.append("file", file);
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Request failed: ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export interface StreamParseCallbacks {
+  onHeader: (h: {
+    supplier_name: string | null;
+    matched_supplier_id: number | null;
+    reference: string | null;
+    currency_symbol: string | null;
+  }) => void;
+  onLine: (line: {
+    part_number: string;
+    description: string | null;
+    quantity: number;
+    unit_price: number;
+    matched_item_id: number | null;
+    matched_item_name: string | null;
+    matched_location_id: number | null;
+    matched_location_code: string | null;
+  }) => void;
+  onDone: (d: { total: number }) => void;
+  onError: (msg: string) => void;
+}
+
+export async function streamParseInvoice(file: File, cb: StreamParseCallbacks): Promise<void> {
+  const token = getStoredToken();
+  const form = new FormData();
+  form.append("file", file);
+
+  const res = await fetch(`${BASE_URL}/receipts/parse-invoice/stream`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || body.detail || `Request failed: ${res.status}`);
+  }
+
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buf += decoder.decode(value, { stream: true });
+    const parts = buf.split("\n\n");
+    buf = parts.pop()!;
+
+    for (const chunk of parts) {
+      if (!chunk.trim()) continue;
+      let evt = "message";
+      let data = "";
+      for (const ln of chunk.split("\n")) {
+        if (ln.startsWith("event: ")) evt = ln.slice(7).trim();
+        else if (ln.startsWith("data: ")) data += ln.slice(6);
+      }
+      if (!data) continue;
+      const parsed = JSON.parse(data);
+
+      if (evt === "header") cb.onHeader(parsed);
+      else if (evt === "line") cb.onLine(parsed);
+      else if (evt === "done") cb.onDone(parsed);
+      else if (evt === "error") cb.onError(parsed.error);
+    }
+  }
+}
+
 export const api = {
   get: <T = unknown>(path: string) => apiFetch<T>(path),
 

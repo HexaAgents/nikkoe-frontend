@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { Upload, FileText, Loader2, X } from "lucide-react";
 import { analytics } from "@/lib/analytics";
 import { useCurrentUser, useCurrencies, useSuppliers, useLocations } from "@/hooks/queries";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAddReceipt } from "@/hooks/mutations";
 import type { ReceiptLineInput } from "@/types/domain.types";
+import { streamParseInvoice } from "@/lib/api";
+import { toast } from "sonner";
 import { AddItemModal } from "@/components/modals/AddItemModal";
 import { AddLocationModal } from "@/components/modals/AddLocationModal";
 import { SearchableSupplierPicker } from "@/components/common/SearchableSupplierPicker";
@@ -72,10 +75,12 @@ export function AddReceiptForm({
   className,
 }: AddReceiptFormProps) {
   const addReceipt = useAddReceipt();
+  const [isParsing, setIsParsing] = useState(false);
   const { data: currentUser } = useCurrentUser();
   const { data: suppliers } = useSuppliers();
   const { data: locations } = useLocations();
   const { data: currencies } = useCurrencies();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [supplierId, setSupplierId] = useState<string>("");
   const [reference, setReference] = useState("");
@@ -85,6 +90,12 @@ export function AddReceiptForm({
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
   const [isAddLocationModalOpen, setIsAddLocationModalOpen] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
+  const [parsedMeta, setParsedMeta] = useState<{
+    lineCount: number;
+    labels: Map<string, string>;
+    unresolvedParts: Map<number, string>;
+  } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const validation = useMemo(() => {
     const headerErrors: string[] = [];
@@ -114,6 +125,91 @@ export function AddReceiptForm({
     );
   }, [defaultCurrencyId]);
 
+  const handleFileUpload = useCallback(
+    async (file: File) => {
+      if (file.type !== "application/pdf") return;
+      setIsParsing(true);
+      setParsedMeta(null);
+      setShowErrors(false);
+
+      const labels = new Map<string, string>();
+      const unresolvedParts = new Map<number, string>();
+      let lineIndex = 0;
+      let headerCurrencyId = defaultCurrencyId;
+
+      try {
+        await streamParseInvoice(file, {
+          onHeader: (h) => {
+            if (h.matched_supplier_id) setSupplierId(String(h.matched_supplier_id));
+            if (h.reference) setReference(h.reference);
+            headerCurrencyId =
+              currencies?.find((c) => c.name === h.currency_symbol)?.id?.toString() ??
+              defaultCurrencyId;
+            setFormKey((k) => k + 1);
+          },
+
+          onLine: (line) => {
+            const itemId = line.matched_item_id ? String(line.matched_item_id) : "";
+            if (line.matched_item_id && line.matched_item_name) {
+              labels.set(String(line.matched_item_id), line.matched_item_name);
+            }
+            if (!line.matched_item_id && line.part_number) {
+              unresolvedParts.set(lineIndex, line.part_number);
+            }
+
+            const newPart: PartLine = {
+              item_id: itemId,
+              location_id: line.matched_location_id ? String(line.matched_location_id) : "",
+              quantity: String(line.quantity),
+              price: String(line.unit_price),
+              currency_id: headerCurrencyId,
+            };
+
+            if (lineIndex === 0) {
+              setParts([newPart]);
+            } else {
+              setParts((prev) => [...prev, newPart]);
+            }
+            lineIndex++;
+
+            setParsedMeta({
+              lineCount: lineIndex,
+              labels: new Map(labels),
+              unresolvedParts: new Map(unresolvedParts),
+            });
+          },
+
+          onDone: () => {
+            setParsedMeta({
+              lineCount: lineIndex,
+              labels: new Map(labels),
+              unresolvedParts: new Map(unresolvedParts),
+            });
+          },
+
+          onError: (msg) => {
+            toast.error(`Failed to parse invoice: ${msg}`);
+          },
+        });
+      } catch (err) {
+        toast.error(`Failed to parse invoice: ${err instanceof Error ? err.message : "Unknown error"}`);
+      } finally {
+        setIsParsing(false);
+      }
+    },
+    [currencies, defaultCurrencyId],
+  );
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragging(false);
+      const file = e.dataTransfer.files[0];
+      if (file) handleFileUpload(file);
+    },
+    [handleFileUpload],
+  );
+
   const resetForm = () => {
     setSupplierId("");
     setReference("");
@@ -121,6 +217,8 @@ export function AddReceiptForm({
     setFormKey((k) => k + 1);
     setParts([{ ...emptyPart, currency_id: defaultCurrencyId }]);
     setShowErrors(false);
+    setParsedMeta(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handlePartSelect = (index: number, itemId: string) => {
@@ -175,6 +273,69 @@ export function AddReceiptForm({
     <>
       <form onSubmit={handleSubmit} className={cn(className)}>
         <div className={cn("space-y-6", variant === "inline" ? "py-0" : "py-4")}>
+          <div
+            className={cn(
+              "relative rounded-lg border-2 border-dashed p-4 text-center transition-colors",
+              isDragging
+                ? "border-primary bg-primary/5"
+                : "border-muted-foreground/25 hover:border-muted-foreground/50",
+              isParsing && "pointer-events-none opacity-60",
+            )}
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,application/pdf"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFileUpload(file);
+              }}
+            />
+            {isParsing ? (
+              <div className="flex items-center justify-center gap-2 py-2">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <span className="text-sm font-medium text-primary">Parsing invoice...</span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="flex w-full items-center justify-center gap-2 py-2"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  Drop a PDF invoice here, or <span className="font-medium text-primary underline">browse</span>
+                </span>
+              </button>
+            )}
+          </div>
+
+          {parsedMeta && (
+            <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/50">
+              <FileText className="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
+              <div className="flex-1 text-sm text-blue-800 dark:text-blue-200">
+                Parsed {parsedMeta.lineCount} line item{parsedMeta.lineCount !== 1 ? "s" : ""} from invoice.
+                {parsedMeta.unresolvedParts.size > 0 && (
+                  <span className="ml-1 text-amber-700 dark:text-amber-400">
+                    {parsedMeta.unresolvedParts.size} part{parsedMeta.unresolvedParts.size !== 1 ? "s" : ""} not
+                    found in database — select or create them manually.
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                className="shrink-0 text-blue-400 hover:text-blue-600 dark:hover:text-blue-300"
+                onClick={() => setParsedMeta(null)}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
           {showErrors && validation.headerErrors.length > 0 && (
             <p className="text-sm text-destructive">Missing: {validation.headerErrors.join(", ")}</p>
           )}
@@ -222,6 +383,8 @@ export function AddReceiptForm({
               onPartSelect={handlePartSelect}
               onFieldChange={handlePartChange}
               onRemove={(i) => setParts(parts.filter((_, j) => j !== i))}
+              partLabel={parsedMeta?.labels.get(part.item_id)}
+              parsedPartNumber={parsedMeta?.unresolvedParts.get(index)}
               extraPartActions={
                 <Button type="button" variant="secondary" onClick={() => setIsAddItemModalOpen(true)}>
                   New Part
