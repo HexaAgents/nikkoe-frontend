@@ -196,6 +196,14 @@ export function useItemInventory(itemId: string | number) {
   });
 }
 
+export function useItemsBySearchId(searchId: string) {
+  return useQuery({
+    queryKey: ["items", "by_search_id", searchId],
+    queryFn: () => api.get<Item[]>(`/items/by-search-id/${encodeURIComponent(searchId)}`),
+    enabled: searchId.length > 0,
+  });
+}
+
 export function useItemReceipts(itemId: string | number) {
   return useQuery({
     queryKey: ["receipt_lines", "by_item", String(itemId)],

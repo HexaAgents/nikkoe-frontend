@@ -1,7 +1,8 @@
 import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, ArrowRightLeft } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { Button } from "@/components/ui/button";
 import { DataTable, DataTableSkeleton } from "@/components/common/DataTable";
 import { useItems, useItemSearch, buildItemsQueryFn, itemsQueryKeyBase } from "@/hooks/queries";
 import { usePrefetchPages } from "@/hooks/usePrefetchPages";
@@ -19,6 +20,7 @@ import type { ItemWithRelations } from "@/types/domain.types";
 const PAGE_SIZE = 20;
 
 const SORT_OPTIONS = [
+  { value: "recently_added", label: "Recently Added" },
   { value: "item_id", label: "Part Number (A\u2013Z)" },
   { value: "latest_receipt", label: "Most Recent Receipt" },
   { value: "latest_sale", label: "Most Recent Sale" },
@@ -35,7 +37,7 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [searchPage, setSearchPage] = useState(1);
-  const [sortBy, setSortBy] = useState("item_id");
+  const [sortBy, setSortBy] = useState("recently_added");
 
   const { data: browseResult, isLoading } = useItems({ page, pageSize: PAGE_SIZE, sortBy });
   const { data: searchResult, isFetching: isSearching } = useItemSearch(searchQuery, {
@@ -128,20 +130,26 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
     navigate(`/items/${item.id}`);
   };
 
-  const sortDropdown = (
-    <Select value={sortBy} onValueChange={handleSortChange}>
-      <SelectTrigger className="h-9 w-[200px] text-xs">
-        <ArrowUpDown className="mr-1.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {SORT_OPTIONS.map((opt) => (
-          <SelectItem key={opt.value} value={opt.value} className="text-xs">
-            {opt.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+  const toolbarActions = (
+    <div className="flex items-center gap-2">
+      <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => navigate("/items/transfer")}>
+        <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" />
+        Transfer Stock
+      </Button>
+      <Select value={sortBy} onValueChange={handleSortChange}>
+        <SelectTrigger className="h-9 w-[200px] text-xs">
+          <ArrowUpDown className="mr-1.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {SORT_OPTIONS.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value} className="text-xs">
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 
   const loadingView = (
@@ -172,7 +180,7 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
           idKey="id"
           serverPagination={serverPagination}
           onExportAll={handleExportAll}
-          toolbarExtra={sortDropdown}
+          toolbarExtra={toolbarActions}
           exportColumns={[
             { key: "item_id", header: "Part Number" },
             { key: "description", header: "Description" },

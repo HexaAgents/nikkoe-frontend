@@ -186,6 +186,10 @@ export interface Transfer {
   user_id: number | null;
   from_stock: { id: number; item_id: number; location_id: number } | null;
   to_stock: { id: number; item_id: number; location_id: number } | null;
+  from_item: { id: number; item_id: string } | null;
+  to_item: { id: number; item_id: string } | null;
+  from_location: { id: number; code: string } | null;
+  to_location: { id: number; code: string } | null;
   items: { id: number; item_id: string } | null;
   users: { id: number; first_name: string; last_name: string } | null;
 }
@@ -275,6 +279,15 @@ export interface ItemTransferHistory {
 
 export interface TransferInput {
   from_stock_id: number;
+  to_location_id: number;
+  quantity: number;
+  notes?: string;
+}
+
+export interface CrossTransferInput {
+  from_item_id: number;
+  from_location_id: number;
+  to_item_id: number;
   to_location_id: number;
   quantity: number;
   notes?: string;

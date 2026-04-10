@@ -8,6 +8,7 @@ import type {
   SupplierInput,
   SupplierQuoteInput,
   TransferInput,
+  CrossTransferInput,
   ParseInvoiceResponse,
 } from "@/types/domain.types";
 
@@ -306,6 +307,25 @@ export function useTransferStock() {
       queryClient.invalidateQueries({ queryKey: ["inventory_on_hand"] });
       queryClient.invalidateQueries({ queryKey: ["items"] });
       queryClient.invalidateQueries({ queryKey: ["transfers"] });
+      toast.success("Stock transferred successfully");
+    },
+    onError: (error) => {
+      toast.error(`Failed to transfer stock: ${error.message}`);
+    },
+  });
+}
+
+export function useCrossTransferStock() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: CrossTransferInput) => api.post("/inventory/transfer-cross", input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inventory_balances"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory_on_hand"] });
+      queryClient.invalidateQueries({ queryKey: ["items"] });
+      queryClient.invalidateQueries({ queryKey: ["transfers"] });
+      queryClient.invalidateQueries({ queryKey: ["movements_page"] });
       toast.success("Stock transferred successfully");
     },
     onError: (error) => {

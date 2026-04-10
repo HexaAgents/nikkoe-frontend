@@ -7,6 +7,7 @@ import { PageLoadingScreen } from "@/components/common/PageLoadingScreen";
 const Index = lazy(() => import("./pages/Index"));
 const Items = lazy(() => import("./pages/Items"));
 const ItemDetail = lazy(() => import("./pages/ItemDetail"));
+const TransferStock = lazy(() => import("./pages/TransferStock"));
 const Suppliers = lazy(() => import("./pages/Suppliers"));
 const SupplierDetail = lazy(() => import("./pages/SupplierDetail"));
 const Categories = lazy(() => import("./pages/Categories"));
@@ -37,6 +38,7 @@ export function AppRoutes() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/" element={<Protected><Index /></Protected>} />
           <Route path="/items" element={<Protected><Items /></Protected>} />
+          <Route path="/items/transfer" element={<Protected><TransferStock /></Protected>} />
           <Route path="/items/:id" element={<Protected><ItemDetail /></Protected>} />
           <Route path="/suppliers" element={<Protected><Suppliers /></Protected>} />
           <Route path="/suppliers/:id" element={<Protected><SupplierDetail /></Protected>} />
