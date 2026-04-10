@@ -33,7 +33,7 @@ export default function Login() {
         analytics.track("user_signed_in", { email: user.email });
       }
       toast.success("Logged in successfully");
-      navigate("/sales");
+      navigate("/items");
     }
   };
 

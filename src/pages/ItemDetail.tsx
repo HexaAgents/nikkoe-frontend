@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Edit, Trash2, Plus, ArrowRightLeft, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Plus, ArrowRightLeft, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { TableCardSkeleton } from "@/components/common/PageLoadingScreen";
 import { useItem, useItemSupplierQuotes, useItemInventory, useItemReceipts, useItemSales, useItemTransfers, useCategories } from "@/hooks/queries";
 import { useUpdateItem, useDeleteItem, useDeleteSupplierQuote } from "@/hooks/mutations";
@@ -163,17 +174,28 @@ export default function ItemDetailPage() {
             </Button>
             <h1 className="font-display text-[28px] font-normal text-foreground">{item.item_id}</h1>
           </div>
-          <div className="flex gap-2">
-            {!isEditing && (
-              <Button variant="outline" onClick={() => setIsEditing(true)}>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Item
               </Button>
-            )}
-            <Button variant="destructive" onClick={handleDelete}>
-              Delete Item
-            </Button>
-          </div>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete {item.item_id}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete this item and cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
         <Card>
@@ -216,16 +238,23 @@ export default function ItemDetailPage() {
                 </p>
               </div>
             </div>
-            {isEditing && (
-              <div className="flex gap-2 pt-2">
-                <Button onClick={handleSave} disabled={updateItem.isPending}>
-                  {updateItem.isPending ? "Saving..." : "Save Changes"}
+            <div className="flex gap-2 pt-2">
+              {isEditing ? (
+                <>
+                  <Button onClick={handleSave} disabled={updateItem.isPending}>
+                    {updateItem.isPending ? "Saving..." : "Save Changes"}
+                  </Button>
+                  <Button variant="outline" onClick={() => setIsEditing(false)}>
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <Button variant="outline" onClick={() => setIsEditing(true)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Item
                 </Button>
-                <Button variant="outline" onClick={() => setIsEditing(false)}>
-                  Cancel
-                </Button>
-              </div>
-            )}
+              )}
+            </div>
           </CardContent>
         </Card>
 

@@ -217,7 +217,7 @@ export function DataTable<T extends object>({
           )}
           {isExporting ? "Exporting…" : "Export Excel"}
         </Button>
-        <div className="relative w-52">
+        <div className="relative min-w-[13rem] flex-1">
           {isSearching ? (
             <Loader2 className="absolute left-2.5 top-1/2 h-[13px] w-[13px] -translate-y-1/2 animate-spin text-muted-foreground" />
           ) : (

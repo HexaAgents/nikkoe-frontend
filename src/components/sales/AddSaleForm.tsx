@@ -95,8 +95,6 @@ export function AddSaleForm({
 
   const validation = useMemo(() => {
     const headerErrors: string[] = [];
-    if (!channelId) headerErrors.push("Channel");
-    if (!customerId) headerErrors.push("Customer");
 
     const lineErrors: { partIndex: number; fields: string[] }[] = [];
     parts.forEach((part, index) => {
@@ -119,7 +117,7 @@ export function AddSaleForm({
       headerErrors,
       errors: lineErrors,
     };
-  }, [parts, channelId, customerId]);
+  }, [parts]);
 
   const allLocations = useMemo(
     () => locations?.map((l) => ({ location_id: String(l.id), location_code: l.code })),

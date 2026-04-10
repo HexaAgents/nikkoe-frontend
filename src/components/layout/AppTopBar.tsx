@@ -20,13 +20,20 @@ export function AppTopBar() {
         <div className="flex flex-wrap items-center justify-between gap-3 px-7 py-4">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-6 sm:gap-10">
             <NavLink
-              to="/sales"
+              to="/items"
               className="flex shrink-0 items-center gap-2.5 text-white/90 hover:text-white"
             >
               <img src={nikkoLogo} alt="Nikko" className="h-12 object-contain" />
             </NavLink>
 
             <nav className="flex items-center gap-1" aria-label="Main">
+              <NavLink
+                to="/items"
+                className="relative inline-flex items-center px-3 py-2 text-sm text-white/50 transition-colors hover:text-white/80"
+                activeClassName="font-medium text-white after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary hover:text-white"
+              >
+                <span>Items</span>
+              </NavLink>
               <NavLink
                 to="/sales"
                 className="relative inline-flex items-center px-3 py-2 text-sm text-white/50 transition-colors hover:text-white/80"
@@ -40,13 +47,6 @@ export function AppTopBar() {
                 activeClassName="font-medium text-white after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary hover:text-white"
               >
                 <span>Receipts</span>
-              </NavLink>
-              <NavLink
-                to="/items"
-                className="relative inline-flex items-center px-3 py-2 text-sm text-white/50 transition-colors hover:text-white/80"
-                activeClassName="font-medium text-white after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary hover:text-white"
-              >
-                <span>Items</span>
               </NavLink>
             </nav>
           </div>
