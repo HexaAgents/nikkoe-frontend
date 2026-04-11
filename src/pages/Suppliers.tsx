@@ -78,7 +78,7 @@ export default function SuppliersPage({ embedded = false }: SuppliersPageProps) 
     { key: "name", header: "Name", className: "max-w-[200px] truncate" },
     { key: "address", header: "Address", className: "max-w-[250px] truncate" },
     { key: "email", header: "Email", className: "max-w-[220px] truncate" },
-    { key: "phone", header: "Phone" },
+    { key: "phone", header: "Phone", className: "max-w-[150px] truncate" },
     {
       key: "actions",
       header: "",
