@@ -45,7 +45,7 @@ Dialog forms for creating entities.
 - **AddCategoryModal.tsx** -- Dialog form for creating a new category. Single required name field. Calls `useAddCategory` mutation.
 - **AddLocationModal.tsx** -- Dialog form for creating a new location. Single required location code field. Calls `useAddLocation` mutation.
 - **AddSupplierModal.tsx** -- Dialog form for creating a new supplier. Fields: name (required), address, email, phone. Calls `useAddSupplier` mutation.
-- **AddSupplierQuoteModal.tsx** -- Dialog form for adding a supplier quote to an item. Fields: supplier select (from useSuppliers), date, unit cost, currency, note. Calls `useAddSupplierQuote` mutation.
+- **AddSupplierQuoteModal.tsx** -- Dialog form for adding a supplier quote to an item. Fields: supplier select (from useSuppliers), date, unit cost, currency, note. Accepts an optional `latestQuote` prop; when provided, the form pre-fills supplier, unit cost, and currency from the most recent quote each time the modal opens. Calls `useAddSupplierQuote` mutation.
 - **AddReceiptModal.tsx** -- Dialog wrapper that renders the `AddReceiptForm` component inside a Radix Dialog with a title and scroll handling. Does not contain form logic itself.
 - **AddSaleModal.tsx** -- Dialog wrapper that renders the `AddSaleForm` component inside a Radix Dialog. Does not contain form logic itself.
 

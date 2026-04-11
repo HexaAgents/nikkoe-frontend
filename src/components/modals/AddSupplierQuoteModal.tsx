@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,14 +18,16 @@ import {
 } from "@/components/ui/select";
 import { useSuppliers, useCurrencies } from "@/hooks/queries";
 import { useAddSupplierQuote } from "@/hooks/mutations";
+import type { ItemSupplierQuote } from "@/types/domain.types";
 
 interface AddSupplierQuoteModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   itemId: number;
+  latestQuote?: ItemSupplierQuote;
 }
 
-export function AddSupplierQuoteModal({ open, onOpenChange, itemId }: AddSupplierQuoteModalProps) {
+export function AddSupplierQuoteModal({ open, onOpenChange, itemId, latestQuote }: AddSupplierQuoteModalProps) {
   const { data: suppliers } = useSuppliers();
   const { data: currencies } = useCurrencies();
   const addQuote = useAddSupplierQuote();
@@ -36,6 +38,18 @@ export function AddSupplierQuoteModal({ open, onOpenChange, itemId }: AddSupplie
     date_time: new Date().toISOString().split("T")[0],
     note: "",
   });
+
+  useEffect(() => {
+    if (open) {
+      setFormData({
+        supplier_id: latestQuote ? String(latestQuote.supplier_id) : "",
+        cost: latestQuote ? String(latestQuote.cost) : "",
+        currency_id: latestQuote ? String(latestQuote.currency_id) : "",
+        date_time: new Date().toISOString().split("T")[0],
+        note: "",
+      });
+    }
+  }, [open, latestQuote]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

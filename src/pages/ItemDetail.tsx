@@ -200,7 +200,7 @@ export default function ItemDetailPage() {
 
         <Card>
           <CardContent className="space-y-4 pt-6">
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Description</Label>
                 {isEditing ? (
@@ -236,6 +236,19 @@ export default function ItemDetailPage() {
                 <p className="text-[13px]">
                   {inventory?.reduce((sum, inv) => sum + (inv.quantity ?? 0), 0) ?? "-"}
                 </p>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Current Supplier Price</Label>
+                {supplierQuotes && supplierQuotes.length > 0 ? (
+                  <div className="text-[13px]">
+                    <span className="font-medium">{supplierQuotes[0].cost.toFixed(2)}</span>
+                    {" "}
+                    <span className="text-muted-foreground">{supplierQuotes[0].currency?.name ?? ""}</span>
+                    <span className="text-muted-foreground"> from {supplierQuotes[0].supplier?.name ?? "Unknown"}</span>
+                  </div>
+                ) : (
+                  <p className="text-[13px] text-muted-foreground">No quotes</p>
+                )}
               </div>
             </div>
             <div className="flex gap-2 pt-2">
@@ -689,6 +702,7 @@ export default function ItemDetailPage() {
         open={isAddQuoteModalOpen}
         onOpenChange={setIsAddQuoteModalOpen}
         itemId={itemId}
+        latestQuote={supplierQuotes?.[0]}
       />
       {transferStock && (
         <TransferStockModal
