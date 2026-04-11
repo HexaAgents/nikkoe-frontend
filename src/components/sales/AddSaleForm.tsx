@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { analytics } from "@/lib/analytics";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,15 @@ export function AddSaleForm({
   const { data: currencies } = useCurrencies();
   const addCustomer = useAddCustomer();
 
+  const defaultChannel = useMemo(
+    () => channels?.find((c) => c.name === "Ebay"),
+    [channels],
+  );
+  const defaultCustomer = useMemo(
+    () => customers?.find((c) => c.name.toLowerCase() === "zenstores"),
+    [customers],
+  );
+
   const [channelId, setChannelId] = useState<string>("");
   const [channelSearch, setChannelSearch] = useState("");
   const [channelOpen, setChannelOpen] = useState(false);
@@ -61,6 +70,22 @@ export function AddSaleForm({
   const [isAddLocationModalOpen, setIsAddLocationModalOpen] = useState(false);
   const skipChannelClose = useRef(false);
   const skipCustomerClose = useRef(false);
+  const defaultsApplied = useRef(false);
+
+  useEffect(() => {
+    if (defaultsApplied.current) return;
+    if (defaultChannel && !channelId) {
+      setChannelId(String(defaultChannel.id));
+      defaultsApplied.current = true;
+    }
+  }, [defaultChannel, channelId]);
+
+  useEffect(() => {
+    if (defaultCustomer && !customerId && !customerName) {
+      setCustomerId(String(defaultCustomer.id));
+      setCustomerName(defaultCustomer.name);
+    }
+  }, [defaultCustomer, customerId, customerName]);
 
   const selectedChannel = useMemo(
     () => channels?.find((c) => String(c.id) === channelId),
@@ -125,10 +150,10 @@ export function AddSaleForm({
   );
 
   const resetForm = () => {
-    setChannelId("");
+    setChannelId(defaultChannel ? String(defaultChannel.id) : "");
     setChannelSearch("");
-    setCustomerId("");
-    setCustomerName("");
+    setCustomerId(defaultCustomer ? String(defaultCustomer.id) : "");
+    setCustomerName(defaultCustomer?.name ?? "");
     setParts([{ ...emptyPart }]);
     setShowErrors(false);
     setFormKey((k) => k + 1);
