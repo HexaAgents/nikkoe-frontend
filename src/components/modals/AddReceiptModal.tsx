@@ -1,9 +1,9 @@
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog";
 import { AddReceiptForm } from "@/components/receipts/AddReceiptForm";
 
 interface AddReceiptModalProps {
@@ -13,17 +13,17 @@ interface AddReceiptModalProps {
 
 export function AddReceiptModal({ open, onOpenChange }: AddReceiptModalProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[700px]">
-        <DialogHeader>
-          <DialogTitle className="text-xl text-primary">New Receipt</DialogTitle>
-        </DialogHeader>
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[700px]">
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle className="text-xl text-primary">New Receipt</ResponsiveDialogTitle>
+        </ResponsiveDialogHeader>
         <AddReceiptForm
           variant="dialog"
           onSuccessfulCreate={() => onOpenChange(false)}
           onCancel={() => onOpenChange(false)}
         />
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

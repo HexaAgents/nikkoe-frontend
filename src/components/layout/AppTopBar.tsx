@@ -16,7 +16,7 @@ export function AppTopBar() {
   return (
     <>
       <div className="h-0.5 w-full bg-gradient-to-r from-primary/40 via-primary to-primary/40" />
-      <header className="bg-nav-dark sticky top-0 z-40 w-full border-b border-white/[0.08]">
+      <header className="bg-nav-dark sticky top-0 z-40 hidden w-full border-b border-white/[0.08] md:block">
         <div className="flex flex-wrap items-center justify-between gap-3 px-7 py-4">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-6 sm:gap-10">
             <NavLink

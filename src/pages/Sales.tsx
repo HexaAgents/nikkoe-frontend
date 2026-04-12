@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { Plus } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DataTable, DataTableSkeleton } from "@/components/common/DataTable";
 import { useSales, buildSalesQueryFn, salesQueryKeyBase } from "@/hooks/queries";
@@ -10,6 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { SaleWithRelations } from "@/types/domain.types";
 
 const PAGE_SIZE = 20;
@@ -18,10 +21,12 @@ export default function SalesPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
+  const [mobileFormOpen, setMobileFormOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const searchQuery = searchParams.get("search") ?? "";
   const showVoided = searchParams.get("voided") === "1";
-  const showSalesHistory = searchParams.get("history") === "1" || searchQuery !== "";
+  const showSalesHistory = searchParams.get("history") !== "0" || searchQuery !== "";
 
   const status = showVoided ? undefined : "ACTIVE";
   const search = searchQuery || undefined;
@@ -60,9 +65,10 @@ export default function SalesPage() {
     (show: boolean) => {
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
-        if (show) next.set("history", "1");
-        else {
+        if (show) {
           next.delete("history");
+        } else {
+          next.set("history", "0");
           next.delete("search");
           next.delete("voided");
         }
@@ -122,14 +128,37 @@ export default function SalesPage() {
       <div className="space-y-6 px-1 pt-2">
         <h1 className="font-display text-[28px] font-normal text-foreground">Sales</h1>
 
-        <Card>
-          <CardHeader className="border-b pb-6">
-            <CardTitle className="text-lg font-bold">Add new sale</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <AddSaleForm variant="inline" />
-          </CardContent>
-        </Card>
+        {isMobile ? (
+          <>
+            <Button
+              className="fixed bottom-20 right-4 z-40 h-14 w-14 rounded-full shadow-lg"
+              onClick={() => setMobileFormOpen(true)}
+              style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+            >
+              <Plus className="h-6 w-6" />
+              <span className="sr-only">New sale</span>
+            </Button>
+            <Drawer open={mobileFormOpen} onOpenChange={setMobileFormOpen}>
+              <DrawerContent className="max-h-[85dvh]">
+                <DrawerHeader>
+                  <DrawerTitle>Add new sale</DrawerTitle>
+                </DrawerHeader>
+                <div className="overflow-y-auto px-4 pb-6">
+                  <AddSaleForm variant="inline" onSuccessfulCreate={() => setMobileFormOpen(false)} />
+                </div>
+              </DrawerContent>
+            </Drawer>
+          </>
+        ) : (
+          <Card>
+            <CardHeader className="border-b pb-6">
+              <CardTitle className="text-lg font-bold">Add new sale</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <AddSaleForm variant="inline" />
+            </CardContent>
+          </Card>
+        )}
 
         <div className="pt-1">
           <Button

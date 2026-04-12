@@ -10,6 +10,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SearchablePartPicker } from "@/components/common/SearchablePartPicker";
 import { SearchableLocationPicker } from "@/components/common/SearchableLocationPicker";
@@ -68,6 +75,7 @@ export function PartLineCard({
   partLabel,
   parsedPartNumber,
 }: PartLineCardProps) {
+  const isMobile = useIsMobile();
   const { data: itemInventory } = useItemInventory(part.item_id);
 
   const derivedLocations = useMemo(() => {
@@ -143,9 +151,9 @@ export function PartLineCard({
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-col gap-1.5 md:flex-row md:flex-wrap md:items-center md:gap-4">
           <Label
-            className={`w-32 shrink-0 ${showErrors && errors.includes("Part Number") ? "text-destructive" : "text-muted-foreground"}`}
+            className={`md:w-32 md:shrink-0 ${showErrors && errors.includes("Part Number") ? "text-destructive" : "text-muted-foreground"}`}
           >
             Part Number:
           </Label>
@@ -166,9 +174,9 @@ export function PartLineCard({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-col gap-1.5 md:flex-row md:flex-wrap md:items-center md:gap-4">
           <Label
-            className={`w-32 shrink-0 ${showErrors && errors.includes("Location") ? "text-destructive" : "text-muted-foreground"}`}
+            className={`md:w-32 md:shrink-0 ${showErrors && errors.includes("Location") ? "text-destructive" : "text-muted-foreground"}`}
           >
             Location:
           </Label>
@@ -183,10 +191,10 @@ export function PartLineCard({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-start gap-x-6 gap-y-4">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-start md:gap-x-6 md:gap-y-4">
+          <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-4">
             <Label
-              className={`w-32 shrink-0 ${showErrors && errors.includes("Quantity") ? "text-destructive" : "text-muted-foreground"}`}
+              className={`md:w-32 md:shrink-0 ${showErrors && errors.includes("Quantity") ? "text-destructive" : "text-muted-foreground"}`}
             >
               Quantity:
             </Label>
@@ -215,9 +223,9 @@ export function PartLineCard({
             </div>
           </div>
 
-          <div className="flex min-w-0 flex-1 items-center gap-4">
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5 md:flex-row md:items-center md:gap-4">
             <Label
-              className={`shrink-0 ${showErrors && errors.includes(priceLabel) ? "text-destructive" : "text-muted-foreground"}`}
+              className={`md:shrink-0 ${showErrors && errors.includes(priceLabel) ? "text-destructive" : "text-muted-foreground"}`}
             >
               {priceLabel}:
             </Label>
@@ -235,8 +243,31 @@ export function PartLineCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <Label className={`w-32 shrink-0 ${showErrors && errors.includes("Currency") ? "text-destructive" : "text-muted-foreground"}`}>Currency:</Label>
+        <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-4">
+          <Label className={`md:w-32 md:shrink-0 ${showErrors && errors.includes("Currency") ? "text-destructive" : "text-muted-foreground"}`}>Currency:</Label>
+          {isMobile ? (
+            <>
+              <div className="relative min-w-0 flex-1" onClick={() => setCurrencyOpen(true)}>
+                <Input placeholder="Select currency..." value={selectedCurrency?.name ?? ""} readOnly className={cn("cursor-pointer", showErrors && errors.includes("Currency") && "border-destructive")} />
+                <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
+              </div>
+              <Drawer open={currencyOpen} onOpenChange={setCurrencyOpen}>
+                <DrawerContent>
+                  <DrawerHeader><DrawerTitle>Select currency</DrawerTitle></DrawerHeader>
+                  <div className="max-h-[60dvh] overflow-y-auto px-3 pb-4">
+                    {filteredCurrencies.length === 0 ? (
+                      <div className="py-6 text-center text-sm text-muted-foreground">No currencies found.</div>
+                    ) : filteredCurrencies.map((c) => (
+                      <button key={c.id} type="button" className={cn("relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-2.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground", part.currency_id === c.id.toString() && "bg-accent text-accent-foreground")} onClick={() => { onFieldChange(index, "currency_id", c.id.toString()); setCurrencySearch(""); setCurrencyOpen(false); }}>
+                        <Check className={cn("mr-2 h-4 w-4", part.currency_id === c.id.toString() ? "opacity-100" : "opacity-0")} />
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
+                </DrawerContent>
+              </Drawer>
+            </>
+          ) : (
           <Popover open={currencyOpen} onOpenChange={(newOpen) => {
             if (!newOpen && skipCurrencyClose.current) { skipCurrencyClose.current = false; return; }
             setCurrencyOpen(newOpen);
@@ -274,7 +305,7 @@ export function PartLineCard({
                       key={c.id}
                       type="button"
                       className={cn(
-                        "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                        "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-2.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground md:py-1.5",
                         part.currency_id === c.id.toString() && "bg-accent text-accent-foreground"
                       )}
                       onMouseDown={(e) => e.preventDefault()}
@@ -297,6 +328,7 @@ export function PartLineCard({
               </div>
             </PopoverContent>
           </Popover>
+          )}
         </div>
       </CardContent>
     </Card>

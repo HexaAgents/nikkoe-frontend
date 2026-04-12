@@ -300,8 +300,8 @@ export function AddReceiptForm({
           {showErrors && validation.headerErrors.length > 0 && (
             <p className="text-sm text-destructive">Missing: {validation.headerErrors.join(", ")}</p>
           )}
-          <div className="flex flex-wrap items-center gap-4">
-            <Label className={`w-24 shrink-0 ${showErrors && !supplierId ? "text-destructive" : "text-muted-foreground"}`}>Supplier:</Label>
+          <div className="flex flex-col gap-1.5 md:flex-row md:flex-wrap md:items-center md:gap-4">
+            <Label className={`md:w-24 md:shrink-0 ${showErrors && !supplierId ? "text-destructive" : "text-muted-foreground"}`}>Supplier:</Label>
             <SearchableSupplierPicker
               key={`supplier-${formKey}`}
               suppliers={suppliers}
@@ -311,8 +311,8 @@ export function AddReceiptForm({
             />
           </div>
 
-          <div className="flex items-center gap-4">
-            <Label className="w-24 shrink-0 text-muted-foreground">Reference:</Label>
+          <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-4">
+            <Label className="md:w-24 md:shrink-0 text-muted-foreground">Reference:</Label>
             <Input
               value={reference}
               onChange={(e) => setReference(e.target.value)}
@@ -321,8 +321,8 @@ export function AddReceiptForm({
             />
           </div>
 
-          <div className="flex flex-wrap items-start gap-4">
-            <Label className="w-24 shrink-0 pt-2 text-muted-foreground">Note:</Label>
+          <div className="flex flex-col gap-1.5 md:flex-row md:flex-wrap md:items-start md:gap-4">
+            <Label className="md:w-24 md:shrink-0 md:pt-2 text-muted-foreground">Note:</Label>
             <Textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}

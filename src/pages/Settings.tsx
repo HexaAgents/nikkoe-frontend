@@ -56,7 +56,7 @@ export default function Settings() {
 
   return (
     <MainLayout>
-      <div className="flex min-h-[calc(100vh-5rem)] gap-8 px-1 pt-2 lg:gap-10">
+      <div className="flex min-h-[calc(100dvh-5rem)] gap-8 px-1 pt-2 lg:gap-10">
         <aside className="hidden w-[220px] shrink-0 md:block">
           <div className="sticky top-20">
             <div className="pb-4">
@@ -101,6 +101,30 @@ export default function Settings() {
           <div className="block pb-4 md:hidden">
             <h1 className="font-display text-[28px] font-normal text-foreground">Settings</h1>
             <p className="text-[13px] text-muted-foreground">Account and inventory data</p>
+            <nav className="mt-3 flex gap-2 overflow-x-auto pb-2" aria-label="Settings sections (mobile)">
+              {navSections.flatMap((section) =>
+                section.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeSection === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setActiveSection(item.id)}
+                      className={cn(
+                        "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors",
+                        isActive
+                          ? "bg-primary font-medium text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      )}
+                    >
+                      <Icon className="h-3.5 w-3.5" aria-hidden />
+                      {item.label}
+                    </button>
+                  );
+                })
+              )}
+            </nav>
           </div>
 
           {activeSection === "general" && (

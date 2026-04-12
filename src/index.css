@@ -34,6 +34,14 @@
     @apply border-border;
   }
 
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -44,19 +52,22 @@
     font-family: "Geist Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     font-size: 14px;
     color: hsl(220 14% 10%);
+    padding-top: env(safe-area-inset-top);
   }
 
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: -2;
-    pointer-events: none;
-    background-image: linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
-                      linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
-    background-size: 56px 56px;
-    mask-image: radial-gradient(ellipse 60% 60% at center, black 20%, transparent 70%);
-    -webkit-mask-image: radial-gradient(ellipse 60% 60% at center, black 20%, transparent 70%);
+  @media (min-width: 768px) {
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      pointer-events: none;
+      background-image: linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+      background-size: 56px 56px;
+      mask-image: radial-gradient(ellipse 60% 60% at center, black 20%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse 60% 60% at center, black 20%, transparent 70%);
+    }
   }
 
   body::after {
@@ -82,5 +93,13 @@
 
   .bg-nav-dark {
     background: linear-gradient(180deg, hsl(222 20% 14%) 0%, hsl(222 22% 11%) 100%);
+  }
+}
+
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
   }
 }

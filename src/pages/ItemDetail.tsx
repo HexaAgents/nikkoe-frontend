@@ -288,6 +288,7 @@ export default function ItemDetailPage() {
               </Button>
             </CardHeader>
             <CardContent className="p-0">
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -326,6 +327,7 @@ export default function ItemDetailPage() {
                   )}
                 </TableBody>
               </Table>
+              </div>
               {supplierQuotes && supplierQuotes.length > PREVIEW_ROWS && (
                 <div className="border-t px-4 py-3">
                   <Button
@@ -414,6 +416,7 @@ export default function ItemDetailPage() {
               </div>
             ) : (
               <>
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -479,6 +482,7 @@ export default function ItemDetailPage() {
                     )}
                   </TableBody>
                 </Table>
+                </div>
                 {receiptsHistory && receiptsHistory.length > PREVIEW_ROWS && (
                   <div className="border-t px-4 py-3">
                     <Button
@@ -524,6 +528,7 @@ export default function ItemDetailPage() {
               </div>
             ) : (
               <>
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -589,6 +594,7 @@ export default function ItemDetailPage() {
                     )}
                   </TableBody>
                 </Table>
+                </div>
                 {salesHistory && salesHistory.length > PREVIEW_ROWS && (
                   <div className="border-t px-4 py-3">
                     <Button
@@ -634,6 +640,7 @@ export default function ItemDetailPage() {
               </div>
             ) : (
               <>
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -670,6 +677,7 @@ export default function ItemDetailPage() {
                     )}
                   </TableBody>
                 </Table>
+                </div>
                 {transfersHistory && transfersHistory.length > PREVIEW_ROWS && (
                   <div className="border-t px-4 py-3">
                     <Button

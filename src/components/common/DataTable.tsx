@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { Search, Plus, Download, Loader2 } from "lucide-react";
+import { Search, Plus, Download, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,6 +20,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { exportToExcel, ExportOptions } from "@/lib/exportToExcel";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Column<T> {
   key: keyof T | string;
@@ -90,6 +91,7 @@ export function DataTable<T extends object>({
   const [clientPage, setClientPage] = useState(1);
   const [pageInput, setPageInput] = useState("1");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const isMobile = useIsMobile();
 
   const isServerPaginated = !!serverPagination;
   const currentPage = isServerPaginated ? serverPagination.page : clientPage;
@@ -202,6 +204,7 @@ export function DataTable<T extends object>({
 
   return (
     <div className="space-y-4">
+      {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3">
         {onAdd && (
           <Button onClick={onAdd}>
@@ -209,14 +212,16 @@ export function DataTable<T extends object>({
             {addButtonText}
           </Button>
         )}
-        <Button variant="outline" onClick={handleExport} disabled={isExporting}>
-          {isExporting ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Download className="mr-2 h-4 w-4" />
-          )}
-          {isExporting ? "Exporting…" : "Export Excel"}
-        </Button>
+        {!isMobile && (
+          <Button variant="outline" onClick={handleExport} disabled={isExporting}>
+            {isExporting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            {isExporting ? "Exporting…" : "Export Excel"}
+          </Button>
+        )}
         <div className="relative min-w-[13rem] flex-1">
           {isSearching ? (
             <Loader2 className="absolute left-2.5 top-1/2 h-[13px] w-[13px] -translate-y-1/2 animate-spin text-muted-foreground" />
@@ -233,119 +238,178 @@ export function DataTable<T extends object>({
         {toolbarExtra && <div className="ml-auto">{toolbarExtra}</div>}
       </div>
 
-      <div className="overflow-hidden rounded-none border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {columns.map((column) => (
-                <TableHead key={String(column.key)} className={column.className}>{column.header}</TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedData.length === 0 ? (
+      {/* Mobile: card-based rows */}
+      {isMobile ? (
+        <div className="space-y-2">
+          {paginatedData.length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">
+              No results found.
+            </div>
+          ) : (
+            paginatedData.map((item, index) => (
+              <div
+                key={getItemKey(item, index)}
+                onClick={() => onRowClick?.(item)}
+                className={`rounded-md border bg-card p-3 ${onRowClick ? "cursor-pointer active:bg-accent" : ""} ${rowClassName?.(item) || ""}`}
+              >
+                {columns.slice(0, 3).map((column, colIdx) => {
+                  const value = column.render
+                    ? column.render(item)
+                    : String(item[column.key as keyof T] ?? "");
+                  return (
+                    <div key={String(column.key)} className={colIdx === 0 ? "text-sm font-medium" : "text-xs text-muted-foreground"}>
+                      {colIdx > 0 && <span className="mr-1 text-muted-foreground/60">{column.header}:</span>}
+                      {value}
+                    </div>
+                  );
+                })}
+              </div>
+            ))
+          )}
+        </div>
+      ) : (
+        /* Desktop: standard table */
+        <div className="overflow-hidden rounded-none border">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                  No results found.
-                </TableCell>
+                {columns.map((column) => (
+                  <TableHead key={String(column.key)} className={column.className}>{column.header}</TableHead>
+                ))}
               </TableRow>
-            ) : (
-              paginatedData.map((item, index) => (
-                <TableRow
-                  key={getItemKey(item, index)}
-                  onClick={() => onRowClick?.(item)}
-                  className={`${onRowClick ? "cursor-pointer" : ""} ${rowClassName?.(item) || ""}`}
-                >
-                  {columns.map((column) => (
-                    <TableCell key={String(column.key)} className={column.className}>
-                      <span className={column.className?.includes("truncate") ? "block truncate" : undefined}>
-                        {column.render
-                          ? column.render(item)
-                          : String(item[column.key as keyof T] ?? "")}
-                      </span>
-                    </TableCell>
-                  ))}
+            </TableHeader>
+            <TableBody>
+              {paginatedData.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                    No results found.
+                  </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              ) : (
+                paginatedData.map((item, index) => (
+                  <TableRow
+                    key={getItemKey(item, index)}
+                    onClick={() => onRowClick?.(item)}
+                    className={`${onRowClick ? "cursor-pointer" : ""} ${rowClassName?.(item) || ""}`}
+                  >
+                    {columns.map((column) => (
+                      <TableCell key={String(column.key)} className={column.className}>
+                        <span className={column.className?.includes("truncate") ? "block truncate" : undefined}>
+                          {column.render
+                            ? column.render(item)
+                            : String(item[column.key as keyof T] ?? "")}
+                        </span>
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
+      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <Pagination className="mx-0 w-auto justify-start">
-            <PaginationContent className="flex-wrap gap-2">
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                />
-              </PaginationItem>
-
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum: number;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
-                return (
-                  <PaginationItem key={pageNum}>
-                    <PaginationLink
-                      onClick={() => handlePageChange(pageNum)}
-                      isActive={currentPage === pageNum}
-                      className="cursor-pointer"
-                    >
-                      {pageNum}
-                    </PaginationLink>
-                  </PaginationItem>
-                );
-              })}
-
-              <PaginationItem>
-                <PaginationNext
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-
-          <div className="flex items-center justify-center gap-2 rounded-md border bg-muted/20 px-3 py-2 sm:justify-end">
-            <span className="text-sm text-muted-foreground">Page {currentPage} of {totalPages}</span>
-            <Input
-              type="number"
-              min={1}
-              max={totalPages}
-              value={pageInput}
-              onChange={(e) => setPageInput(e.target.value)}
-              onBlur={handleJumpToPage}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleJumpToPage();
-                }
-              }}
-              placeholder="Go to"
-              className="h-8 w-20 [appearance:textfield] text-center text-sm [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-              aria-label="Jump to page number"
-            />
+        isMobile ? (
+          <div className="flex items-center justify-between border-t pt-3">
             <Button
-              type="button"
               variant="outline"
               size="sm"
-              onClick={handleJumpToPage}
-              className="h-8 px-3"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
             >
-              Go
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              Prev
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {currentPage} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Next
+              <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <Pagination className="mx-0 w-auto justify-start">
+              <PaginationContent className="flex-wrap gap-2">
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum: number;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink
+                        onClick={() => handlePageChange(pageNum)}
+                        isActive={currentPage === pageNum}
+                        className="cursor-pointer"
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+
+            <div className="flex items-center justify-center gap-2 rounded-md border bg-muted/20 px-3 py-2 sm:justify-end">
+              <span className="text-sm text-muted-foreground">Page {currentPage} of {totalPages}</span>
+              <Input
+                type="number"
+                min={1}
+                max={totalPages}
+                value={pageInput}
+                onChange={(e) => setPageInput(e.target.value)}
+                onBlur={handleJumpToPage}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleJumpToPage();
+                  }
+                }}
+                placeholder="Go to"
+                className="h-8 w-20 [appearance:textfield] text-center text-sm [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                aria-label="Jump to page number"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleJumpToPage}
+                className="h-8 px-3"
+              >
+                Go
+              </Button>
+            </div>
+          </div>
+        )
       )}
     </div>
   );

@@ -16,11 +16,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog";
 import { SearchablePartPicker } from "@/components/common/SearchablePartPicker";
 import { SearchableLocationPicker } from "@/components/common/SearchableLocationPicker";
 import { useItemInventory, useItem, useLocations, useMovementsPaginated } from "@/hooks/queries";
@@ -308,6 +308,7 @@ export default function TransferStockPage() {
             <CardTitle className="text-base">Transfer History</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -342,6 +343,7 @@ export default function TransferStockPage() {
                 )}
               </TableBody>
             </Table>
+            </div>
             {!showAllHistory && historyTotal > PREVIEW_ROWS && (
               <div className="border-t px-4 py-3">
                 <Button
@@ -359,11 +361,11 @@ export default function TransferStockPage() {
         </Card>
       </div>
 
-      <Dialog open={!!selectedTransfer} onOpenChange={(open) => { if (!open) setSelectedTransfer(null); }}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Transfer Details</DialogTitle>
-          </DialogHeader>
+      <ResponsiveDialog open={!!selectedTransfer} onOpenChange={(open) => { if (!open) setSelectedTransfer(null); }}>
+        <ResponsiveDialogContent className="sm:max-w-[500px]">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>Transfer Details</ResponsiveDialogTitle>
+          </ResponsiveDialogHeader>
           {selectedTransfer && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -420,8 +422,8 @@ export default function TransferStockPage() {
               )}
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </MainLayout>
   );
 }

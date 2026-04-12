@@ -1,12 +1,12 @@
 import { useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+} from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -72,12 +72,12 @@ export function TransferStockModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Transfer Stock</DialogTitle>
-          <DialogDescription>{itemPartNumber}</DialogDescription>
-        </DialogHeader>
+    <ResponsiveDialog open={open} onOpenChange={handleOpenChange}>
+      <ResponsiveDialogContent className="sm:max-w-[425px]">
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>Transfer Stock</ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>{itemPartNumber}</ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
@@ -134,7 +134,7 @@ export function TransferStockModal({
               />
             </div>
           </div>
-          <DialogFooter>
+          <ResponsiveDialogFooter>
             <Button
               type="button"
               variant="outline"
@@ -148,9 +148,9 @@ export function TransferStockModal({
             >
               {transferStock.isPending ? "Transferring..." : "Transfer"}
             </Button>
-          </DialogFooter>
+          </ResponsiveDialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

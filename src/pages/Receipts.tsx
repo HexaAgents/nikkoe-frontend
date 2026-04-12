@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { Plus } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DataTable, DataTableSkeleton } from "@/components/common/DataTable";
 import { useReceipts, buildReceiptsQueryFn, receiptsQueryKeyBase } from "@/hooks/queries";
@@ -10,6 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { ReceiptWithRelations } from "@/types/domain.types";
 
 const PAGE_SIZE = 20;
@@ -58,9 +61,11 @@ const receiptExportColumns = [
 export default function ReceiptsPage() {
   const navigate = useNavigate();
   const [showVoided, setShowVoided] = useState(false);
-  const [showReceiptsHistory, setShowReceiptsHistory] = useState(false);
+  const [showReceiptsHistory, setShowReceiptsHistory] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [mobileFormOpen, setMobileFormOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const status = showVoided ? undefined : "ACTIVE";
   const search = searchQuery || undefined;
@@ -106,14 +111,37 @@ export default function ReceiptsPage() {
       <div className="space-y-6 px-1 pt-2">
         <h1 className="font-display text-[28px] font-normal text-foreground">Receipts</h1>
 
-        <Card>
-          <CardHeader className="border-b pb-6">
-            <CardTitle>Add new receipt</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <AddReceiptForm variant="inline" />
-          </CardContent>
-        </Card>
+        {isMobile ? (
+          <>
+            <Button
+              className="fixed bottom-20 right-4 z-40 h-14 w-14 rounded-full shadow-lg"
+              onClick={() => setMobileFormOpen(true)}
+              style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+            >
+              <Plus className="h-6 w-6" />
+              <span className="sr-only">New receipt</span>
+            </Button>
+            <Drawer open={mobileFormOpen} onOpenChange={setMobileFormOpen}>
+              <DrawerContent className="max-h-[85dvh]">
+                <DrawerHeader>
+                  <DrawerTitle>Add new receipt</DrawerTitle>
+                </DrawerHeader>
+                <div className="overflow-y-auto px-4 pb-6">
+                  <AddReceiptForm variant="inline" onSuccessfulCreate={() => setMobileFormOpen(false)} />
+                </div>
+              </DrawerContent>
+            </Drawer>
+          </>
+        ) : (
+          <Card>
+            <CardHeader className="border-b pb-6">
+              <CardTitle>Add new receipt</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <AddReceiptForm variant="inline" />
+            </CardContent>
+          </Card>
+        )}
 
         <div className="pt-1">
           <Button

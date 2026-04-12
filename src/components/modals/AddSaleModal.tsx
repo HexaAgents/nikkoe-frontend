@@ -1,9 +1,9 @@
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog";
 import { AddSaleForm } from "@/components/sales/AddSaleForm";
 
 interface AddSaleModalProps {
@@ -13,17 +13,17 @@ interface AddSaleModalProps {
 
 export function AddSaleModal({ open, onOpenChange }: AddSaleModalProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[700px]">
-        <DialogHeader>
-          <DialogTitle className="text-xl text-primary">Sale</DialogTitle>
-        </DialogHeader>
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[700px]">
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle className="text-xl text-primary">Sale</ResponsiveDialogTitle>
+        </ResponsiveDialogHeader>
         <AddSaleForm
           variant="dialog"
           onSuccessfulCreate={() => onOpenChange(false)}
           onCancel={() => onOpenChange(false)}
         />
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }
