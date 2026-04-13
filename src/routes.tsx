@@ -19,7 +19,6 @@ const SaleDetail = lazy(() => import("./pages/SaleDetail"));
 const Receipts = lazy(() => import("./pages/Receipts"));
 const ReceiptDetail = lazy(() => import("./pages/ReceiptDetail"));
 const Settings = lazy(() => import("./pages/Settings"));
-const Log = lazy(() => import("./pages/Log"));
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -50,7 +49,6 @@ export function AppRoutes() {
           <Route path="/sales/:id" element={<Protected><SaleDetail /></Protected>} />
           <Route path="/receipts" element={<Protected><Receipts /></Protected>} />
           <Route path="/receipts/:id" element={<Protected><ReceiptDetail /></Protected>} />
-          <Route path="/log" element={<Protected><Log /></Protected>} />
           <Route path="/settings" element={<Protected><Settings /></Protected>} />
           <Route path="*" element={<NotFound />} />
         </Routes>

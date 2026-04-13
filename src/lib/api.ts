@@ -1,5 +1,5 @@
 const _raw = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
-const BASE_URL = _raw.replace(/^http:\/\/(?!localhost)/, "https://");
+const BASE_URL = _raw.replace(/^http:\/\/(?!localhost|127\.|192\.168\.|10\.)/, "https://");
 
 const TOKEN_KEY = "nikkoe_access_token";
 const REFRESH_KEY = "nikkoe_refresh_token";

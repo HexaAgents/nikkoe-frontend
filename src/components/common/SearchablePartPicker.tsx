@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import {
@@ -7,14 +7,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
 import { useItemSearch } from "@/hooks/queries";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 const DEBOUNCE_MS = 300;
 
@@ -33,7 +26,26 @@ export function SearchablePartPicker({ value, onSelect, hasError, initialLabel }
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const labelCacheRef = useRef<Map<string, string>>(new Map());
   const skipClose = useRef(false);
-  const isMobile = useIsMobile();
+  const blurTimeout = useRef<ReturnType<typeof setTimeout>>();
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const handleBlur = () => {
+    blurTimeout.current = setTimeout(() => setOpen(false), 150);
+  };
+  const handleFocus = () => {
+    clearTimeout(blurTimeout.current);
+    setOpen(true);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const onScroll = (e: Event) => {
+      if (listRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
+    };
+    window.addEventListener("scroll", onScroll, { capture: true, passive: true });
+    return () => window.removeEventListener("scroll", onScroll, { capture: true });
+  }, [open]);
 
   const { data: results, isFetching } = useItemSearch(debouncedQuery);
 
@@ -102,7 +114,7 @@ export function SearchablePartPicker({ value, onSelect, hasError, initialLabel }
           key={item.id}
           type="button"
           className={cn(
-            "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-2.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground md:py-1.5",
+            "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
             value === item.id && "bg-accent text-accent-foreground",
           )}
           onMouseDown={(e) => e.preventDefault()}
@@ -127,13 +139,13 @@ export function SearchablePartPicker({ value, onSelect, hasError, initialLabel }
 
       {outOfStock.length > 0 && (
         <>
-          <div className="px-2 py-2.5 text-xs font-medium text-muted-foreground md:py-1.5">No stock</div>
+          <div className="px-2 py-2 text-xs font-medium text-muted-foreground">No stock</div>
           {outOfStock.map((item) => (
             <button
               key={item.id}
               type="button"
               className={cn(
-                "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-2.5 text-sm text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground md:py-1.5",
+                "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-2 text-sm text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground",
                 value === item.id && "bg-accent text-accent-foreground",
               )}
               onMouseDown={(e) => e.preventDefault()}
@@ -145,64 +157,18 @@ export function SearchablePartPicker({ value, onSelect, hasError, initialLabel }
                   value === item.id ? "opacity-100" : "opacity-0",
                 )}
               />
-              <span className="min-w-0 flex-1 truncate">
+              <span className="truncate">
                 {item.partNumber}
                 {item.description && (
                   <span className="ml-2 text-xs">{item.description}</span>
                 )}
               </span>
-              <span className="ml-2 shrink-0 text-xs text-destructive">No stock</span>
             </button>
           ))}
         </>
       )}
     </>
   );
-
-  if (isMobile) {
-    return (
-      <>
-        <div
-          className="relative min-w-0 flex-1"
-          onClick={() => setOpen(true)}
-        >
-          <Input
-            placeholder="Select part..."
-            value={selectedLabel || (value ? value : "")}
-            readOnly
-            className={cn("cursor-pointer", hasError && "border-destructive")}
-          />
-          <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
-        </div>
-        <Drawer open={open} onOpenChange={(newOpen) => {
-          setOpen(newOpen);
-          if (!newOpen) {
-            setInputValue("");
-            setDebouncedQuery("");
-          }
-        }}>
-          <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle>Select part</DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-2">
-              <Input
-                placeholder="Search parts..."
-                value={inputValue}
-                onChange={(e) => handleInputChange(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <div className="max-h-[60dvh] overflow-y-auto px-2 pb-4">
-              <div className="p-1">
-                {renderItems()}
-              </div>
-            </div>
-          </DrawerContent>
-        </Drawer>
-      </>
-    );
-  }
 
   return (
     <Popover open={open} onOpenChange={(newOpen) => {
@@ -223,18 +189,18 @@ export function SearchablePartPicker({ value, onSelect, hasError, initialLabel }
             placeholder="Select part..."
             value={open ? inputValue : (selectedLabel || (value ? value : ""))}
             onChange={(e) => handleInputChange(e.target.value)}
-            onFocus={() => setOpen(true)}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             className={cn(hasError && "border-destructive")}
           />
-          <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
         </div>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[--radix-popover-trigger-width] p-0"
+        className="w-[--radix-popover-trigger-width] overflow-hidden p-0"
         align="start"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">
+        <div ref={listRef} className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">
           {renderItems()}
         </div>
       </PopoverContent>

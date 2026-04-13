@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 
-import { Trash2, Check, ChevronsUpDown } from "lucide-react";
+import { Trash2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,14 +10,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SearchablePartPicker } from "@/components/common/SearchablePartPicker";
 import { SearchableLocationPicker } from "@/components/common/SearchableLocationPicker";
 import { useItemInventory } from "@/hooks/queries";
@@ -75,7 +67,6 @@ export function PartLineCard({
   partLabel,
   parsedPartNumber,
 }: PartLineCardProps) {
-  const isMobile = useIsMobile();
   const { data: itemInventory } = useItemInventory(part.item_id);
 
   const derivedLocations = useMemo(() => {
@@ -123,6 +114,15 @@ export function PartLineCard({
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [currencySearch, setCurrencySearch] = useState("");
   const skipCurrencyClose = useRef(false);
+  const currencyBlurTimeout = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleCurrencyBlur = () => {
+    currencyBlurTimeout.current = setTimeout(() => setCurrencyOpen(false), 150);
+  };
+  const handleCurrencyFocus = () => {
+    clearTimeout(currencyBlurTimeout.current);
+    setCurrencyOpen(true);
+  };
 
   const selectedCurrency = useMemo(
     () => currencyList.find((c) => String(c.id) === part.currency_id),
@@ -136,138 +136,109 @@ export function PartLineCard({
   }, [currencyList, currencySearch]);
 
   return (
-    <Card className={`border-primary/20 ${showErrors && errors.length > 0 ? "border-destructive" : ""}`}>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm text-foreground">Part {index + 1}</CardTitle>
-          {canRemove && (
-            <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(index)}>
-              <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
+    <div
+      className={cn(
+        "space-y-3 md:rounded-lg md:border md:bg-card md:p-4",
+        showErrors && errors.length > 0 ? "md:border-destructive" : "md:border-border/60",
+        index > 0 && "border-t border-border/40 pt-4 md:border-t-0 md:pt-0",
+      )}
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Part {index + 1}
+        </span>
+        {canRemove && (
+          <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => onRemove(index)}>
+            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+          </Button>
+        )}
+      </div>
+
+      {showErrors && errors.length > 0 && (
+        <p className="text-xs text-destructive">Missing: {errors.join(", ")}</p>
+      )}
+
+      <div className="space-y-1.5">
+        <Label className={cn("text-xs", showErrors && errors.includes("Part Number") ? "text-destructive" : "text-muted-foreground")}>
+          Part Number
+        </Label>
+        <SearchablePartPicker
+          value={part.item_id}
+          onSelect={(id) => onPartSelect(index, id)}
+          hasError={showErrors && errors.includes("Part Number")}
+          inStockOnly={inStockOnly}
+          initialLabel={partLabel}
+        />
+        {parsedPartNumber && !part.item_id && (
+          <span className="text-xs text-amber-600">
+            Invoice: {parsedPartNumber}
+          </span>
+        )}
+        {extraPartActions && <div className="[&>*]:w-full">{extraPartActions}</div>}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className={cn("text-xs", showErrors && errors.includes("Location") ? "text-destructive" : "text-muted-foreground")}>
+          Location
+        </Label>
+        <SearchableLocationPicker
+          locations={derivedLocations}
+          value={part.location_id}
+          onSelect={(id) => onFieldChange(index, "location_id", id)}
+          hasError={showErrors && errors.includes("Location")}
+        />
+        {extraLocationActions && <div className="[&>*]:w-full">{extraLocationActions}</div>}
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="space-y-1.5">
+          <Label className={cn("text-xs", showErrors && errors.includes("Quantity") ? "text-destructive" : "text-muted-foreground")}>
+            Qty
+          </Label>
+          <Input
+            type="number"
+            min="1"
+            placeholder="0"
+            value={part.quantity}
+            onChange={(e) => onFieldChange(index, "quantity", e.target.value)}
+            className={cn(
+              showErrors && errors.includes("Quantity") && "border-destructive",
+              exceedsStock && "border-amber-500",
+            )}
+          />
+          {availableQuantity != null && (
+            <span
+              className={cn(
+                "block text-[10px] leading-tight",
+                exceedsStock ? "font-medium text-amber-600" : "text-muted-foreground",
+              )}
+            >
+              {availableQuantity} available
+            </span>
           )}
         </div>
-        {showErrors && errors.length > 0 && (
-          <p className="mt-1 text-xs text-destructive">Missing: {errors.join(", ")}</p>
-        )}
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex flex-col gap-1.5 md:flex-row md:flex-wrap md:items-center md:gap-4">
-          <Label
-            className={`md:w-32 md:shrink-0 ${showErrors && errors.includes("Part Number") ? "text-destructive" : "text-muted-foreground"}`}
-          >
-            Part Number:
+
+        <div className="space-y-1.5">
+          <Label className={cn("text-xs", showErrors && errors.includes(priceLabel) ? "text-destructive" : "text-muted-foreground")}>
+            {priceLabel}
           </Label>
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <SearchablePartPicker
-              value={part.item_id}
-              onSelect={(id) => onPartSelect(index, id)}
-              hasError={showErrors && errors.includes("Part Number")}
-              inStockOnly={inStockOnly}
-              initialLabel={partLabel}
-            />
-            {parsedPartNumber && !part.item_id && (
-              <span className="shrink-0 text-xs text-amber-600">
-                Invoice: {parsedPartNumber}
-              </span>
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            value={part.price}
+            onChange={(e) => onFieldChange(index, "price", e.target.value)}
+            className={cn(
+              showErrors && errors.includes(priceLabel) && "border-destructive",
             )}
-            {extraPartActions}
-          </div>
+          />
         </div>
 
-        <div className="flex flex-col gap-1.5 md:flex-row md:flex-wrap md:items-center md:gap-4">
-          <Label
-            className={`md:w-32 md:shrink-0 ${showErrors && errors.includes("Location") ? "text-destructive" : "text-muted-foreground"}`}
-          >
-            Location:
+        <div className="space-y-1.5">
+          <Label className={cn("text-xs", showErrors && errors.includes("Currency") ? "text-destructive" : "text-muted-foreground")}>
+            Currency
           </Label>
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <SearchableLocationPicker
-              locations={derivedLocations}
-              value={part.location_id}
-              onSelect={(id) => onFieldChange(index, "location_id", id)}
-              hasError={showErrors && errors.includes("Location")}
-            />
-            {extraLocationActions}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-start md:gap-x-6 md:gap-y-4">
-          <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-4">
-            <Label
-              className={`md:w-32 md:shrink-0 ${showErrors && errors.includes("Quantity") ? "text-destructive" : "text-muted-foreground"}`}
-            >
-              Quantity:
-            </Label>
-            <div className="flex items-center gap-2">
-              <Input
-                type="number"
-                min="1"
-                value={part.quantity}
-                onChange={(e) => onFieldChange(index, "quantity", e.target.value)}
-                className={cn(
-                  "w-24",
-                  showErrors && errors.includes("Quantity") && "border-destructive",
-                  exceedsStock && "border-amber-500",
-                )}
-              />
-              {availableQuantity != null && (
-                <span
-                  className={cn(
-                    "shrink-0 text-sm",
-                    exceedsStock ? "font-medium text-amber-600" : "text-muted-foreground",
-                  )}
-                >
-                  out of {availableQuantity}
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="flex min-w-0 flex-1 flex-col gap-1.5 md:flex-row md:items-center md:gap-4">
-            <Label
-              className={`md:shrink-0 ${showErrors && errors.includes(priceLabel) ? "text-destructive" : "text-muted-foreground"}`}
-            >
-              {priceLabel}:
-            </Label>
-            <Input
-              type="number"
-              step="0.01"
-              min="0"
-              value={part.price}
-              onChange={(e) => onFieldChange(index, "price", e.target.value)}
-              className={cn(
-                "min-w-0 flex-1",
-                showErrors && errors.includes(priceLabel) && "border-destructive",
-              )}
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-4">
-          <Label className={`md:w-32 md:shrink-0 ${showErrors && errors.includes("Currency") ? "text-destructive" : "text-muted-foreground"}`}>Currency:</Label>
-          {isMobile ? (
-            <>
-              <div className="relative min-w-0 flex-1" onClick={() => setCurrencyOpen(true)}>
-                <Input placeholder="Select currency..." value={selectedCurrency?.name ?? ""} readOnly className={cn("cursor-pointer", showErrors && errors.includes("Currency") && "border-destructive")} />
-                <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
-              </div>
-              <Drawer open={currencyOpen} onOpenChange={setCurrencyOpen}>
-                <DrawerContent>
-                  <DrawerHeader><DrawerTitle>Select currency</DrawerTitle></DrawerHeader>
-                  <div className="max-h-[60dvh] overflow-y-auto px-3 pb-4">
-                    {filteredCurrencies.length === 0 ? (
-                      <div className="py-6 text-center text-sm text-muted-foreground">No currencies found.</div>
-                    ) : filteredCurrencies.map((c) => (
-                      <button key={c.id} type="button" className={cn("relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-2.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground", part.currency_id === c.id.toString() && "bg-accent text-accent-foreground")} onClick={() => { onFieldChange(index, "currency_id", c.id.toString()); setCurrencySearch(""); setCurrencyOpen(false); }}>
-                        <Check className={cn("mr-2 h-4 w-4", part.currency_id === c.id.toString() ? "opacity-100" : "opacity-0")} />
-                        {c.name}
-                      </button>
-                    ))}
-                  </div>
-                </DrawerContent>
-              </Drawer>
-            </>
-          ) : (
           <Popover open={currencyOpen} onOpenChange={(newOpen) => {
             if (!newOpen && skipCurrencyClose.current) { skipCurrencyClose.current = false; return; }
             setCurrencyOpen(newOpen);
@@ -275,20 +246,20 @@ export function PartLineCard({
           }}>
             <PopoverTrigger asChild>
               <div
-                className="relative min-w-0 flex-1"
+                className="relative"
                 onPointerDown={() => { skipCurrencyClose.current = true; }}
               >
                 <Input
-                  placeholder="Select currency..."
+                  placeholder="—"
                   value={currencyOpen ? currencySearch : (selectedCurrency?.name ?? "")}
                   onChange={(e) => {
                     setCurrencySearch(e.target.value);
                     if (!currencyOpen) setCurrencyOpen(true);
                   }}
-                  onFocus={() => setCurrencyOpen(true)}
+                  onFocus={handleCurrencyFocus}
+                  onBlur={handleCurrencyBlur}
                   className={cn(showErrors && errors.includes("Currency") && "border-destructive")}
                 />
-                <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
               </div>
             </PopoverTrigger>
             <PopoverContent
@@ -305,7 +276,7 @@ export function PartLineCard({
                       key={c.id}
                       type="button"
                       className={cn(
-                        "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-2.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground md:py-1.5",
+                        "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
                         part.currency_id === c.id.toString() && "bg-accent text-accent-foreground"
                       )}
                       onMouseDown={(e) => e.preventDefault()}
@@ -328,9 +299,8 @@ export function PartLineCard({
               </div>
             </PopoverContent>
           </Popover>
-          )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

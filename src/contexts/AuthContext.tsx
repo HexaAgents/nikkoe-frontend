@@ -45,7 +45,7 @@ export interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const _rawAuth = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
-const API_BASE = _rawAuth.replace(/^http:\/\/(?!localhost)/, "https://");
+const API_BASE = _rawAuth.replace(/^http:\/\/(?!localhost|127\.|192\.168\.|10\.)/, "https://");
 
 async function authPost<T>(path: string, body: unknown, token?: string | null): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {

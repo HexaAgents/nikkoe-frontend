@@ -43,6 +43,7 @@ interface DataTableProps<T> {
   searchPlaceholder?: string;
   onAdd?: () => void;
   addButtonText?: string;
+  addButtonClassName?: string;
   onRowClick?: (item: T) => void;
   searchKeys?: string[];
   itemsPerPage?: number;
@@ -71,6 +72,7 @@ export function DataTable<T extends object>({
   searchPlaceholder = "Search...",
   onAdd,
   addButtonText = "Add",
+  addButtonClassName,
   onRowClick,
   searchKeys = [],
   itemsPerPage = 20,
@@ -207,7 +209,7 @@ export function DataTable<T extends object>({
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3">
         {onAdd && (
-          <Button onClick={onAdd}>
+          <Button onClick={onAdd} className={addButtonClassName}>
             <Plus className="mr-2 h-4 w-4" />
             {addButtonText}
           </Button>

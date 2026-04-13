@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { analytics } from "@/lib/analytics";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,13 +9,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useAddSale, useAddCustomer } from "@/hooks/mutations";
 import type { SaleLineInput } from "@/types/domain.types";
 import { useChannels, useCurrencies, useCustomers, useLocations } from "@/hooks/queries";
@@ -54,7 +47,6 @@ export function AddSaleForm({
   const { data: customers } = useCustomers();
   const { data: currencies } = useCurrencies();
   const addCustomer = useAddCustomer();
-  const isMobile = useIsMobile();
 
   const defaultChannel = useMemo(
     () => channels?.find((c) => c.name === "Ebay"),
@@ -79,6 +71,23 @@ export function AddSaleForm({
   const skipChannelClose = useRef(false);
   const skipCustomerClose = useRef(false);
   const defaultsApplied = useRef(false);
+  const channelBlurTimeout = useRef<ReturnType<typeof setTimeout>>();
+  const customerBlurTimeout = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleChannelBlur = () => {
+    channelBlurTimeout.current = setTimeout(() => setChannelOpen(false), 150);
+  };
+  const handleChannelFocus = () => {
+    clearTimeout(channelBlurTimeout.current);
+    setChannelOpen(true);
+  };
+  const handleCustomerBlur = () => {
+    customerBlurTimeout.current = setTimeout(() => setCustomerOpen(false), 150);
+  };
+  const handleCustomerFocus = () => {
+    clearTimeout(customerBlurTimeout.current);
+    setCustomerOpen(true);
+  };
 
   useEffect(() => {
     if (defaultsApplied.current) return;
@@ -224,263 +233,211 @@ export function AddSaleForm({
   return (
     <>
       <form onSubmit={handleSubmit} className={cn(className)}>
-      <div className={cn("space-y-6", variant === "inline" ? "py-0" : "py-4")}>
+      <div className={cn("space-y-4", variant === "inline" ? "py-0" : "py-4")}>
         {showErrors && validation.headerErrors.length > 0 && (
           <p className="text-sm text-destructive">Missing: {validation.headerErrors.join(", ")}</p>
         )}
-        <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-4">
-          <Label className={`md:w-24 md:shrink-0 ${showErrors && !channelId ? "text-destructive" : "text-muted-foreground"}`}>Channel:</Label>
-          {isMobile ? (
-            <>
-              <div className="relative min-w-0 flex-1" onClick={() => setChannelOpen(true)}>
-                <Input
-                  placeholder="Select channel..."
-                  value={selectedChannel?.name ?? ""}
-                  readOnly
-                  className={cn("cursor-pointer", showErrors && !channelId && "border-destructive")}
-                />
-                <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
-              </div>
-              <Drawer open={channelOpen} onOpenChange={setChannelOpen}>
-                <DrawerContent>
-                  <DrawerHeader><DrawerTitle>Select channel</DrawerTitle></DrawerHeader>
-                  <div className="px-4 pb-2">
-                    <Input placeholder="Search..." value={channelSearch} onChange={(e) => setChannelSearch(e.target.value)} autoFocus />
-                  </div>
-                  <div className="max-h-[60dvh] overflow-y-auto px-3 pb-4">
-                    {filteredChannels.length === 0 ? (
-                      <div className="py-6 text-center text-sm text-muted-foreground">No channels found.</div>
-                    ) : filteredChannels.map((channel) => (
-                      <button key={channel.id} type="button" className={cn("relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-2.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground", channelId === channel.id.toString() && "bg-accent text-accent-foreground")} onClick={() => { setChannelId(channel.id.toString()); setChannelSearch(""); setChannelOpen(false); }}>
-                        <Check className={cn("mr-2 h-4 w-4", channelId === channel.id.toString() ? "opacity-100" : "opacity-0")} />
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label className={cn("text-xs", showErrors && !channelId ? "text-destructive" : "text-muted-foreground")}>
+              Channel
+            </Label>
+            <Popover open={channelOpen} onOpenChange={(newOpen) => {
+              if (!newOpen && skipChannelClose.current) { skipChannelClose.current = false; return; }
+              setChannelOpen(newOpen);
+              if (newOpen) { setChannelSearch(""); skipChannelClose.current = false; }
+            }}>
+              <PopoverTrigger asChild>
+                <div
+                  className="relative"
+                  onPointerDown={() => { skipChannelClose.current = true; }}
+                >
+                  <Input
+                    placeholder="Select..."
+                    value={channelOpen ? channelSearch : (selectedChannel?.name ?? "")}
+                    onChange={(e) => {
+                      setChannelSearch(e.target.value);
+                      if (!channelOpen) setChannelOpen(true);
+                    }}
+                    onFocus={handleChannelFocus}
+                    onBlur={handleChannelBlur}
+                    className={cn(showErrors && !channelId && "border-destructive")}
+                  />
+                </div>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-[--radix-popover-trigger-width] p-0"
+                align="start"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+              >
+                <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">
+                  {filteredChannels.length === 0 ? (
+                    <div className="py-6 text-center text-sm text-muted-foreground">No channels found.</div>
+                  ) : (
+                    filteredChannels.map((channel) => (
+                      <button
+                        key={channel.id}
+                        type="button"
+                        className={cn(
+                          "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                          channelId === channel.id.toString() && "bg-accent text-accent-foreground"
+                        )}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setChannelId(channel.id.toString());
+                          setChannelSearch("");
+                          setChannelOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            channelId === channel.id.toString() ? "opacity-100" : "opacity-0"
+                          )}
+                        />
                         {channel.name}
                       </button>
-                    ))}
-                  </div>
-                </DrawerContent>
-              </Drawer>
-            </>
-          ) : (
-          <Popover open={channelOpen} onOpenChange={(newOpen) => {
-            if (!newOpen && skipChannelClose.current) { skipChannelClose.current = false; return; }
-            setChannelOpen(newOpen);
-            if (newOpen) { setChannelSearch(""); skipChannelClose.current = false; }
-          }}>
-            <PopoverTrigger asChild>
-              <div
-                className="relative min-w-0 flex-1"
-                onPointerDown={() => { skipChannelClose.current = true; }}
+                    ))
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className={cn("text-xs", showErrors && !customerId ? "text-destructive" : "text-muted-foreground")}>
+              Customer
+            </Label>
+            <Popover open={customerOpen} onOpenChange={(newOpen) => {
+              if (!newOpen && skipCustomerClose.current) { skipCustomerClose.current = false; return; }
+              setCustomerOpen(newOpen);
+              if (newOpen) skipCustomerClose.current = false;
+            }}>
+              <PopoverTrigger asChild>
+                <div
+                  className="relative"
+                  onPointerDown={() => { skipCustomerClose.current = true; }}
+                >
+                  <Input
+                    placeholder="Select or type..."
+                    value={customerName}
+                    onChange={(e) => {
+                      setCustomerName(e.target.value);
+                      setCustomerId("");
+                      if (!customerOpen) setCustomerOpen(true);
+                    }}
+                    onFocus={handleCustomerFocus}
+                    onBlur={handleCustomerBlur}
+                  />
+                </div>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-[--radix-popover-trigger-width] p-0"
+                align="start"
+                onOpenAutoFocus={(e) => e.preventDefault()}
               >
-                <Input
-                  placeholder="Select channel..."
-                  value={channelOpen ? channelSearch : (selectedChannel?.name ?? "")}
-                  onChange={(e) => {
-                    setChannelSearch(e.target.value);
-                    if (!channelOpen) setChannelOpen(true);
-                  }}
-                  onFocus={() => setChannelOpen(true)}
-                  className={cn(showErrors && !channelId && "border-destructive")}
-                />
-                <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
-              </div>
-            </PopoverTrigger>
-            <PopoverContent
-              className="w-[--radix-popover-trigger-width] p-0"
-              align="start"
-              onOpenAutoFocus={(e) => e.preventDefault()}
-            >
-              <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">
-                {filteredChannels.length === 0 ? (
-                  <div className="py-6 text-center text-sm text-muted-foreground">No channels found.</div>
-                ) : (
-                  filteredChannels.map((channel) => (
+                <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">
+                  {filteredCustomers.length === 0 && !isNewCustomer && (
+                    <div className="py-6 text-center text-sm text-muted-foreground">No matching customers.</div>
+                  )}
+                  {filteredCustomers.map((c) => (
                     <button
-                      key={channel.id}
+                      key={c.id}
                       type="button"
                       className={cn(
-                        "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-2.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground md:py-1.5",
-                        channelId === channel.id.toString() && "bg-accent text-accent-foreground"
+                        "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                        customerId === String(c.id) && "bg-accent text-accent-foreground"
                       )}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => {
-                        setChannelId(channel.id.toString());
-                        setChannelSearch("");
-                        setChannelOpen(false);
+                        setCustomerName(c.name);
+                        setCustomerId(String(c.id));
+                        setCustomerOpen(false);
                       }}
                     >
                       <Check
                         className={cn(
                           "mr-2 h-4 w-4",
-                          channelId === channel.id.toString() ? "opacity-100" : "opacity-0"
+                          customerId === String(c.id) ? "opacity-100" : "opacity-0"
                         )}
                       />
-                      {channel.name}
+                      {c.name}
                     </button>
-                  ))
-                )}
-              </div>
-            </PopoverContent>
-          </Popover>
-          )}
+                  ))}
+                  {isNewCustomer && (
+                    <div className="border-t p-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="w-full"
+                        disabled={addCustomer.isPending}
+                        onClick={handleAddNewCustomer}
+                      >
+                        {addCustomer.isPending ? "Adding..." : `Add "${customerName.trim()}" as new customer`}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
 
-        <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-4">
-          <Label className={`md:w-24 md:shrink-0 ${showErrors && !customerId ? "text-destructive" : "text-muted-foreground"}`}>Customer:</Label>
-          {isMobile ? (
-            <>
-              <div className="relative min-w-0 flex-1" onClick={() => setCustomerOpen(true)}>
-                <Input placeholder="Select or type customer..." value={customerName} readOnly className="cursor-pointer" />
-                <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
-              </div>
-              <Drawer open={customerOpen} onOpenChange={setCustomerOpen}>
-                <DrawerContent>
-                  <DrawerHeader><DrawerTitle>Select customer</DrawerTitle></DrawerHeader>
-                  <div className="px-4 pb-2">
-                    <Input placeholder="Search or type new..." value={customerName} onChange={(e) => { setCustomerName(e.target.value); setCustomerId(""); }} autoFocus />
-                  </div>
-                  <div className="max-h-[60dvh] overflow-y-auto px-3 pb-4">
-                    {filteredCustomers.length === 0 && !isNewCustomer && (
-                      <div className="py-6 text-center text-sm text-muted-foreground">No matching customers.</div>
-                    )}
-                    {filteredCustomers.map((c) => (
-                      <button key={c.id} type="button" className={cn("relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-2.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground", customerId === String(c.id) && "bg-accent text-accent-foreground")} onClick={() => { setCustomerName(c.name); setCustomerId(String(c.id)); setCustomerOpen(false); }}>
-                        <Check className={cn("mr-2 h-4 w-4", customerId === String(c.id) ? "opacity-100" : "opacity-0")} />
-                        {c.name}
-                      </button>
-                    ))}
-                    {isNewCustomer && (
-                      <div className="border-t p-2">
-                        <Button type="button" variant="secondary" size="sm" className="w-full" disabled={addCustomer.isPending} onClick={handleAddNewCustomer}>
-                          {addCustomer.isPending ? "Adding..." : `Add "${customerName.trim()}" as new customer`}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </DrawerContent>
-              </Drawer>
-            </>
-          ) : (
-          <Popover open={customerOpen} onOpenChange={(newOpen) => {
-            if (!newOpen && skipCustomerClose.current) { skipCustomerClose.current = false; return; }
-            setCustomerOpen(newOpen);
-            if (newOpen) skipCustomerClose.current = false;
-          }}>
-            <PopoverTrigger asChild>
-              <div
-                className="relative min-w-0 flex-1"
-                onPointerDown={() => { skipCustomerClose.current = true; }}
-              >
-                <Input
-                  placeholder="Select or type customer..."
-                  value={customerName}
-                  onChange={(e) => {
-                    setCustomerName(e.target.value);
-                    setCustomerId("");
-                    if (!customerOpen) setCustomerOpen(true);
-                  }}
-                  onFocus={() => setCustomerOpen(true)}
-                />
-                <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
-              </div>
-            </PopoverTrigger>
-            <PopoverContent
-              className="w-[--radix-popover-trigger-width] p-0"
-              align="start"
-              onOpenAutoFocus={(e) => e.preventDefault()}
-            >
-              <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">
-                {filteredCustomers.length === 0 && !isNewCustomer && (
-                  <div className="py-6 text-center text-sm text-muted-foreground">No matching customers.</div>
-                )}
-                {filteredCustomers.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className={cn(
-                      "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-2.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground md:py-1.5",
-                      customerId === String(c.id) && "bg-accent text-accent-foreground"
-                    )}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      setCustomerName(c.name);
-                      setCustomerId(String(c.id));
-                      setCustomerOpen(false);
-                    }}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        customerId === String(c.id) ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    {c.name}
-                  </button>
-                ))}
-                {isNewCustomer && (
-                  <div className="border-t p-2">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="w-full"
-                      disabled={addCustomer.isPending}
-                      onClick={handleAddNewCustomer}
-                    >
-                      {addCustomer.isPending ? "Adding..." : `Add "${customerName.trim()}" as new customer`}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </PopoverContent>
-          </Popover>
-          )}
+        <div className="space-y-3">
+          {parts.map((part, index) => (
+            <PartLineCard
+              key={index}
+              index={index}
+              part={part}
+              locations={allLocations}
+              currencies={currencies}
+              priceLabel="Unit Price"
+              showErrors={showErrors}
+              errors={getPartErrors(index)}
+              canRemove={parts.length > 1}
+              onPartSelect={handlePartSelect}
+              onFieldChange={handlePartChange}
+              onRemove={(i) => setParts(parts.filter((_, j) => j !== i))}
+              inStockOnly
+              extraPartActions={
+                <Button type="button" variant="secondary" size="sm" onClick={() => setIsAddItemModalOpen(true)}>
+                  New Part
+                </Button>
+              }
+              extraLocationActions={
+                <Button type="button" variant="secondary" size="sm" onClick={() => setIsAddLocationModalOpen(true)}>
+                  New Location
+                </Button>
+              }
+            />
+          ))}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground"
+            onClick={() => setParts([...parts, { ...emptyPart }])}
+          >
+            + Add another part
+          </Button>
         </div>
-
-        {parts.map((part, index) => (
-          <PartLineCard
-            key={index}
-            index={index}
-            part={part}
-            locations={allLocations}
-            currencies={currencies}
-            priceLabel="Unit Price"
-            showErrors={showErrors}
-            errors={getPartErrors(index)}
-            canRemove={parts.length > 1}
-            onPartSelect={handlePartSelect}
-            onFieldChange={handlePartChange}
-            onRemove={(i) => setParts(parts.filter((_, j) => j !== i))}
-            inStockOnly
-            extraPartActions={
-              <Button type="button" variant="secondary" onClick={() => setIsAddItemModalOpen(true)}>
-                New Part
-              </Button>
-            }
-            extraLocationActions={
-              <Button type="button" variant="secondary" onClick={() => setIsAddLocationModalOpen(true)}>
-                New Location
-              </Button>
-            }
-          />
-        ))}
       </div>
 
-      <div className="flex flex-wrap justify-center gap-2 pt-6">
-        <Button type="submit" disabled={addSale.isPending}>
-          {addSale.isPending ? "Creating..." : variant === "inline" ? "Create sale" : "Create"}
+      <div className="flex items-center gap-3 pt-5">
+        <Button type="submit" className="flex-1" disabled={addSale.isPending}>
+          {addSale.isPending ? "Creating..." : "Create sale"}
         </Button>
-        <Button type="button" variant="outline" onClick={() => setParts([...parts, { ...emptyPart }])}>
-          Add Part
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground"
+          onClick={handleCancelOrClear}
+        >
+          {variant === "inline" ? "Clear" : "Cancel"}
         </Button>
-        {variant === "inline" ? (
-          <Button type="button" variant="outline" onClick={handleCancelOrClear}>
-            Clear form
-          </Button>
-        ) : (
-          <Button type="button" variant="destructive" onClick={handleCancelOrClear}>
-            Cancel
-          </Button>
-        )}
       </div>
     </form>
 

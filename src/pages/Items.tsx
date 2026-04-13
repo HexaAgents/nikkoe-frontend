@@ -130,8 +130,8 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
     navigate(`/items/${item.id}`);
   };
 
-  const toolbarActions = (
-    <div className="flex items-center gap-2">
+  const desktopToolbarActions = (
+    <div className="hidden md:flex md:items-center md:gap-2">
       <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => navigate("/items/transfer")}>
         <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" />
         Transfer Stock
@@ -167,12 +167,37 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
     <>
       <div className="space-y-6">
         {!embedded && <h1 className="font-display text-[28px] font-normal text-foreground">Items</h1>}
+
+        <div className="flex flex-col gap-2 md:hidden">
+          <Button className="w-full" onClick={() => setIsAddModalOpen(true)}>
+            Add Item
+          </Button>
+          <Button variant="outline" className="w-full" onClick={() => navigate("/items/transfer")}>
+            <ArrowRightLeft className="mr-1.5 h-4 w-4" />
+            Transfer Stock
+          </Button>
+          <Select value={sortBy} onValueChange={handleSortChange}>
+            <SelectTrigger className="w-full">
+              <ArrowUpDown className="mr-1.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SORT_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <DataTable
           data={items}
           columns={columns}
           searchPlaceholder="Search part numbers..."
           onAdd={() => setIsAddModalOpen(true)}
           addButtonText="Add Item"
+          addButtonClassName="hidden md:inline-flex"
           onServerSearch={handleServerSearch}
           isSearching={isSearching}
           exportFilename="items"
@@ -180,7 +205,7 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
           idKey="id"
           serverPagination={serverPagination}
           onExportAll={handleExportAll}
-          toolbarExtra={toolbarActions}
+          toolbarExtra={desktopToolbarActions}
           exportColumns={[
             { key: "item_id", header: "Part Number" },
             { key: "description", header: "Description" },

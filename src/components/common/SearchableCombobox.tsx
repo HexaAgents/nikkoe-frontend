@@ -1,5 +1,5 @@
-import { useState, useMemo, useRef } from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import {
@@ -7,13 +7,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SearchableComboboxProps<T> {
   items: T[] | undefined;
@@ -40,7 +33,27 @@ export function SearchableCombobox<T extends Record<string, unknown>>({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const skipClose = useRef(false);
-  const isMobile = useIsMobile();
+  const blurTimeout = useRef<ReturnType<typeof setTimeout>>();
+
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const handleBlur = () => {
+    blurTimeout.current = setTimeout(() => setOpen(false), 150);
+  };
+  const handleFocus = () => {
+    clearTimeout(blurTimeout.current);
+    setOpen(true);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const onScroll = (e: Event) => {
+      if (listRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
+    };
+    window.addEventListener("scroll", onScroll, { capture: true, passive: true });
+    return () => window.removeEventListener("scroll", onScroll, { capture: true });
+  }, [open]);
 
   const selectedItem = useMemo(
     () => items?.find((i) => String(i[idKey]) === value),
@@ -75,7 +88,7 @@ export function SearchableCombobox<T extends Record<string, unknown>>({
               key={id}
               type="button"
               className={cn(
-                "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-2.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground md:py-1.5",
+                "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
                 value === id && "bg-accent text-accent-foreground"
               )}
               onMouseDown={(e) => e.preventDefault()}
@@ -95,43 +108,6 @@ export function SearchableCombobox<T extends Record<string, unknown>>({
     </div>
   );
 
-  if (isMobile) {
-    return (
-      <>
-        <div
-          className="relative min-w-0 flex-1"
-          onClick={() => setOpen(true)}
-        >
-          <Input
-            placeholder={placeholder}
-            value={displayValue}
-            readOnly
-            className={cn("cursor-pointer", hasError && "border-destructive")}
-          />
-          <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
-        </div>
-        <Drawer open={open} onOpenChange={setOpen}>
-          <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle>{placeholder}</DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-2">
-              <Input
-                placeholder="Search..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <div className="max-h-[60dvh] overflow-y-auto px-2 pb-4">
-              {listContent}
-            </div>
-          </DrawerContent>
-        </Drawer>
-      </>
-    );
-  }
-
   return (
     <Popover open={open} onOpenChange={(newOpen) => {
       if (!newOpen && skipClose.current) { skipClose.current = false; return; }
@@ -150,18 +126,20 @@ export function SearchableCombobox<T extends Record<string, unknown>>({
               setSearch(e.target.value);
               if (!open) setOpen(true);
             }}
-            onFocus={() => setOpen(true)}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             className={cn(hasError && "border-destructive")}
           />
-          <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
         </div>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[--radix-popover-trigger-width] p-0"
+        className="w-[--radix-popover-trigger-width] overflow-hidden p-0"
         align="start"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        {listContent}
+        <div ref={listRef}>
+          {listContent}
+        </div>
       </PopoverContent>
     </Popover>
   );

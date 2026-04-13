@@ -41,7 +41,11 @@ const navSections: {
 
 const VALID_SECTIONS: SettingsSection[] = ["general", "suppliers", "categories", "locations"];
 
-export default function Settings() {
+interface SettingsPageProps {
+  embedded?: boolean;
+}
+
+export default function Settings({ embedded = false }: SettingsPageProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const sectionParam = searchParams.get("section") as SettingsSection | null;
   const initialSection = sectionParam && VALID_SECTIONS.includes(sectionParam) ? sectionParam : "general";
@@ -54,10 +58,9 @@ export default function Settings() {
     }
   }, [searchParams]);
 
-  return (
-    <MainLayout>
-      <div className="flex min-h-[calc(100dvh-5rem)] gap-8 px-1 pt-2 lg:gap-10">
-        <aside className="hidden w-[220px] shrink-0 md:block">
+  const content = (
+    <div className="flex min-h-[calc(100dvh-5rem)] gap-8 px-1 pt-2 lg:gap-10">
+      <aside className="hidden w-[220px] shrink-0 md:block">
           <div className="sticky top-20">
             <div className="pb-4">
               <h1 className="font-display text-[28px] font-normal text-foreground">Settings</h1>
@@ -101,7 +104,7 @@ export default function Settings() {
           <div className="block pb-4 md:hidden">
             <h1 className="font-display text-[28px] font-normal text-foreground">Settings</h1>
             <p className="text-[13px] text-muted-foreground">Account and inventory data</p>
-            <nav className="mt-3 flex gap-2 overflow-x-auto pb-2" aria-label="Settings sections (mobile)">
+            <nav className="mt-3 grid grid-cols-4 gap-1" aria-label="Settings sections (mobile)">
               {navSections.flatMap((section) =>
                 section.items.map((item) => {
                   const Icon = item.icon;
@@ -112,13 +115,13 @@ export default function Settings() {
                       type="button"
                       onClick={() => setActiveSection(item.id)}
                       className={cn(
-                        "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors",
+                        "flex flex-col items-center gap-1 py-2 text-xs transition-colors",
                         isActive
                           ? "bg-primary font-medium text-primary-foreground"
                           : "bg-muted text-muted-foreground"
                       )}
                     >
-                      <Icon className="h-3.5 w-3.5" aria-hidden />
+                      <Icon className="h-4 w-4" aria-hidden />
                       {item.label}
                     </button>
                   );
@@ -140,6 +143,7 @@ export default function Settings() {
           {activeSection === "locations" && <LocationsPage embedded />}
         </div>
       </div>
-    </MainLayout>
   );
+
+  return embedded ? content : <MainLayout>{content}</MainLayout>;
 }

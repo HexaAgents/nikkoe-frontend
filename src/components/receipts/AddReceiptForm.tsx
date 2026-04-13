@@ -5,7 +5,6 @@ import { useCurrentUser, useCurrencies, useSuppliers, useLocations } from "@/hoo
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useAddReceipt } from "@/hooks/mutations";
 import type { ReceiptLineInput } from "@/types/domain.types";
 import { streamParseInvoice } from "@/lib/api";
@@ -66,6 +65,10 @@ export interface AddReceiptFormProps {
   onSuccessfulCreate?: () => void;
   onCancel?: () => void;
   className?: string;
+  /** Expose the reset/clear function to parent so it can render its own Clear button */
+  onClearRef?: (clear: () => void) => void;
+  /** Hide the inline Clear button when parent renders its own */
+  hideClear?: boolean;
 }
 
 export function AddReceiptForm({
@@ -73,6 +76,8 @@ export function AddReceiptForm({
   onSuccessfulCreate,
   onCancel,
   className,
+  onClearRef,
+  hideClear = false,
 }: AddReceiptFormProps) {
   const addReceipt = useAddReceipt();
   const [isParsing, setIsParsing] = useState(false);
@@ -211,6 +216,10 @@ export function AddReceiptForm({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  useEffect(() => {
+    onClearRef?.(resetForm);
+  }, [onClearRef, defaultCurrencyId]);
+
   const handlePartSelect = (index: number, itemId: string) => {
     setParts((prev) => {
       const updated = [...prev];
@@ -262,8 +271,7 @@ export function AddReceiptForm({
   return (
     <>
       <form onSubmit={handleSubmit} className={cn(className)}>
-        <div className={cn("space-y-6", variant === "inline" ? "py-0" : "py-4")}>
-          {/* PDF upload zone hidden — feature temporarily disabled */}
+        <div className={cn("space-y-4", variant === "inline" ? "py-0" : "py-4")}>
           <input
             ref={fileInputRef}
             type="file"
@@ -300,8 +308,11 @@ export function AddReceiptForm({
           {showErrors && validation.headerErrors.length > 0 && (
             <p className="text-sm text-destructive">Missing: {validation.headerErrors.join(", ")}</p>
           )}
-          <div className="flex flex-col gap-1.5 md:flex-row md:flex-wrap md:items-center md:gap-4">
-            <Label className={`md:w-24 md:shrink-0 ${showErrors && !supplierId ? "text-destructive" : "text-muted-foreground"}`}>Supplier:</Label>
+
+          <div className="space-y-1.5">
+            <Label className={cn("text-xs", showErrors && !supplierId ? "text-destructive" : "text-muted-foreground")}>
+              Supplier
+            </Label>
             <SearchableSupplierPicker
               key={`supplier-${formKey}`}
               suppliers={suppliers}
@@ -311,69 +322,79 @@ export function AddReceiptForm({
             />
           </div>
 
-          <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-4">
-            <Label className="md:w-24 md:shrink-0 text-muted-foreground">Reference:</Label>
-            <Input
-              value={reference}
-              onChange={(e) => setReference(e.target.value)}
-              className="min-w-0 flex-1"
-              placeholder="PO, ASN, or other reference (optional)"
-            />
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Reference</Label>
+              <Input
+                value={reference}
+                onChange={(e) => setReference(e.target.value)}
+                placeholder="PO, ASN, etc. (optional)"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Note</Label>
+              <Input
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Optional"
+              />
+            </div>
           </div>
 
-          <div className="flex flex-col gap-1.5 md:flex-row md:flex-wrap md:items-start md:gap-4">
-            <Label className="md:w-24 md:shrink-0 md:pt-2 text-muted-foreground">Note:</Label>
-            <Textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="min-h-[80px] min-w-0 flex-1"
-            />
+          <div className="space-y-3">
+            {parts.map((part, index) => (
+              <PartLineCard
+                key={index}
+                index={index}
+                part={part}
+                locations={allLocations}
+                currencies={currencies}
+                priceLabel="Unit Cost"
+                showErrors={showErrors}
+                errors={getPartErrors(index)}
+                canRemove={parts.length > 1}
+                onPartSelect={handlePartSelect}
+                onFieldChange={handlePartChange}
+                onRemove={(i) => setParts(parts.filter((_, j) => j !== i))}
+                partLabel={parsedMeta?.labels.get(part.item_id)}
+                parsedPartNumber={parsedMeta?.unresolvedParts.get(index)}
+                extraPartActions={
+                  <Button type="button" variant="secondary" size="sm" onClick={() => setIsAddItemModalOpen(true)}>
+                    New Part
+                  </Button>
+                }
+                extraLocationActions={
+                  <Button type="button" variant="secondary" size="sm" onClick={() => setIsAddLocationModalOpen(true)}>
+                    New Location
+                  </Button>
+                }
+              />
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setParts([...parts, { ...emptyPart, currency_id: defaultCurrencyId }])}
+            >
+              + Add another part
+            </Button>
           </div>
-
-          {parts.map((part, index) => (
-            <PartLineCard
-              key={index}
-              index={index}
-              part={part}
-              locations={allLocations}
-              currencies={currencies}
-              priceLabel="Unit Cost"
-              showErrors={showErrors}
-              errors={getPartErrors(index)}
-              canRemove={parts.length > 1}
-              onPartSelect={handlePartSelect}
-              onFieldChange={handlePartChange}
-              onRemove={(i) => setParts(parts.filter((_, j) => j !== i))}
-              partLabel={parsedMeta?.labels.get(part.item_id)}
-              parsedPartNumber={parsedMeta?.unresolvedParts.get(index)}
-              extraPartActions={
-                <Button type="button" variant="secondary" onClick={() => setIsAddItemModalOpen(true)}>
-                  New Part
-                </Button>
-              }
-              extraLocationActions={
-                <Button type="button" variant="secondary" onClick={() => setIsAddLocationModalOpen(true)}>
-                  New Location
-                </Button>
-              }
-            />
-          ))}
         </div>
 
-        <div className="flex flex-wrap justify-center gap-2 pt-6">
-          <Button type="submit" disabled={addReceipt.isPending}>
-            {addReceipt.isPending ? "Creating..." : variant === "inline" ? "Create receipt" : "Create"}
+        <div className="flex items-center gap-3 pt-5">
+          <Button type="submit" className="w-full" disabled={addReceipt.isPending}>
+            {addReceipt.isPending ? "Creating..." : "Create receipt"}
           </Button>
-          <Button type="button" variant="outline" onClick={() => setParts([...parts, { ...emptyPart, currency_id: defaultCurrencyId }])}>
-            Add Part
-          </Button>
-          {variant === "inline" ? (
-            <Button type="button" variant="outline" onClick={handleCancelOrClear}>
-              Clear form
-            </Button>
-          ) : (
-            <Button type="button" variant="destructive" onClick={handleCancelOrClear}>
-              Cancel
+          {!hideClear && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="shrink-0 text-muted-foreground"
+              onClick={handleCancelOrClear}
+            >
+              {variant === "inline" ? "Clear" : "Cancel"}
             </Button>
           )}
         </div>
