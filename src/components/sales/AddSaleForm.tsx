@@ -12,7 +12,7 @@ import {
 import { useAddSale, useAddCustomer } from "@/hooks/mutations";
 import type { SaleLineInput } from "@/types/domain.types";
 import { useChannels, useCurrencies, useCustomers, useLocations } from "@/hooks/queries";
-import { PartLineCard } from "@/components/common/PartLineCard";
+import { PartLineCard, getPartFillStatus } from "@/components/common/PartLineCard";
 import type { PartLine } from "@/components/common/PartLineCard";
 import { AddItemModal } from "@/components/modals/AddItemModal";
 import { AddLocationModal } from "@/components/modals/AddLocationModal";
@@ -63,7 +63,10 @@ export function AddSaleForm({
   const [customerId, setCustomerId] = useState<string>("");
   const [customerName, setCustomerName] = useState("");
   const [customerOpen, setCustomerOpen] = useState(false);
+  const partKeyCounter = useRef(1);
   const [parts, setParts] = useState<PartLine[]>([{ ...emptyPart }]);
+  const [partKeys, setPartKeys] = useState<string[]>(() => ["pk-0"]);
+  const [expandedParts, setExpandedParts] = useState<Set<number>>(() => new Set([0]));
   const [showErrors, setShowErrors] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
@@ -171,7 +174,10 @@ export function AddSaleForm({
     setChannelSearch("");
     setCustomerId(defaultCustomer ? String(defaultCustomer.id) : "");
     setCustomerName(defaultCustomer?.name ?? "");
+    const key = `pk-${partKeyCounter.current++}`;
     setParts([{ ...emptyPart }]);
+    setPartKeys([key]);
+    setExpandedParts(new Set([0]));
     setShowErrors(false);
     setFormKey((k) => k + 1);
   };
@@ -388,7 +394,7 @@ export function AddSaleForm({
         <div className="space-y-3">
           {parts.map((part, index) => (
             <PartLineCard
-              key={index}
+              key={partKeys[index]}
               index={index}
               part={part}
               locations={allLocations}
@@ -399,8 +405,26 @@ export function AddSaleForm({
               canRemove={parts.length > 1}
               onPartSelect={handlePartSelect}
               onFieldChange={handlePartChange}
-              onRemove={(i) => setParts(parts.filter((_, j) => j !== i))}
+              onRemove={(i) => {
+                const newLength = parts.length - 1;
+                setParts((prev) => prev.filter((_, j) => j !== i));
+                setPartKeys((prev) => prev.filter((_, j) => j !== i));
+                setExpandedParts(() => {
+                  const next = new Set<number>();
+                  for (let idx = 0; idx < newLength; idx++) next.add(idx);
+                  return next;
+                });
+              }}
               inStockOnly
+              isExpanded={expandedParts.has(index)}
+              onToggleExpanded={() => {
+                setExpandedParts((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(index)) next.delete(index);
+                  else next.add(index);
+                  return next;
+                });
+              }}
               extraPartActions={
                 <Button type="button" variant="secondary" size="sm" onClick={() => setIsAddItemModalOpen(true)}>
                   New Part
@@ -415,10 +439,26 @@ export function AddSaleForm({
           ))}
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
             size="sm"
-            className="text-muted-foreground"
-            onClick={() => setParts([...parts, { ...emptyPart }])}
+            onClick={() => {
+              const newIndex = parts.length;
+              const newKey = `pk-${partKeyCounter.current++}`;
+              const toCollapse = new Set<number>();
+              parts.forEach((p, i) => {
+                if (getPartFillStatus(p) !== "empty") toCollapse.add(i);
+              });
+              setExpandedParts((prev) => {
+                const next = new Set<number>();
+                for (const idx of prev) {
+                  if (!toCollapse.has(idx)) next.add(idx);
+                }
+                next.add(newIndex);
+                return next;
+              });
+              setParts([...parts, { ...emptyPart }]);
+              setPartKeys((prev) => [...prev, newKey]);
+            }}
           >
             + Add another part
           </Button>

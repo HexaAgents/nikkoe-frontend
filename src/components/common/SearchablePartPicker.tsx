@@ -39,12 +39,18 @@ export function SearchablePartPicker({ value, onSelect, hasError, initialLabel }
 
   useEffect(() => {
     if (!open) return;
+    let armed = false;
+    const timer = setTimeout(() => { armed = true; }, 200);
     const onScroll = (e: Event) => {
+      if (!armed) return;
       if (listRef.current?.contains(e.target as Node)) return;
       setOpen(false);
     };
     window.addEventListener("scroll", onScroll, { capture: true, passive: true });
-    return () => window.removeEventListener("scroll", onScroll, { capture: true });
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("scroll", onScroll, { capture: true });
+    };
   }, [open]);
 
   const { data: results, isFetching } = useItemSearch(debouncedQuery);

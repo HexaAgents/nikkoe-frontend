@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 
-import { Trash2, Check } from "lucide-react";
+import { Trash2, Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,16 @@ export interface PartLine {
   currency_id: string;
 }
 
+type PartFillStatus = "empty" | "unfinished" | "completed";
+
+function getPartFillStatus(part: PartLine): PartFillStatus {
+  const fields = [part.item_id, part.location_id, part.quantity, part.price, part.currency_id];
+  const filled = fields.filter((f) => f?.trim()).length;
+  if (filled === 0) return "empty";
+  if (filled === fields.length) return "completed";
+  return "unfinished";
+}
+
 interface PartLineCardProps {
   index: number;
   part: PartLine;
@@ -40,6 +50,8 @@ interface PartLineCardProps {
   availableQuantity?: number | null;
   partLabel?: string;
   parsedPartNumber?: string;
+  isExpanded?: boolean;
+  onToggleExpanded?: () => void;
 }
 
 const fallbackCurrencies = [
@@ -47,6 +59,8 @@ const fallbackCurrencies = [
   { id: 2, name: "$" },
   { id: 3, name: "€" },
 ];
+
+export { getPartFillStatus };
 
 export function PartLineCard({
   index,
@@ -66,6 +80,8 @@ export function PartLineCard({
   availableQuantity: availableQuantityProp,
   partLabel,
   parsedPartNumber,
+  isExpanded = true,
+  onToggleExpanded,
 }: PartLineCardProps) {
   const { data: itemInventory } = useItemInventory(part.item_id);
 
@@ -135,28 +151,60 @@ export function PartLineCard({
     return currencyList.filter((c) => c.name.toLowerCase().includes(q));
   }, [currencyList, currencySearch]);
 
+  const fillStatus = getPartFillStatus(part);
+
   return (
     <div
       className={cn(
-        "space-y-3 md:rounded-lg md:border md:bg-card md:p-4",
+        "md:rounded-lg md:border md:bg-card md:p-4",
         showErrors && errors.length > 0 ? "md:border-destructive" : "md:border-border/60",
         index > 0 && "border-t border-border/40 pt-4 md:border-t-0 md:pt-0",
       )}
     >
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Part {index + 1}
-        </span>
+      <div className="flex w-full items-center justify-between py-1">
+        <button
+          type="button"
+          className="flex min-w-0 flex-1 items-center gap-2"
+          onClick={onToggleExpanded}
+        >
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Part {index + 1}
+          </span>
+          {!isExpanded && fillStatus !== "empty" && (
+            <span
+              className={cn(
+                "text-[11px] font-medium",
+                fillStatus === "completed" ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400",
+              )}
+            >
+              {fillStatus === "completed" ? "Completed" : "Unfinished"}
+            </span>
+          )}
+          {onToggleExpanded && (
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 text-muted-foreground transition-transform",
+                isExpanded && "rotate-180",
+              )}
+            />
+          )}
+        </button>
         {canRemove && (
-          <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => onRemove(index)}>
+          <button
+            type="button"
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center"
+            onClick={() => onRemove(index)}
+          >
             <Trash2 className="h-3.5 w-3.5 text-destructive" />
-          </Button>
+          </button>
         )}
       </div>
 
       {showErrors && errors.length > 0 && (
         <p className="text-xs text-destructive">Missing: {errors.join(", ")}</p>
       )}
+
+      <div className={cn("space-y-3 pt-2", !isExpanded && "hidden")}>
 
       <div className="space-y-1.5">
         <Label className={cn("text-xs", showErrors && errors.includes("Part Number") ? "text-destructive" : "text-muted-foreground")}>
@@ -300,6 +348,7 @@ export function PartLineCard({
             </PopoverContent>
           </Popover>
         </div>
+      </div>
       </div>
     </div>
   );

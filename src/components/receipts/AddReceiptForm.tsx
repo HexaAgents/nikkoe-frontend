@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { AddItemModal } from "@/components/modals/AddItemModal";
 import { AddLocationModal } from "@/components/modals/AddLocationModal";
 import { SearchableSupplierPicker } from "@/components/common/SearchableSupplierPicker";
-import { PartLineCard } from "@/components/common/PartLineCard";
+import { PartLineCard, getPartFillStatus } from "@/components/common/PartLineCard";
 import type { PartLine } from "@/components/common/PartLineCard";
 import { cn } from "@/lib/utils";
 
@@ -91,7 +91,10 @@ export function AddReceiptForm({
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
   const [formKey, setFormKey] = useState(0);
+  const partKeyCounter = useRef(1);
   const [parts, setParts] = useState<PartLine[]>([{ ...emptyPart }]);
+  const [partKeys, setPartKeys] = useState<string[]>(() => ["pk-0"]);
+  const [expandedParts, setExpandedParts] = useState<Set<number>>(() => new Set([0]));
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
   const [isAddLocationModalOpen, setIsAddLocationModalOpen] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
@@ -169,10 +172,15 @@ export function AddReceiptForm({
               currency_id: headerCurrencyId,
             };
 
+            const newKey = `pk-${partKeyCounter.current++}`;
             if (lineIndex === 0) {
               setParts([newPart]);
+              setPartKeys([newKey]);
+              setExpandedParts(new Set([0]));
             } else {
               setParts((prev) => [...prev, newPart]);
+              setPartKeys((prev) => [...prev, newKey]);
+              setExpandedParts((prev) => new Set([...prev, lineIndex]));
             }
             lineIndex++;
 
@@ -210,7 +218,10 @@ export function AddReceiptForm({
     setReference("");
     setNote("");
     setFormKey((k) => k + 1);
+    const key = `pk-${partKeyCounter.current++}`;
     setParts([{ ...emptyPart, currency_id: defaultCurrencyId }]);
+    setPartKeys([key]);
+    setExpandedParts(new Set([0]));
     setShowErrors(false);
     setParsedMeta(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -345,7 +356,7 @@ export function AddReceiptForm({
           <div className="space-y-3">
             {parts.map((part, index) => (
               <PartLineCard
-                key={index}
+                key={partKeys[index]}
                 index={index}
                 part={part}
                 locations={allLocations}
@@ -356,9 +367,27 @@ export function AddReceiptForm({
                 canRemove={parts.length > 1}
                 onPartSelect={handlePartSelect}
                 onFieldChange={handlePartChange}
-                onRemove={(i) => setParts(parts.filter((_, j) => j !== i))}
+                onRemove={(i) => {
+                  const newLength = parts.length - 1;
+                  setParts((prev) => prev.filter((_, j) => j !== i));
+                  setPartKeys((prev) => prev.filter((_, j) => j !== i));
+                  setExpandedParts(() => {
+                    const next = new Set<number>();
+                    for (let idx = 0; idx < newLength; idx++) next.add(idx);
+                    return next;
+                  });
+                }}
                 partLabel={parsedMeta?.labels.get(part.item_id)}
                 parsedPartNumber={parsedMeta?.unresolvedParts.get(index)}
+                isExpanded={expandedParts.has(index)}
+                onToggleExpanded={() => {
+                  setExpandedParts((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(index)) next.delete(index);
+                    else next.add(index);
+                    return next;
+                  });
+                }}
                 extraPartActions={
                   <Button type="button" variant="secondary" size="sm" onClick={() => setIsAddItemModalOpen(true)}>
                     New Part
@@ -375,7 +404,24 @@ export function AddReceiptForm({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setParts([...parts, { ...emptyPart, currency_id: defaultCurrencyId }])}
+              onClick={() => {
+                const newIndex = parts.length;
+                const newKey = `pk-${partKeyCounter.current++}`;
+                const toCollapse = new Set<number>();
+                parts.forEach((p, i) => {
+                  if (getPartFillStatus(p) !== "empty") toCollapse.add(i);
+                });
+                setExpandedParts((prev) => {
+                  const next = new Set<number>();
+                  for (const idx of prev) {
+                    if (!toCollapse.has(idx)) next.add(idx);
+                  }
+                  next.add(newIndex);
+                  return next;
+                });
+                setParts([...parts, { ...emptyPart, currency_id: defaultCurrencyId }]);
+                setPartKeys((prev) => [...prev, newKey]);
+              }}
             >
               + Add another part
             </Button>
