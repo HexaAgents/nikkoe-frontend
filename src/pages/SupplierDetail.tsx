@@ -189,10 +189,10 @@ export default function SupplierDetailPage() {
                                 {line.quantity ?? 0}
                               </TableCell>
                               <TableCell className="text-right tabular-nums">
-                                {unitCost.toFixed(2)}
+                                {unitCost.toFixed(3)}
                               </TableCell>
                               <TableCell className="text-right tabular-nums font-medium">
-                                {total.toFixed(2)}
+                                {total.toFixed(3)}
                               </TableCell>
                               <TableCell>{line.currencies?.name ?? "-"}</TableCell>
                               <TableCell>{line.reference ?? "-"}</TableCell>

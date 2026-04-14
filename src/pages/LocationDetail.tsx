@@ -32,7 +32,7 @@ export default function LocationDetailPage() {
       header: "Last Unit Price",
       render: (item: LocationItem) => (
         <span className="tabular-nums">
-          {item.last_unit_price != null ? item.last_unit_price.toFixed(2) : "-"}
+          {item.last_unit_price != null ? item.last_unit_price.toFixed(3) : "-"}
         </span>
       ),
     },

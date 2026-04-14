@@ -114,7 +114,7 @@ export function AddSupplierQuoteModal({ open, onOpenChange, itemId, latestQuote 
                 <Input
                   id="cost"
                   type="number"
-                  step="0.01"
+                  step="0.001"
                   min="0"
                   value={formData.cost}
                   onChange={(e) => setFormData({ ...formData, cost: e.target.value })}

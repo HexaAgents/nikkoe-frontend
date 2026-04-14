@@ -223,7 +223,7 @@ export function PartLineCard({
             </Label>
             <Input
               type="number"
-              step="0.01"
+              step="0.001"
               min="0"
               value={part.price}
               onChange={(e) => onFieldChange(index, "price", e.target.value)}

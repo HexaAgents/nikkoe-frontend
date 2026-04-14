@@ -241,7 +241,7 @@ export default function ItemDetailPage() {
                 <Label className="text-sm font-medium">Current Supplier Price</Label>
                 {supplierQuotes && supplierQuotes.length > 0 ? (
                   <div className="text-[13px]">
-                    <span className="font-medium">{supplierQuotes[0].cost.toFixed(2)}</span>
+                    <span className="font-medium">{supplierQuotes[0].cost.toFixed(3)}</span>
                     {" "}
                     <span className="text-muted-foreground">{supplierQuotes[0].currency?.name ?? ""}</span>
                     <span className="text-muted-foreground"> from {supplierQuotes[0].supplier?.name ?? "Unknown"}</span>
@@ -453,8 +453,8 @@ export default function ItemDetailPage() {
                             <TableCell>{receipt.suppliers?.name ?? "-"}</TableCell>
                             <TableCell>{receipt.reference ?? "-"}</TableCell>
                             <TableCell className="text-right tabular-nums">{receipt.quantity ?? 0}</TableCell>
-                            <TableCell className="text-right tabular-nums">{unitCost.toFixed(2)}</TableCell>
-                            <TableCell className="text-right tabular-nums font-medium">{total.toFixed(2)}</TableCell>
+                            <TableCell className="text-right tabular-nums">{unitCost.toFixed(3)}</TableCell>
+                            <TableCell className="text-right tabular-nums font-medium">{total.toFixed(3)}</TableCell>
                             <TableCell>{receipt.currencies?.name ?? "-"}</TableCell>
                             <TableCell>{receipt.locations?.code ?? "-"}</TableCell>
                             <TableCell>
@@ -563,8 +563,8 @@ export default function ItemDetailPage() {
                             <TableCell>{sale.customers?.name ?? "-"}</TableCell>
                             <TableCell>{sale.channels?.name ?? "-"}</TableCell>
                             <TableCell className="text-right tabular-nums">{sale.quantity ?? 0}</TableCell>
-                            <TableCell className="text-right tabular-nums">{unitPrice.toFixed(2)}</TableCell>
-                            <TableCell className="text-right tabular-nums font-medium">{total.toFixed(2)}</TableCell>
+                            <TableCell className="text-right tabular-nums">{unitPrice.toFixed(3)}</TableCell>
+                            <TableCell className="text-right tabular-nums font-medium">{total.toFixed(3)}</TableCell>
                             <TableCell>{sale.currencies?.name ?? "-"}</TableCell>
                             <TableCell>{sale.locations?.code ?? "-"}</TableCell>
                             <TableCell>
