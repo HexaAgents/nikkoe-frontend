@@ -77,6 +77,12 @@ export function AddSaleForm({
   const skipChannelClose = useRef(false);
   const skipCustomerClose = useRef(false);
   const defaultsApplied = useRef(false);
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => { mountedRef.current = true; });
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   useEffect(() => {
     if (defaultsApplied.current) return;
@@ -245,7 +251,7 @@ export function AddSaleForm({
                     setChannelSearch(e.target.value);
                     if (!channelOpen) setChannelOpen(true);
                   }}
-                  onFocus={() => setChannelOpen(true)}
+                  onFocus={() => { if (mountedRef.current) setChannelOpen(true); }}
                   className={cn(showErrors && !channelId && "border-destructive")}
                 />
                 <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />

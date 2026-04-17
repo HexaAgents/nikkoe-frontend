@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,12 @@ export function SearchableCombobox<T extends Record<string, unknown>>({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const skipClose = useRef(false);
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => { mountedRef.current = true; });
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   const selectedItem = useMemo(
     () => items?.find((i) => String(i[idKey]) === value),
@@ -66,7 +72,7 @@ export function SearchableCombobox<T extends Record<string, unknown>>({
               setSearch(e.target.value);
               if (!open) setOpen(true);
             }}
-            onFocus={() => setOpen(true)}
+            onFocus={() => { if (mountedRef.current) setOpen(true); }}
             className={cn(hasError && "border-destructive")}
           />
           <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
