@@ -25,7 +25,7 @@ Authentication route guards.
 Page shell shared by all authenticated views.
 
 - **MainLayout.tsx** -- Page shell used by every authenticated page. Renders `AppTopBar` at the top and wraps page content in a scrollable `<main>` element with consistent padding.
-- **AppTopBar.tsx** -- Top navigation bar rendered on every authenticated page. Contains the brand logo and name, primary nav links (Sales, Receipts), and utility actions (Settings gear icon, user email display, Sign Out button). Uses `NavLink` for active-state highlighting.
+- **AppTopBar.tsx** -- Top navigation bar rendered on every authenticated page. Contains the brand logo and name, primary nav links (Items, Sales, Receipts, Quotes), and utility actions (Settings gear icon, user email display, Sign Out button). Uses `NavLink` for active-state highlighting.
 
 ### common/
 

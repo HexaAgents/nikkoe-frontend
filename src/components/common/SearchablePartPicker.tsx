@@ -49,11 +49,9 @@ export function SearchablePartPicker({ value, onSelect, hasError, initialLabel }
     }
   }, [items]);
 
-  useEffect(() => {
-    if (initialLabel && value) {
-      labelCacheRef.current.set(value, initialLabel);
-    }
-  }, [initialLabel, value]);
+  if (initialLabel && value) {
+    labelCacheRef.current.set(value, initialLabel);
+  }
 
   useEffect(() => {
     return () => clearTimeout(debounceRef.current);

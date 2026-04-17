@@ -637,11 +637,11 @@ export default function ItemDetailPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>From</TableHead>
-                      <TableHead>To</TableHead>
-                      <TableHead className="text-right">Qty</TableHead>
-                      <TableHead>User</TableHead>
+                      <TableHead>From Item</TableHead>
+                      <TableHead>To Item</TableHead>
+                      <TableHead>From Location</TableHead>
+                      <TableHead>To Location</TableHead>
+                      <TableHead>Time</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -654,16 +654,12 @@ export default function ItemDetailPage() {
                     ) : (
                       (showAllTransfers ? transfersHistory : transfersHistory.slice(0, PREVIEW_ROWS)).map((transfer: ItemTransferHistory) => (
                         <TableRow key={transfer.id}>
-                          <TableCell className="whitespace-nowrap">
-                            {transfer.date ? new Date(transfer.date).toLocaleDateString("en-GB", { timeZone: "Europe/London" }) : "-"}
-                          </TableCell>
+                          <TableCell className="font-medium">{transfer.from_item?.item_id ?? "-"}</TableCell>
+                          <TableCell className="font-medium">{transfer.to_item?.item_id ?? "-"}</TableCell>
                           <TableCell>{transfer.from_location?.code ?? "-"}</TableCell>
                           <TableCell>{transfer.to_location?.code ?? "-"}</TableCell>
-                          <TableCell className="text-right tabular-nums">{transfer.quantity ?? 0}</TableCell>
-                          <TableCell>
-                            {transfer.users
-                              ? `${transfer.users.first_name} ${transfer.users.last_name}`
-                              : "-"}
+                          <TableCell className="whitespace-nowrap">
+                            {transfer.date ? new Date(transfer.date).toLocaleString("en-GB", { timeZone: "Europe/London" }) : "-"}
                           </TableCell>
                         </TableRow>
                       ))

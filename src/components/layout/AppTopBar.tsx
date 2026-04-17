@@ -48,6 +48,13 @@ export function AppTopBar() {
               >
                 <span>Receipts</span>
               </NavLink>
+              <NavLink
+                to="/quotes"
+                className="relative inline-flex items-center px-3 py-2 text-sm text-white/50 transition-colors hover:text-white/80"
+                activeClassName="font-medium text-white after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary hover:text-white"
+              >
+                <span>Quotes</span>
+              </NavLink>
             </nav>
           </div>
 

@@ -26,6 +26,8 @@ src/test/
     protected-routes.test.tsx     Route protection: unauthenticated → /login redirect
     create-sale.test.tsx          Sale form: field validation, add/clear parts
     create-receipt.test.tsx       Receipt form: field validation, inline create buttons
+    quotes.test.tsx               Quotes page: multi-item form, add/remove rows, submit guard
+    items-page.test.tsx           Items page: New Sale / New Receipt modal buttons
     settings.test.tsx             Change password: short/mismatched passwords blocked
 
   validation/
@@ -310,11 +312,11 @@ Provides three utilities used by all e2e tests:
 | Calls signUp with valid matching passwords | Valid input passes through to `AuthContext.signUp()` with the correct arguments |
 | Has a link to the login page | The "Sign in" link points to `/login` for users who already have accounts |
 
-### `protected-routes.test.tsx` — Route Protection (8 tests)
+### `protected-routes.test.tsx` — Route Protection (9 tests)
 
 | Test | What it verifies |
 |------|-----------------|
-| Redirects to /login when unauthenticated (parameterized) | Uses `it.each` over `/sales`, `/receipts`, `/items`, `/settings` — when `session` is null, all four routes render the login page instead of their content |
+| Redirects to /login when unauthenticated (parameterized) | Uses `it.each` over `/sales`, `/receipts`, `/items`, `/quotes`, `/settings` — when `session` is null, all five routes render the login page instead of their content |
 | Shows loading spinner while auth is checking | When `loading` is true, neither the page content nor the login redirect appears — just the spinner |
 | Renders /sales when authenticated | When session exists, the protected route renders its content (not the login form) |
 | Allows unauthenticated access to /login | The login page renders without any auth check |
@@ -342,6 +344,28 @@ Provides three utilities used by all e2e tests:
 | Can add additional part lines | "Add Part" creates a new part card |
 | Shows New Part and New Location buttons | These inline-create buttons appear on each part line (unlike the sale form which doesn't have them) |
 | Clears form when Clear form is clicked | Reference, note, and all part fields reset |
+
+### `quotes.test.tsx` — Supplier Quotes Page (8 tests)
+
+| Test | What it verifies |
+|------|-----------------|
+| Renders the page with title, supplier, date, and an item row | The page heading "Supplier Quotes", "Quote Details" card, "Items" card, and "Add Item" button all appear |
+| Shows the submit button disabled when no data is filled | The "Add Quote(s)" button is disabled until a supplier is selected and at least one item row has part, cost, and currency |
+| Shows 0 items ready when form is empty | The status line reads "0 items ready" before any data is entered |
+| Can add additional item rows via Add Item button | Clicking "Add Item" appends a new row with its own part picker, cost, currency, and note fields |
+| Can remove an item row and always keeps at least one | Clicking the trash icon removes a row; if the last row is removed, a fresh empty row is added automatically |
+| Does not call mutateAsync when submit button is disabled | Clicking a disabled submit button does not fire any API calls |
+| Shows the date input pre-filled with today's date | The date field defaults to the current date in YYYY-MM-DD format |
+| Has optional note input on each line | Each item row includes an "Optional note" placeholder input |
+
+### `items-page.test.tsx` — Items Page Sale & Receipt Modals (4 tests)
+
+| Test | What it verifies |
+|------|-----------------|
+| Renders the New Sale and New Receipt buttons in the toolbar | Both "New Sale" and "New Receipt" buttons are visible on the Items page toolbar |
+| Opens the sale dialog when New Sale is clicked | Clicking "New Sale" opens the AddSaleModal, which contains the Channel and Customer fields from AddSaleForm |
+| Opens the receipt dialog when New Receipt is clicked | Clicking "New Receipt" opens the AddReceiptModal, which contains the Supplier and Reference fields from AddReceiptForm |
+| Still shows the Transfer Stock button alongside the new buttons | The existing "Transfer Stock" button is still present in the toolbar alongside the new buttons |
 
 ### `settings.test.tsx` — Change Password Form (4 tests)
 

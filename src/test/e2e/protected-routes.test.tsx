@@ -52,7 +52,7 @@ vi.mock("@/hooks/queries", () => {
 });
 
 describe("Protected Routes", () => {
-  it.each(["/sales", "/receipts", "/items", "/settings"])(
+  it.each(["/sales", "/receipts", "/items", "/quotes", "/settings"])(
     "redirects to /login when unauthenticated and visiting %s",
     async (route) => {
       const auth = createMockAuthContext({ session: null, loading: false });

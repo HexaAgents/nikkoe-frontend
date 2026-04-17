@@ -184,10 +184,12 @@ export interface Transfer {
   stock_id_from_id: number | null;
   stock_id_to_id: number | null;
   user_id: number | null;
+  from_item_id: number | null;
+  to_item_id: number | null;
   from_stock: { id: number; item_id: number; location_id: number } | null;
   to_stock: { id: number; item_id: number; location_id: number } | null;
-  from_item: { id: number; item_id: string } | null;
-  to_item: { id: number; item_id: string } | null;
+  from_item: { id: number; item_id: string; description?: string | null } | null;
+  to_item: { id: number; item_id: string; description?: string | null } | null;
   from_location: { id: number; code: string } | null;
   to_location: { id: number; code: string } | null;
   items: { id: number; item_id: string } | null;
@@ -272,6 +274,8 @@ export interface ItemTransferHistory {
   quantity: number;
   date: string | null;
   notes: string | null;
+  from_item: { id: number; item_id: string } | null;
+  to_item: { id: number; item_id: string } | null;
   from_location: { id: number; code: string } | null;
   to_location: { id: number; code: string } | null;
   users: { id: number; first_name: string; last_name: string } | null;
