@@ -33,6 +33,8 @@ export interface AddSaleFormProps {
   onSuccessfulCreate?: () => void;
   onCancel?: () => void;
   className?: string;
+  defaultItemId?: string;
+  defaultItemLabel?: string;
 }
 
 export function AddSaleForm({
@@ -40,6 +42,8 @@ export function AddSaleForm({
   onSuccessfulCreate,
   onCancel,
   className,
+  defaultItemId,
+  defaultItemLabel,
 }: AddSaleFormProps) {
   const addSale = useAddSale();
   const { data: channels } = useChannels();
@@ -63,7 +67,9 @@ export function AddSaleForm({
   const [customerId, setCustomerId] = useState<string>("");
   const [customerName, setCustomerName] = useState("");
   const [customerOpen, setCustomerOpen] = useState(false);
-  const [parts, setParts] = useState<PartLine[]>([{ ...emptyPart }]);
+  const [parts, setParts] = useState<PartLine[]>([
+    defaultItemId ? { ...emptyPart, item_id: defaultItemId } : { ...emptyPart },
+  ]);
   const [showErrors, setShowErrors] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
@@ -154,7 +160,7 @@ export function AddSaleForm({
     setChannelSearch("");
     setCustomerId(defaultCustomer ? String(defaultCustomer.id) : "");
     setCustomerName(defaultCustomer?.name ?? "");
-    setParts([{ ...emptyPart }]);
+    setParts([defaultItemId ? { ...emptyPart, item_id: defaultItemId } : { ...emptyPart }]);
     setShowErrors(false);
     setFormKey((k) => k + 1);
   };
@@ -376,6 +382,7 @@ export function AddSaleForm({
             onFieldChange={handlePartChange}
             onRemove={(i) => setParts(parts.filter((_, j) => j !== i))}
             inStockOnly
+            partLabel={index === 0 && defaultItemLabel ? defaultItemLabel : undefined}
             extraPartActions={
               <Button type="button" variant="secondary" onClick={() => setIsAddItemModalOpen(true)}>
                 New Part

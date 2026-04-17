@@ -66,6 +66,8 @@ export interface AddReceiptFormProps {
   onSuccessfulCreate?: () => void;
   onCancel?: () => void;
   className?: string;
+  defaultItemId?: string;
+  defaultItemLabel?: string;
 }
 
 export function AddReceiptForm({
@@ -73,6 +75,8 @@ export function AddReceiptForm({
   onSuccessfulCreate,
   onCancel,
   className,
+  defaultItemId,
+  defaultItemLabel,
 }: AddReceiptFormProps) {
   const addReceipt = useAddReceipt();
   const [isParsing, setIsParsing] = useState(false);
@@ -86,7 +90,9 @@ export function AddReceiptForm({
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
   const [formKey, setFormKey] = useState(0);
-  const [parts, setParts] = useState<PartLine[]>([{ ...emptyPart }]);
+  const [parts, setParts] = useState<PartLine[]>([
+    defaultItemId ? { ...emptyPart, item_id: defaultItemId } : { ...emptyPart },
+  ]);
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
   const [isAddLocationModalOpen, setIsAddLocationModalOpen] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
@@ -205,7 +211,7 @@ export function AddReceiptForm({
     setReference("");
     setNote("");
     setFormKey((k) => k + 1);
-    setParts([{ ...emptyPart, currency_id: defaultCurrencyId }]);
+    setParts([defaultItemId ? { ...emptyPart, item_id: defaultItemId, currency_id: defaultCurrencyId } : { ...emptyPart, currency_id: defaultCurrencyId }]);
     setShowErrors(false);
     setParsedMeta(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -344,7 +350,7 @@ export function AddReceiptForm({
               onPartSelect={handlePartSelect}
               onFieldChange={handlePartChange}
               onRemove={(i) => setParts(parts.filter((_, j) => j !== i))}
-              partLabel={parsedMeta?.labels.get(part.item_id)}
+              partLabel={parsedMeta?.labels.get(part.item_id) || (index === 0 && defaultItemLabel ? defaultItemLabel : undefined)}
               parsedPartNumber={parsedMeta?.unresolvedParts.get(index)}
               extraPartActions={
                 <Button type="button" variant="secondary" onClick={() => setIsAddItemModalOpen(true)}>

@@ -27,7 +27,7 @@ src/test/
     create-sale.test.tsx          Sale form: field validation, add/clear parts
     create-receipt.test.tsx       Receipt form: field validation, inline create buttons
     quotes.test.tsx               Quotes page: multi-item form, add/remove rows, submit guard
-    items-page.test.tsx           Items page: New Sale / New Receipt modal buttons
+    items-page.test.tsx           Item detail page: New Sale / New Receipt modal buttons with item autofill
     settings.test.tsx             Change password: short/mismatched passwords blocked
 
   validation/
@@ -358,14 +358,14 @@ Provides three utilities used by all e2e tests:
 | Shows the date input pre-filled with today's date | The date field defaults to the current date in YYYY-MM-DD format |
 | Has optional note input on each line | Each item row includes an "Optional note" placeholder input |
 
-### `items-page.test.tsx` — Items Page Sale & Receipt Modals (4 tests)
+### `items-page.test.tsx` — Item Detail Page Sale & Receipt Modals (4 tests)
 
 | Test | What it verifies |
 |------|-----------------|
-| Renders the New Sale and New Receipt buttons in the toolbar | Both "New Sale" and "New Receipt" buttons are visible on the Items page toolbar |
-| Opens the sale dialog when New Sale is clicked | Clicking "New Sale" opens the AddSaleModal, which contains the Channel and Customer fields from AddSaleForm |
-| Opens the receipt dialog when New Receipt is clicked | Clicking "New Receipt" opens the AddReceiptModal, which contains the Supplier and Reference fields from AddReceiptForm |
-| Still shows the Transfer Stock button alongside the new buttons | The existing "Transfer Stock" button is still present in the toolbar alongside the new buttons |
+| Renders the New Sale and New Receipt buttons | Both "New Sale" and "New Receipt" buttons are visible on the item detail page header |
+| Opens the sale dialog when New Sale is clicked | Clicking "New Sale" opens the AddSaleModal with the current item's part number pre-filled in the first line |
+| Opens the receipt dialog when New Receipt is clicked | Clicking "New Receipt" opens the AddReceiptModal with the current item pre-filled in the first line |
+| Shows the item part number in the page heading | The page displays the current item's part number (PART-001) in the header |
 
 ### `settings.test.tsx` — Change Password Form (4 tests)
 

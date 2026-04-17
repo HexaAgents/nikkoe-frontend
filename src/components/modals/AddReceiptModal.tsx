@@ -9,9 +9,11 @@ import { AddReceiptForm } from "@/components/receipts/AddReceiptForm";
 interface AddReceiptModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultItemId?: string;
+  defaultItemLabel?: string;
 }
 
-export function AddReceiptModal({ open, onOpenChange }: AddReceiptModalProps) {
+export function AddReceiptModal({ open, onOpenChange, defaultItemId, defaultItemLabel }: AddReceiptModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[700px]">
@@ -22,6 +24,8 @@ export function AddReceiptModal({ open, onOpenChange }: AddReceiptModalProps) {
           variant="dialog"
           onSuccessfulCreate={() => onOpenChange(false)}
           onCancel={() => onOpenChange(false)}
+          defaultItemId={defaultItemId}
+          defaultItemLabel={defaultItemLabel}
         />
       </DialogContent>
     </Dialog>

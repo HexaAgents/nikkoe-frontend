@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Edit, Trash2, Plus, ArrowRightLeft, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Plus, ArrowRightLeft, ChevronDown, ChevronUp, AlertTriangle, ShoppingCart, PackagePlus } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,8 @@ import { useItem, useItemSupplierQuotes, useItemInventory, useItemReceipts, useI
 import { useUpdateItem, useDeleteItem, useDeleteSupplierQuote } from "@/hooks/mutations";
 import { AddSupplierQuoteModal } from "@/components/modals/AddSupplierQuoteModal";
 import { TransferStockModal } from "@/components/modals/TransferStockModal";
+import { AddSaleModal } from "@/components/modals/AddSaleModal";
+import { AddReceiptModal } from "@/components/modals/AddReceiptModal";
 import { toast } from "sonner";
 import type { ItemReceiptHistory, ItemSaleHistory, ItemTransferHistory, StockWithLocation } from "@/types/domain.types";
 
@@ -62,6 +64,8 @@ export default function ItemDetailPage() {
   const [categoryId, setCategoryId] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [isAddQuoteModalOpen, setIsAddQuoteModalOpen] = useState(false);
+  const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [transferStock, setTransferStock] = useState<StockWithLocation | null>(null);
   const [showAllQuotes, setShowAllQuotes] = useState(false);
   const [showAllReceipts, setShowAllReceipts] = useState(false);
@@ -174,9 +178,18 @@ export default function ItemDetailPage() {
             </Button>
             <h1 className="font-display text-[28px] font-normal text-foreground">{item.item_id}</h1>
           </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setIsSaleModalOpen(true)}>
+              <ShoppingCart className="mr-2 h-4 w-4" />
+              New Sale
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setIsReceiptModalOpen(true)}>
+              <PackagePlus className="mr-2 h-4 w-4" />
+              New Receipt
+            </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive">
+              <Button variant="destructive" size="sm">
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete Item
               </Button>
@@ -196,6 +209,7 @@ export default function ItemDetailPage() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          </div>
         </div>
 
         <Card>
@@ -708,6 +722,18 @@ export default function ItemDetailPage() {
           fromStock={transferStock}
         />
       )}
+      <AddSaleModal
+        open={isSaleModalOpen}
+        onOpenChange={setIsSaleModalOpen}
+        defaultItemId={String(item.id)}
+        defaultItemLabel={item.item_id}
+      />
+      <AddReceiptModal
+        open={isReceiptModalOpen}
+        onOpenChange={setIsReceiptModalOpen}
+        defaultItemId={String(item.id)}
+        defaultItemLabel={item.item_id}
+      />
     </MainLayout>
   );
 }

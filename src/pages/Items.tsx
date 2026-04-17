@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowUpDown, ArrowRightLeft, ShoppingCart, PackagePlus } from "lucide-react";
+import { ArrowUpDown, ArrowRightLeft } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { DataTable, DataTableSkeleton } from "@/components/common/DataTable";
@@ -8,8 +8,6 @@ import { useItems, useItemSearch, buildItemsQueryFn, itemsQueryKeyBase } from "@
 import { usePrefetchPages } from "@/hooks/usePrefetchPages";
 import { fetchAllPages } from "@/lib/api";
 import { AddItemModal } from "@/components/modals/AddItemModal";
-import { AddSaleModal } from "@/components/modals/AddSaleModal";
-import { AddReceiptModal } from "@/components/modals/AddReceiptModal";
 import {
   Select,
   SelectContent,
@@ -36,8 +34,6 @@ interface ItemsPageProps {
 export default function ItemsPage({ embedded = false }: ItemsPageProps) {
   const navigate = useNavigate();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
-  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [searchPage, setSearchPage] = useState(1);
@@ -136,14 +132,6 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
 
   const toolbarActions = (
     <div className="flex items-center gap-2">
-      <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => setIsSaleModalOpen(true)}>
-        <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
-        New Sale
-      </Button>
-      <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => setIsReceiptModalOpen(true)}>
-        <PackagePlus className="mr-1.5 h-3.5 w-3.5" />
-        New Receipt
-      </Button>
       <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => navigate("/items/transfer")}>
         <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" />
         Transfer Stock
@@ -203,8 +191,6 @@ export default function ItemsPage({ embedded = false }: ItemsPageProps) {
         />
       </div>
       <AddItemModal open={isAddModalOpen} onOpenChange={setIsAddModalOpen} />
-      <AddSaleModal open={isSaleModalOpen} onOpenChange={setIsSaleModalOpen} />
-      <AddReceiptModal open={isReceiptModalOpen} onOpenChange={setIsReceiptModalOpen} />
     </>
   );
 
