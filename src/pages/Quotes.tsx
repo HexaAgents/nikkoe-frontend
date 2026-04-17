@@ -14,7 +14,7 @@ import {
 import { useSuppliers, useCurrencies } from "@/hooks/queries";
 import { useAddSupplierQuote } from "@/hooks/mutations";
 import { SearchablePartPicker } from "@/components/common/SearchablePartPicker";
-import { Plus, Trash2, FileText } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface QuoteLine {
@@ -108,12 +108,9 @@ export default function Quotes() {
   return (
     <MainLayout>
       <div className="mx-auto max-w-4xl space-y-6">
-        <div className="flex items-center gap-3">
-          <FileText className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Supplier Quotes
-          </h1>
-        </div>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Supplier Quotes
+        </h1>
 
         <Card>
           <CardHeader className="border-b pb-6">
