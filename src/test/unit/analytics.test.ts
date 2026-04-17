@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import posthog from "posthog-js";
-import { analytics } from "@/lib/analytics";
+import { analytics, initAnalytics } from "@/lib/analytics";
 
 vi.mock("posthog-js", () => ({
   default: {
+    init: vi.fn(),
     identify: vi.fn(),
     capture: vi.fn(),
     reset: vi.fn(),
@@ -11,8 +12,11 @@ vi.mock("posthog-js", () => ({
 }));
 
 describe("analytics wrapper", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    import.meta.env.VITE_POSTHOG_KEY = "test-key";
+    initAnalytics();
+    await new Promise((r) => setTimeout(r, 0));
   });
 
   it("identify delegates to posthog.identify", () => {
