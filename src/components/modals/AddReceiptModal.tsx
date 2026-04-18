@@ -18,7 +18,7 @@ export function AddReceiptModal({ open, onOpenChange, defaultItemId, defaultItem
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[700px]">
         <DialogHeader>
-          <DialogTitle className="text-xl text-primary">New Receipt</DialogTitle>
+          <DialogTitle>New Receipt</DialogTitle>
         </DialogHeader>
         <AddReceiptForm
           variant="dialog"

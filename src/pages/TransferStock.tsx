@@ -232,10 +232,10 @@ export default function TransferStockPage() {
         <form onSubmit={handleSubmit}>
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
-              <CardHeader className="border-b pb-4">
-                <CardTitle className="text-base">From</CardTitle>
+              <CardHeader className="border-b pb-6">
+                <CardTitle>From</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 pt-4">
+              <CardContent className="space-y-4 pt-6">
                 <div className="space-y-2">
                   <Label className={showErrors && !fromItemId ? "text-destructive" : ""}>Part Number</Label>
                   <SearchablePartPicker
@@ -263,9 +263,9 @@ export default function TransferStockPage() {
             </Card>
 
             <Card>
-              <CardHeader className="border-b pb-4">
+              <CardHeader className="border-b pb-6">
                 <div className="flex items-center gap-2">
-                  <CardTitle className="text-base">To</CardTitle>
+                  <CardTitle>To</CardTitle>
                   {matchingItems && matchingItems.length > 1 && (
                     <span className="text-xs text-muted-foreground">
                       ({matchingItems.length} items share this search ID)
@@ -273,7 +273,7 @@ export default function TransferStockPage() {
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4 pt-4">
+              <CardContent className="space-y-4 pt-6">
                 <div className="space-y-2">
                   <Label className={showErrors && !toItemId ? "text-destructive" : ""}>Part Number</Label>
                   <SearchablePartPicker
@@ -344,8 +344,8 @@ export default function TransferStockPage() {
         </form>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
-            <CardTitle className="text-base">Transfer History</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between border-b pb-6">
+            <CardTitle>Transfer History</CardTitle>
             {historyTotal > PREVIEW_ROWS && (
               <Button
                 variant="ghost"

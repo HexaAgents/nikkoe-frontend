@@ -124,7 +124,7 @@ export default function SalesPage() {
 
         <Card>
           <CardHeader className="border-b pb-6">
-            <CardTitle className="text-lg font-bold">Add new sale</CardTitle>
+            <CardTitle>Add new sale</CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
             <AddSaleForm variant="inline" />

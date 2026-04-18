@@ -131,7 +131,7 @@ export function PartLineCard({
     <Card className={`border-primary/20 ${showErrors && errors.length > 0 ? "border-destructive" : ""}`}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm text-foreground">Part {index + 1}</CardTitle>
+          <CardTitle>Part {index + 1}</CardTitle>
           {canRemove && (
             <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(index)}>
               <Trash2 className="h-4 w-4 text-destructive" />

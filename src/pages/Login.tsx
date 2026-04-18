@@ -44,7 +44,7 @@ export default function Login() {
           <img src={nikkoLogo} alt="Nikko Electronic Components" className="h-24 object-contain" />
         </div>
         <CardHeader className="space-y-1">
-          <CardTitle className="text-center font-display text-2xl font-normal">Sign in</CardTitle>
+          <CardTitle className="text-center text-2xl font-normal">Sign in</CardTitle>
           <CardDescription className="text-center">
             Enter your email and password to access your account
           </CardDescription>

@@ -18,7 +18,7 @@ export function AddSaleModal({ open, onOpenChange, defaultItemId, defaultItemLab
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[700px]">
         <DialogHeader>
-          <DialogTitle className="text-xl text-primary">Sale</DialogTitle>
+          <DialogTitle>New Sale</DialogTitle>
         </DialogHeader>
         <AddSaleForm
           variant="dialog"

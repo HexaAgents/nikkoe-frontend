@@ -108,13 +108,13 @@ export default function Quotes() {
   return (
     <MainLayout>
       <div className="mx-auto max-w-4xl space-y-6">
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="font-display text-[28px] font-normal text-foreground">
           Supplier Quotes
         </h1>
 
         <Card>
           <CardHeader className="border-b pb-6">
-            <CardTitle className="text-base">Quote Details</CardTitle>
+            <CardTitle>Quote Details</CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -148,7 +148,7 @@ export default function Quotes() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between border-b pb-6">
-            <CardTitle className="text-base">Items</CardTitle>
+            <CardTitle>Items</CardTitle>
             <Button type="button" size="sm" variant="outline" onClick={addLine}>
               <Plus className="mr-2 h-4 w-4" />
               Add Item
@@ -262,6 +262,7 @@ export default function Quotes() {
             </div>
           </CardContent>
         </Card>
+        <div className="h-[400px] shrink-0" aria-hidden="true" />
       </div>
     </MainLayout>
   );
