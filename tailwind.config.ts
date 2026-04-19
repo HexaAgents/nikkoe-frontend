@@ -15,7 +15,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['"Playfair Display"', '"Iowan Old Style"', '"Times New Roman"', 'serif'],
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
         display: ['"Playfair Display"', '"Iowan Old Style"', '"Times New Roman"', 'serif'],
       },
       colors: {

@@ -26,7 +26,7 @@ export function AppTopBar() {
               <img src={nikkoLogo} alt="Nikko" className="h-12 object-contain" />
             </NavLink>
 
-            <nav className="flex items-center gap-1" aria-label="Main">
+            <nav className="flex items-center gap-1 font-display" aria-label="Main">
               <NavLink
                 to="/items"
                 className="relative inline-flex items-center px-3 py-2 text-sm text-white/50 transition-colors hover:text-white/80"
