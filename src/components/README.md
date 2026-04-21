@@ -32,7 +32,7 @@ Page shell shared by all authenticated views.
 Reusable components shared across multiple pages.
 
 - **DataTable.tsx** -- Generic data table component used by every list page. Accepts a typed data array and column definitions, provides client-side search (filtering by configurable keys), client-side pagination (configurable page size, default 20), Excel export via `exportToExcel`, optional row click handling, and custom row styling. The `idKey` prop is required for stable React keys.
-- **SearchableCombobox.tsx** -- Generic typeahead combobox built on Radix Popover and cmdk Command. Parameterized by `idKey` and `labelKey` so it works with any entity type without duplication. Handles open/close state, search filtering, and selection.
+- **SearchableCombobox.tsx** -- Generic typeahead combobox built on Radix Popover and Input. Parameterized by `idKey` and `labelKey` so it works with any entity type without duplication. Handles open/close state, search filtering, and selection.
 - **SearchablePartPicker.tsx** -- Thin wrapper around `SearchableCombobox` pre-configured for items. Uses `item_id` as the ID key and `part_number` as the label, with item-specific placeholder text.
 - **SearchableLocationPicker.tsx** -- Thin wrapper around `SearchableCombobox` pre-configured for locations. Uses `location_id` and `location_code`. Passes through all other props to the underlying combobox.
 - **PartLineCard.tsx** -- Shared card component for a single line item in receipt and sale forms. Contains a part picker, location picker, quantity input, price input (with configurable label for "Unit Cost" vs "Unit Price"), and currency select. Displays validation errors by highlighting invalid fields in red.
@@ -64,4 +64,4 @@ Dialog forms for creating entities.
 
 ### ui/
 
-~45 shadcn/ui primitive components auto-generated from the shadcn CLI (button, input, dialog, select, table, toast, etc.). These are Radix UI primitives styled with Tailwind CSS -- not custom application code.
+shadcn/ui primitive components auto-generated from the shadcn CLI (button, input, dialog, select, table, toast, etc.). These are Radix UI primitives styled with Tailwind CSS -- not custom application code. Unused primitives have been removed; only components actively imported by the application are kept.

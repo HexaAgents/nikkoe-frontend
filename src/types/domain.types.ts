@@ -40,8 +40,8 @@ export interface ReceiptLineInput {
 
 export interface SaleWithRelations {
   id: number;
-  customer_id_id: number | null;
-  channel_id_id: number | null;
+  customer_id: number | null;
+  channel_id: number | null;
   channel_ref: string | null;
   date: string;
   user_id: number | null;

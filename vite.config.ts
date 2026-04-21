@@ -30,7 +30,6 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks(id) {
           if (!id.includes("node_modules")) return;
-          if (id.includes("recharts") || id.includes("d3-")) return "charts";
           if (id.includes("exceljs")) return "excel";
           if (id.includes("@radix-ui")) return "radix";
           if (id.includes("@tanstack")) return "query";

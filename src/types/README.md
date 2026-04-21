@@ -6,7 +6,7 @@ Shared TypeScript type definitions used across the frontend. Contains all domain
 
 The types reflect a Supabase database with PascalCase singular table names and integer primary keys:
 - **Item** (id, item_id text, description, category_id) — `item_id` is the part number, `id` is the PK
-- **Sale** (id, customer_id_id, channel_id_id, channel_ref, date, user_id, status, note)
+- **Sale** (id, customer_id, channel_id, channel_ref, date, user_id, status, note)
 - **Sale_Stock** (id, sale_id, stock_id, quantity, unit_price, currency_id)
 - **Receipt** (id, dateTime, user_id, supplier_id, status, reference, note)
 - **Receipt_Stock** (id, receipt_id, stock_id, quantity, unit_price, currency_id, supplier_id)

@@ -63,8 +63,8 @@ describe("Domain type contracts", () => {
   it("SaleWithRelations includes nullable relation fields", () => {
     const sale: SaleWithRelations = {
       id: 1,
-      customer_id_id: null,
-      channel_id_id: null,
+      customer_id: null,
+      channel_id: null,
       channel_ref: null,
       date: "2025-01-01T00:00:00Z",
       user_id: null,

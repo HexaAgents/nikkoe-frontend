@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { FileText, X } from "lucide-react";
 import { analytics } from "@/lib/analytics";
-import { useCurrentUser, useCurrencies, useSuppliers, useLocations } from "@/hooks/queries";
+import { useCurrencies, useSuppliers, useLocations } from "@/hooks/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -80,7 +80,6 @@ export function AddReceiptForm({
 }: AddReceiptFormProps) {
   const addReceipt = useAddReceipt();
   const [isParsing, setIsParsing] = useState(false);
-  const { data: currentUser } = useCurrentUser();
   const { data: suppliers } = useSuppliers();
   const { data: locations } = useLocations();
   const { data: currencies } = useCurrencies();
