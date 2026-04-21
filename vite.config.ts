@@ -12,10 +12,20 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
     proxy: {
-      "/ingest": {
+      "/nk/static": {
+        target: "https://us-assets.i.posthog.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/nk/, ""),
+      },
+      "/nk/array": {
+        target: "https://us-assets.i.posthog.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/nk/, ""),
+      },
+      "/nk": {
         target: "https://us.i.posthog.com",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/ingest/, ""),
+        rewrite: (path) => path.replace(/^\/nk/, ""),
       },
     },
   },

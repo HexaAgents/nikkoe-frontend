@@ -9,8 +9,9 @@ export function initAnalytics() {
 
   _ready = import("posthog-js").then(({ default: ph }) => {
     ph.init(key, {
-      api_host: "/ingest",
-      ui_host: "https://us.i.posthog.com",
+      api_host: "/nk",
+      ui_host: "https://us.posthog.com",
+      person_profiles: "identified_only",
     });
     _ph = ph;
     return ph;
