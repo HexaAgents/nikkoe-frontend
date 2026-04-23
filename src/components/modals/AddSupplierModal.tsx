@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,25 +10,40 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAddSupplier } from "@/hooks/mutations";
+import type { Supplier } from "@/types/domain.types";
 
 interface AddSupplierModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Optional initial field values applied when the modal opens. */
+  defaults?: {
+    name?: string;
+  };
+  /** Called with the new supplier after a successful create. */
+  onCreated?: (supplier: Supplier) => void;
 }
 
-export function AddSupplierModal({ open, onOpenChange }: AddSupplierModalProps) {
+const EMPTY = { name: "", address: "", email: "", phone: "" };
+
+export function AddSupplierModal({ open, onOpenChange, defaults, onCreated }: AddSupplierModalProps) {
   const addSupplier = useAddSupplier();
-  const [formData, setFormData] = useState({
-    name: "",
-    address: "",
-    email: "",
-    phone: "",
-  });
+  const [formData, setFormData] = useState(EMPTY);
+
+  useEffect(() => {
+    if (!open) return;
+    setFormData({
+      name: defaults?.name ?? "",
+      address: "",
+      email: "",
+      phone: "",
+    });
+  }, [open, defaults]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await addSupplier.mutateAsync(formData);
-    setFormData({ name: "", address: "", email: "", phone: "" });
+    const created = (await addSupplier.mutateAsync(formData)) as Supplier;
+    setFormData(EMPTY);
+    onCreated?.(created);
     onOpenChange(false);
   };
 

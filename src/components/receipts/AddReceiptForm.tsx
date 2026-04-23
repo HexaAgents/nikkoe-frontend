@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { Upload, FileText, Loader2, X } from "lucide-react";
+import { Upload, Loader2, X } from "lucide-react";
 import { analytics } from "@/lib/analytics";
 import { useCurrencies, useSuppliers, useLocations } from "@/hooks/queries";
 import { Button } from "@/components/ui/button";
@@ -7,14 +7,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAddReceipt } from "@/hooks/mutations";
-import type { ReceiptLineInput } from "@/types/domain.types";
+import type { ReceiptLineInput, Item, Supplier } from "@/types/domain.types";
+import type { ParseContext, ParsedLineContext } from "@/types/invoice.types";
 import { streamParseInvoice } from "@/lib/api";
 import { toast } from "sonner";
 import { AddItemModal } from "@/components/modals/AddItemModal";
 import { AddLocationModal } from "@/components/modals/AddLocationModal";
+import { AddSupplierModal } from "@/components/modals/AddSupplierModal";
 import { SearchableSupplierPicker } from "@/components/common/SearchableSupplierPicker";
 import { PartLineCard } from "@/components/common/PartLineCard";
 import type { PartLine } from "@/components/common/PartLineCard";
+import { ResolutionDialog } from "@/components/receipts/ResolutionDialog";
 import { cn } from "@/lib/utils";
 
 function getPartLineFieldErrors(part: PartLine): string[] {
@@ -92,14 +95,18 @@ export function AddReceiptForm({
   const [parts, setParts] = useState<PartLine[]>([
     defaultItemId ? { ...emptyPart, item_id: defaultItemId } : { ...emptyPart },
   ]);
-  const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
-  const [isAddLocationModalOpen, setIsAddLocationModalOpen] = useState(false);
+
+  // Full parse context from the PDF; `null` before any upload.
+  const [parseContext, setParseContext] = useState<ParseContext | null>(null);
+  // Labels for matched items — populated from the parse so the part picker
+  // displays the correct name without a follow-up fetch.
+  const [parsedLabels, setParsedLabels] = useState<Map<string, string>>(new Map());
+  // Lets the user dismiss the supplier banner without losing the parse.
+  const [supplierBannerDismissed, setSupplierBannerDismissed] = useState(false);
+  // Drives the "Parsed N lines" blue info panel visibility.
+  const [parseSummaryDismissed, setParseSummaryDismissed] = useState(false);
+
   const [showErrors, setShowErrors] = useState(false);
-  const [parsedMeta, setParsedMeta] = useState<{
-    lineCount: number;
-    labels: Map<string, string>;
-    unresolvedParts: Map<number, string>;
-  } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [parseProgress, setParseProgress] = useState(0);
   const progressTickerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -114,6 +121,19 @@ export function AddReceiptForm({
   useEffect(() => {
     return () => clearProgressTicker();
   }, [clearProgressTicker]);
+
+  // Modals
+  const [addItemModal, setAddItemModal] = useState<{
+    open: boolean;
+    defaults?: { part_number?: string; description?: string };
+    targetLineIndex: number | null;
+  }>({ open: false, targetLineIndex: null });
+  const [addSupplierModal, setAddSupplierModal] = useState<{
+    open: boolean;
+    defaults?: { name?: string };
+  }>({ open: false });
+  const [isAddLocationModalOpen, setIsAddLocationModalOpen] = useState(false);
+  const [resolutionOpen, setResolutionOpen] = useState(false);
 
   const validation = useMemo(() => {
     const headerErrors: string[] = [];
@@ -143,11 +163,30 @@ export function AddReceiptForm({
     );
   }, [defaultCurrencyId]);
 
+  // --- Parse issue counting -------------------------------------------------
+
+  const unresolvedLineCount = useMemo(() => {
+    if (!parseContext) return 0;
+    return parseContext.lines.reduce((count, _ctx, idx) => {
+      return parts[idx]?.item_id ? count : count + 1;
+    }, 0);
+  }, [parseContext, parts]);
+
+  const supplierUnresolved =
+    !!parseContext?.supplierName && !parseContext.supplierMatched && !supplierId;
+
+  const issueCount = unresolvedLineCount + (supplierUnresolved ? 1 : 0);
+
+  // --- PDF upload / streaming parse ----------------------------------------
+
   const handleFileUpload = useCallback(
     async (file: File) => {
       if (file.type !== "application/pdf") return;
       setIsParsing(true);
-      setParsedMeta(null);
+      setParseContext(null);
+      setParsedLabels(new Map());
+      setSupplierBannerDismissed(false);
+      setParseSummaryDismissed(false);
       setShowErrors(false);
       setParseProgress(0);
 
@@ -157,14 +196,35 @@ export function AddReceiptForm({
       }, 100);
 
       const labels = new Map<string, string>();
-      const unresolvedParts = new Map<number, string>();
-      let lineIndex = 0;
+      const accumulatedLines: ParsedLineContext[] = [];
       let totalLines = 0;
-      let headerCurrencyId = defaultCurrencyId;
 
       const computeLineProgress = () => {
         if (totalLines <= 0) return 95;
-        return 65 + 35 * Math.min(1, lineIndex / totalLines);
+        return 65 + 35 * Math.min(1, accumulatedLines.length / totalLines);
+      };
+      let header: {
+        supplierName: string | null;
+        supplierMatched: boolean;
+        reference: string | null;
+        currencySymbol: string | null;
+      } = {
+        supplierName: null,
+        supplierMatched: false,
+        reference: null,
+        currencySymbol: null,
+      };
+      let headerCurrencyId = defaultCurrencyId;
+
+      const emitContext = () => {
+        setParseContext({
+          supplierName: header.supplierName,
+          supplierMatched: header.supplierMatched,
+          reference: header.reference,
+          currencySymbol: header.currencySymbol,
+          lines: [...accumulatedLines],
+          createdAt: Date.now(),
+        });
       };
 
       try {
@@ -172,24 +232,40 @@ export function AddReceiptForm({
           onHeader: (h) => {
             clearProgressTicker();
             totalLines = h.total_lines ?? 0;
+            header = {
+              supplierName: h.supplier_name,
+              supplierMatched: !!h.matched_supplier_id,
+              reference: h.reference,
+              currencySymbol: h.currency_symbol,
+            };
             if (h.matched_supplier_id) setSupplierId(String(h.matched_supplier_id));
             if (h.reference) setReference(h.reference);
             headerCurrencyId =
               currencies?.find((c) => c.name === h.currency_symbol)?.id?.toString() ??
               defaultCurrencyId;
             setFormKey((k) => k + 1);
+            emitContext();
             setParseProgress((p) => Math.max(p, totalLines > 0 ? 65 : 95));
           },
 
           onLine: (line) => {
-            const itemId = line.matched_item_id ? String(line.matched_item_id) : "";
+            const lineIndex = accumulatedLines.length;
+            const ctx: ParsedLineContext = {
+              partNumber: line.part_number,
+              description: line.description,
+              quantity: line.quantity,
+              unitPrice: line.unit_price,
+              matchedItemId: line.matched_item_id,
+              matchedItemName: line.matched_item_name,
+            };
+            accumulatedLines.push(ctx);
+
             if (line.matched_item_id && line.matched_item_name) {
               labels.set(String(line.matched_item_id), line.matched_item_name);
-            }
-            if (!line.matched_item_id && line.part_number) {
-              unresolvedParts.set(lineIndex, line.part_number);
+              setParsedLabels(new Map(labels));
             }
 
+            const itemId = line.matched_item_id ? String(line.matched_item_id) : "";
             const newPart: PartLine = {
               item_id: itemId,
               location_id: line.matched_location_id ? String(line.matched_location_id) : "",
@@ -203,23 +279,14 @@ export function AddReceiptForm({
             } else {
               setParts((prev) => [...prev, newPart]);
             }
-            lineIndex++;
 
-            setParsedMeta({
-              lineCount: lineIndex,
-              labels: new Map(labels),
-              unresolvedParts: new Map(unresolvedParts),
-            });
+            emitContext();
             setParseProgress((p) => Math.max(p, computeLineProgress()));
           },
 
           onDone: () => {
             clearProgressTicker();
-            setParsedMeta({
-              lineCount: lineIndex,
-              labels: new Map(labels),
-              unresolvedParts: new Map(unresolvedParts),
-            });
+            emitContext();
             setParseProgress(100);
           },
 
@@ -248,6 +315,8 @@ export function AddReceiptForm({
     [handleFileUpload],
   );
 
+  // --- Form state handlers --------------------------------------------------
+
   const resetForm = () => {
     setSupplierId("");
     setReference("");
@@ -255,7 +324,10 @@ export function AddReceiptForm({
     setFormKey((k) => k + 1);
     setParts([defaultItemId ? { ...emptyPart, item_id: defaultItemId, currency_id: defaultCurrencyId } : { ...emptyPart, currency_id: defaultCurrencyId }]);
     setShowErrors(false);
-    setParsedMeta(null);
+    setParseContext(null);
+    setParsedLabels(new Map());
+    setSupplierBannerDismissed(false);
+    setParseSummaryDismissed(false);
     setParseProgress(0);
     clearProgressTicker();
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -274,6 +346,44 @@ export function AddReceiptForm({
     updated[index] = { ...updated[index], [field]: value };
     setParts(updated);
   };
+
+  // --- Create-new handlers (open prefilled modals) --------------------------
+
+  const openAddItemForLine = (lineIndex: number, ctx?: ParsedLineContext) => {
+    setAddItemModal({
+      open: true,
+      targetLineIndex: lineIndex,
+      defaults: ctx
+        ? {
+            part_number: ctx.partNumber || undefined,
+            description: ctx.description || undefined,
+          }
+        : undefined,
+    });
+  };
+
+  const openAddSupplier = (name?: string) => {
+    setAddSupplierModal({ open: true, defaults: name ? { name } : undefined });
+  };
+
+  const handleItemCreated = (item: Item) => {
+    const targetIndex = addItemModal.targetLineIndex;
+    // Cache the label so the picker shows the correct name immediately.
+    setParsedLabels((prev) => {
+      const next = new Map(prev);
+      next.set(String(item.id), item.item_id);
+      return next;
+    });
+    if (targetIndex != null) {
+      handlePartSelect(targetIndex, String(item.id));
+    }
+  };
+
+  const handleSupplierCreated = (supplier: Supplier) => {
+    setSupplierId(String(supplier.id));
+  };
+
+  // --- Submit ---------------------------------------------------------------
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -309,10 +419,13 @@ export function AddReceiptForm({
   const getPartErrors = (index: number) =>
     validation.errors.find((e) => e.partIndex === index)?.fields || [];
 
+  // --- Render ---------------------------------------------------------------
+
   return (
     <>
       <form onSubmit={handleSubmit} className={cn(className)}>
         <div className={cn("space-y-6", variant === "inline" ? "py-0" : "py-4")}>
+          {/* PDF upload zone */}
           <div
             className={cn(
               "relative overflow-hidden rounded-lg border-2 border-dashed p-4 text-center transition-colors",
@@ -363,22 +476,62 @@ export function AddReceiptForm({
             )}
           </div>
 
-          {parsedMeta && (
-            <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/50">
-              <FileText className="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
-              <div className="flex-1 text-sm text-blue-800 dark:text-blue-200">
-                Parsed {parsedMeta.lineCount} line item{parsedMeta.lineCount !== 1 ? "s" : ""} from invoice.
-                {parsedMeta.unresolvedParts.size > 0 && (
+          {/* Parse summary + Resolve chip */}
+          {parseContext && !parseSummaryDismissed && (
+            <div className="flex flex-wrap items-center gap-3 rounded-md border border-muted-foreground/20 bg-muted/50 p-3 dark:border-muted-foreground/30 dark:bg-muted/30">
+              <div className="flex-1 text-sm text-foreground/80">
+                Parsed {parseContext.lines.length} line item
+                {parseContext.lines.length !== 1 ? "s" : ""} from invoice.
+                {issueCount > 0 && (
                   <span className="ml-1 text-amber-700 dark:text-amber-400">
-                    {parsedMeta.unresolvedParts.size} part{parsedMeta.unresolvedParts.size !== 1 ? "s" : ""} not
-                    found in database — select or create them manually.
+                    {issueCount} {issueCount === 1 ? "issue needs" : "issues need"} attention.
                   </span>
                 )}
               </div>
+              {issueCount > 0 && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0"
+                  onClick={() => setResolutionOpen(true)}
+                >
+                  Resolve {issueCount} {issueCount === 1 ? "issue" : "issues"}
+                </Button>
+              )}
               <button
                 type="button"
-                className="shrink-0 text-blue-400 hover:text-blue-600 dark:hover:text-blue-300"
-                onClick={() => setParsedMeta(null)}
+                className="shrink-0 text-muted-foreground hover:text-foreground"
+                onClick={() => setParseSummaryDismissed(true)}
+                aria-label="Dismiss parse summary"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Unmatched supplier banner */}
+          {supplierUnresolved && !supplierBannerDismissed && parseContext?.supplierName && (
+            <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-200 bg-amber-50/60 p-3 text-sm dark:border-amber-900/50 dark:bg-amber-950/30">
+              <div className="flex-1 text-amber-900 dark:text-amber-100">
+                Supplier{" "}
+                <span className="font-medium">“{parseContext.supplierName}”</span>{" "}
+                from the invoice is not in your database.
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="shrink-0"
+                onClick={() => openAddSupplier(parseContext.supplierName || undefined)}
+              >
+                Create supplier
+              </Button>
+              <button
+                type="button"
+                className="shrink-0 text-amber-500 hover:text-amber-700 dark:hover:text-amber-300"
+                onClick={() => setSupplierBannerDismissed(true)}
+                aria-label="Dismiss supplier banner"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -388,6 +541,7 @@ export function AddReceiptForm({
           {showErrors && validation.headerErrors.length > 0 && (
             <p className="text-sm text-destructive">Missing: {validation.headerErrors.join(", ")}</p>
           )}
+
           <div className="flex flex-wrap items-center gap-4">
             <Label className={`w-24 shrink-0 ${showErrors && !supplierId ? "text-destructive" : "text-muted-foreground"}`}>Supplier:</Label>
             <SearchableSupplierPicker
@@ -418,34 +572,44 @@ export function AddReceiptForm({
             />
           </div>
 
-          {parts.map((part, index) => (
-            <PartLineCard
-              key={index}
-              index={index}
-              part={part}
-              locations={allLocations}
-              currencies={currencies}
-              priceLabel="Unit Cost"
-              showErrors={showErrors}
-              errors={getPartErrors(index)}
-              canRemove={parts.length > 1}
-              onPartSelect={handlePartSelect}
-              onFieldChange={handlePartChange}
-              onRemove={(i) => setParts(parts.filter((_, j) => j !== i))}
-              partLabel={parsedMeta?.labels.get(part.item_id) || (index === 0 && defaultItemLabel ? defaultItemLabel : undefined)}
-              parsedPartNumber={parsedMeta?.unresolvedParts.get(index)}
-              extraPartActions={
-                <Button type="button" variant="secondary" onClick={() => setIsAddItemModalOpen(true)}>
-                  New Part
-                </Button>
-              }
-              extraLocationActions={
-                <Button type="button" variant="secondary" onClick={() => setIsAddLocationModalOpen(true)}>
-                  New Location
-                </Button>
-              }
-            />
-          ))}
+          {parts.map((part, index) => {
+            const invoiceContext = parseContext?.lines[index];
+            return (
+              <PartLineCard
+                key={index}
+                index={index}
+                part={part}
+                locations={allLocations}
+                currencies={currencies}
+                priceLabel="Unit Cost"
+                showAvailableStock={false}
+                showErrors={showErrors}
+                errors={getPartErrors(index)}
+                canRemove={parts.length > 1}
+                onPartSelect={handlePartSelect}
+                onFieldChange={handlePartChange}
+                onRemove={(i) => setParts(parts.filter((_, j) => j !== i))}
+                partLabel={parsedLabels.get(part.item_id) || (index === 0 && defaultItemLabel ? defaultItemLabel : undefined)}
+                invoiceContext={invoiceContext}
+                invoiceCurrencySymbol={parseContext?.currencySymbol}
+                onCreatePartFromInvoice={(i, ctx) => openAddItemForLine(i, ctx)}
+                extraPartActions={
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => openAddItemForLine(index, invoiceContext)}
+                  >
+                    New Part
+                  </Button>
+                }
+                extraLocationActions={
+                  <Button type="button" variant="secondary" onClick={() => setIsAddLocationModalOpen(true)}>
+                    New Location
+                  </Button>
+                }
+              />
+            );
+          })}
         </div>
 
         <div className="flex flex-wrap justify-center gap-2 pt-6">
@@ -467,8 +631,36 @@ export function AddReceiptForm({
         </div>
       </form>
 
-      <AddItemModal open={isAddItemModalOpen} onOpenChange={setIsAddItemModalOpen} />
+      <AddItemModal
+        open={addItemModal.open}
+        onOpenChange={(open) => setAddItemModal((prev) => ({ ...prev, open }))}
+        defaults={addItemModal.defaults}
+        onCreated={handleItemCreated}
+      />
       <AddLocationModal open={isAddLocationModalOpen} onOpenChange={setIsAddLocationModalOpen} />
+      <AddSupplierModal
+        open={addSupplierModal.open}
+        onOpenChange={(open) => setAddSupplierModal((prev) => ({ ...prev, open }))}
+        defaults={addSupplierModal.defaults}
+        onCreated={handleSupplierCreated}
+      />
+      <ResolutionDialog
+        open={resolutionOpen}
+        onOpenChange={setResolutionOpen}
+        parseContext={parseContext}
+        supplierId={supplierId}
+        parts={parts}
+        onSelectSupplier={(id) => setSupplierId(id)}
+        onSelectPart={(lineIndex, itemId) => handlePartSelect(lineIndex, itemId)}
+        onCreateSupplier={(name) => {
+          setResolutionOpen(false);
+          openAddSupplier(name);
+        }}
+        onCreatePart={(lineIndex, ctx) => {
+          setResolutionOpen(false);
+          openAddItemForLine(lineIndex, ctx);
+        }}
+      />
     </>
   );
 }

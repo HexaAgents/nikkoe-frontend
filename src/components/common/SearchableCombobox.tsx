@@ -81,6 +81,8 @@ export function SearchableCombobox<T extends Record<string, unknown>>({
       <PopoverContent
         className="w-[--radix-popover-trigger-width] p-0"
         align="start"
+        side="bottom"
+        avoidCollisions={false}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">

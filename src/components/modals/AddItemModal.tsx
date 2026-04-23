@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { analytics } from "@/lib/analytics";
 import {
   Dialog,
@@ -19,33 +19,50 @@ import {
 } from "@/components/ui/select";
 import { useAddItem } from "@/hooks/mutations";
 import { useCategories } from "@/hooks/queries";
+import type { Item } from "@/types/domain.types";
 
 interface AddItemModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Optional initial field values applied when the modal opens. */
+  defaults?: {
+    part_number?: string;
+    description?: string;
+  };
+  /** Called with the new item after a successful create. */
+  onCreated?: (item: Item) => void;
 }
 
-export function AddItemModal({ open, onOpenChange }: AddItemModalProps) {
+const EMPTY = { part_number: "", description: "", category_id: "" };
+
+export function AddItemModal({ open, onOpenChange, defaults, onCreated }: AddItemModalProps) {
   const addItem = useAddItem();
   const { data: categories } = useCategories();
-  const [formData, setFormData] = useState({
-    part_number: "",
-    description: "",
-    category_id: "",
-  });
+  const [formData, setFormData] = useState(EMPTY);
+
+  useEffect(() => {
+    if (!open) return;
+    setFormData({
+      part_number: defaults?.part_number ?? "",
+      description: defaults?.description ?? "",
+      category_id: "",
+    });
+  }, [open, defaults]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await addItem.mutateAsync({
+    const created = (await addItem.mutateAsync({
       item_id: formData.part_number,
       description: formData.description || undefined,
       category_id: formData.category_id ? parseInt(formData.category_id) : undefined,
-    });
+    })) as Item;
     analytics.track("item_created", {
       has_description: !!formData.description,
       has_category: !!formData.category_id,
+      from_invoice: !!defaults?.part_number,
     });
-    setFormData({ part_number: "", description: "", category_id: "" });
+    setFormData(EMPTY);
+    onCreated?.(created);
     onOpenChange(false);
   };
 

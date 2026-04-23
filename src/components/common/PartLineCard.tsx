@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SearchablePartPicker } from "@/components/common/SearchablePartPicker";
 import { SearchableLocationPicker } from "@/components/common/SearchableLocationPicker";
 import { useItemInventory } from "@/hooks/queries";
+import type { ParsedLineContext } from "@/types/invoice.types";
 
 export interface PartLine {
   item_id: string;
@@ -39,8 +40,21 @@ interface PartLineCardProps {
   extraLocationActions?: React.ReactNode;
   inStockOnly?: boolean;
   availableQuantity?: number | null;
+  showAvailableStock?: boolean;
   partLabel?: string;
   parsedPartNumber?: string;
+  /** Full context parsed from the invoice for this line, used to render
+   *  either a "From invoice" panel (when unresolved) or a hover tooltip
+   *  (when resolved). */
+  invoiceContext?: ParsedLineContext;
+  /** Currency symbol from the invoice header, used to format unit price
+   *  in invoice context displays. */
+  invoiceCurrencySymbol?: string | null;
+  /** Fired when the user clicks "Create part from invoice" in the amber
+   *  panel. Parent is expected to open the AddItemModal with prefilled
+   *  part_number and description, and then (via AddItemModal onCreated)
+   *  call onPartSelect with the new item id. */
+  onCreatePartFromInvoice?: (index: number, context: ParsedLineContext) => void;
 }
 
 const fallbackCurrencies = [
@@ -65,8 +79,12 @@ export function PartLineCard({
   extraLocationActions,
   inStockOnly,
   availableQuantity: availableQuantityProp,
+  showAvailableStock = true,
   partLabel,
   parsedPartNumber,
+  invoiceContext,
+  invoiceCurrencySymbol,
+  onCreatePartFromInvoice,
 }: PartLineCardProps) {
   const { data: itemInventory } = useItemInventory(part.item_id);
 
@@ -108,7 +126,10 @@ export function PartLineCard({
 
   const qty = Number(part.quantity);
   const exceedsStock =
-    availableQuantity != null && Number.isFinite(qty) && qty > availableQuantity;
+    showAvailableStock &&
+    availableQuantity != null &&
+    Number.isFinite(qty) &&
+    qty > availableQuantity;
 
   const currencyList = currencies && currencies.length > 0 ? currencies : fallbackCurrencies;
 
@@ -157,7 +178,7 @@ export function PartLineCard({
               inStockOnly={inStockOnly}
               initialLabel={partLabel}
             />
-            {parsedPartNumber && !part.item_id && (
+            {!invoiceContext && parsedPartNumber && !part.item_id && (
               <span className="shrink-0 text-xs text-amber-600">
                 Invoice: {parsedPartNumber}
               </span>
@@ -165,6 +186,50 @@ export function PartLineCard({
             {extraPartActions}
           </div>
         </div>
+
+        {invoiceContext && !part.item_id && (
+          <div className="flex flex-wrap items-center gap-4 rounded-lg border border-amber-200/80 bg-amber-50/40 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
+            <div className="min-w-0 flex-1 space-y-3">
+              <div className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                From invoice — not found in database
+              </div>
+              <dl className="space-y-2 text-sm">
+                <div className="flex items-start gap-4">
+                  <dt className="w-32 shrink-0 text-muted-foreground">Part Number:</dt>
+                  <dd className="min-w-0 flex-1 font-mono text-foreground">
+                    {invoiceContext.partNumber || "—"}
+                  </dd>
+                </div>
+                {invoiceContext.description && (
+                  <div className="flex items-start gap-4">
+                    <dt className="w-32 shrink-0 text-muted-foreground">Description:</dt>
+                    <dd className="min-w-0 flex-1 text-foreground">
+                      {invoiceContext.description}
+                    </dd>
+                  </div>
+                )}
+                <div className="flex items-start gap-4">
+                  <dt className="w-32 shrink-0 text-muted-foreground">Qty × Unit:</dt>
+                  <dd className="min-w-0 flex-1 text-foreground">
+                    {invoiceContext.quantity} × {invoiceCurrencySymbol ?? ""}
+                    {formatPrice(invoiceContext.unitPrice)}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+            {onCreatePartFromInvoice && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="shrink-0"
+                onClick={() => onCreatePartFromInvoice(index, invoiceContext)}
+              >
+                Create part from invoice
+              </Button>
+            )}
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center gap-4">
           <Label
@@ -202,7 +267,7 @@ export function PartLineCard({
                   exceedsStock && "border-amber-500",
                 )}
               />
-              {availableQuantity != null && (
+              {showAvailableStock && availableQuantity != null && (
                 <span
                   className={cn(
                     "shrink-0 text-sm",
@@ -301,4 +366,58 @@ export function PartLineCard({
       </CardContent>
     </Card>
   );
+}
+
+interface InvoiceContextSummaryProps {
+  context: ParsedLineContext;
+  currencySymbol?: string | null;
+  title?: string;
+}
+
+/**
+ * Compact summary of a parsed invoice line — part number, description,
+ * quantity, and unit price. Used inside the resolution dialog so the
+ * user sees the exact PDF source they're resolving.
+ */
+export function InvoiceContextSummary({ context, currencySymbol, title }: InvoiceContextSummaryProps) {
+  return (
+    <div className="text-sm">
+      {title && (
+        <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {title}
+        </div>
+      )}
+      <dl className="space-y-2">
+        <div className="flex items-start gap-4">
+          <dt className="w-32 shrink-0 text-muted-foreground">Part Number:</dt>
+          <dd className="min-w-0 flex-1 font-mono">{context.partNumber || "—"}</dd>
+        </div>
+        {context.description && (
+          <div className="flex items-start gap-4">
+            <dt className="w-32 shrink-0 text-muted-foreground">Description:</dt>
+            <dd className="min-w-0 flex-1">{context.description}</dd>
+          </div>
+        )}
+        <div className="flex items-start gap-4">
+          <dt className="w-32 shrink-0 text-muted-foreground">Qty × Unit:</dt>
+          <dd className="min-w-0 flex-1">
+            {context.quantity} × {currencySymbol ?? ""}
+            {formatPrice(context.unitPrice)}
+          </dd>
+        </div>
+      </dl>
+    </div>
+  );
+}
+
+/**
+ * Format a unit price with at least 2 decimal places, up to 4 when the
+ * parsed price has more precision (e.g. 0.873 from "8,73/10 PCS").
+ */
+function formatPrice(v: number): string {
+  if (!Number.isFinite(v)) return String(v);
+  return v.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  });
 }

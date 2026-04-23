@@ -33,6 +33,7 @@ vi.mock("@/hooks/mutations", () => ({
   useAddCustomer: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useAddItem: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useAddLocation: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useAddSupplier: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useTransferStock: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
