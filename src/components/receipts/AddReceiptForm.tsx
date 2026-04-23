@@ -177,6 +177,15 @@ export function AddReceiptForm({
 
   const issueCount = unresolvedLineCount + (supplierUnresolved ? 1 : 0);
 
+  // Auto-open the resolution dialog once parsing finishes with unresolved issues.
+  const lastAutoOpenRef = useRef<number>(0);
+  useEffect(() => {
+    if (isParsing || !parseContext || issueCount === 0) return;
+    if (parseContext.createdAt === lastAutoOpenRef.current) return;
+    lastAutoOpenRef.current = parseContext.createdAt;
+    setResolutionOpen(true);
+  }, [isParsing, parseContext, issueCount]);
+
   // --- PDF upload / streaming parse ----------------------------------------
 
   const handleFileUpload = useCallback(
@@ -551,6 +560,13 @@ export function AddReceiptForm({
               onSelect={setSupplierId}
               hasError={showErrors && !supplierId}
             />
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => openAddSupplier(parseContext?.supplierName || undefined)}
+            >
+              New Supplier
+            </Button>
           </div>
 
           <div className="flex items-center gap-4">
