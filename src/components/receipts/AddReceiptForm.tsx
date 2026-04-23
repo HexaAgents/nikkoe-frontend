@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { Upload, Loader2, X } from "lucide-react";
+import { Upload, Loader2, X, RefreshCw } from "lucide-react";
 import { analytics } from "@/lib/analytics";
 import { useCurrencies, useSuppliers, useLocations } from "@/hooks/queries";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,9 @@ import { PartLineCard } from "@/components/common/PartLineCard";
 import type { PartLine } from "@/components/common/PartLineCard";
 import { ResolutionDialog } from "@/components/receipts/ResolutionDialog";
 import { cn } from "@/lib/utils";
+import { symbolToIso, isoToSymbol } from "@/lib/fx";
+import { useFxRate } from "@/hooks/useFxRate";
+import { computeInvoiceFinance } from "@/lib/landed-cost";
 
 // Feature flag: flip to `true` to restore the PDF-invoice drop zone on the
 // receipts page. All underlying handlers (streamParseInvoice, parse state,
@@ -111,6 +114,20 @@ export function AddReceiptForm({
   // Drives the "Parsed N lines" blue info panel visibility.
   const [parseSummaryDismissed, setParseSummaryDismissed] = useState(false);
 
+  // Landed-cost state: shipping is typed in invoice currency; fxRate converts
+  // invoice currency to GBP. Both default to neutral values (0 / 1). On each
+  // new upload, we seed shippingCost from the parser and (if non-GBP) seed
+  // fxRate from the live ECB rate. Users can override either freely.
+  const [shippingCost, setShippingCost] = useState("0");
+  const [fxRate, setFxRate] = useState("1");
+  const [fxManuallyEdited, setFxManuallyEdited] = useState(false);
+  // Set of line indices whose Unit Cost the user has manually edited — we
+  // stop auto-deriving those so we don't clobber their input.
+  const [priceOverrides, setPriceOverrides] = useState<Set<number>>(new Set());
+  // User can override the auto-detected invoice currency. `null` means "use
+  // whatever the parser detected".
+  const [currencyOverride, setCurrencyOverride] = useState<string | null>(null);
+
   const [showErrors, setShowErrors] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [parseProgress, setParseProgress] = useState(0);
@@ -151,7 +168,17 @@ export function AddReceiptForm({
     return { isValid: headerErrors.length === 0 && errors.length === 0, headerErrors, errors };
   }, [parts, supplierId]);
 
-  const defaultCurrencyId = currencies?.find((c) => c.name === "GBP")?.id?.toString() ?? "";
+  // Resolve the GBP currency id whether the DB stores it as the ISO code or
+  // the symbol (both patterns exist in historical data). Falls back to "".
+  const gbpCurrencyId = useMemo(() => {
+    if (!currencies) return "";
+    const hit = currencies.find((c) => {
+      const n = (c.name ?? "").trim().toUpperCase();
+      return n === "GBP" || n === "£";
+    });
+    return hit ? String(hit.id) : "";
+  }, [currencies]);
+  const defaultCurrencyId = gbpCurrencyId;
 
   const allLocations = useMemo(
     () => locations?.map((l) => ({ location_id: String(l.id), location_code: l.code })),
@@ -190,6 +217,84 @@ export function AddReceiptForm({
     setResolutionOpen(true);
   }, [isParsing, parseContext, issueCount]);
 
+  // --- Landed-cost derivation ----------------------------------------------
+  //
+  // Resolve the invoice's ISO currency: user override takes priority, then the
+  // symbol the parser detected.
+  const invoiceIso = useMemo(
+    () => symbolToIso(currencyOverride ?? parseContext?.currencySymbol ?? null),
+    [currencyOverride, parseContext?.currencySymbol],
+  );
+  const needsFx = invoiceIso !== null && invoiceIso !== "GBP";
+  const fx = useFxRate(needsFx ? invoiceIso : null);
+
+  const handleCurrencyOverride = (iso: string) => {
+    setCurrencyOverride(iso);
+    setFxManuallyEdited(false);
+    setFxRate("1");
+  };
+
+  // Seed the FX rate from the live value whenever the user hasn't touched it.
+  useEffect(() => {
+    if (!needsFx || fxManuallyEdited) return;
+    if (fx.rate === null) return;
+    setFxRate(String(fx.rate));
+  }, [needsFx, fxManuallyEdited, fx.rate]);
+
+  // Toast once when the live lookup fails so the user knows to fill it in.
+  const lastFxErrorRef = useRef<unknown>(null);
+  useEffect(() => {
+    if (!needsFx || !fx.error || fx.error === lastFxErrorRef.current) return;
+    lastFxErrorRef.current = fx.error;
+    toast.error("Live FX rate unavailable — please enter the rate manually.");
+  }, [needsFx, fx.error]);
+
+  // Parse numeric inputs into safe numbers for calculation.
+  const parsedShipping = Math.max(0, Number(shippingCost) || 0);
+  const parsedFx = (() => {
+    const n = Number(fxRate);
+    return Number.isFinite(n) && n > 0 ? n : 1;
+  })();
+
+  // Align the finance math to the line order of the current parts. For lines
+  // that came from the PDF we use the parsed unit price as the base (the raw
+  // invoice-currency cost before allocation). For manually-added lines we
+  // interpret the typed `price` as the invoice-currency base — useful when a
+  // user wants to allocate their own freight cost across ad-hoc lines.
+  const lineFinance = useMemo(() => {
+    const invoiceLines = parts.map((p, i) => {
+      const ctx = parseContext?.lines[i];
+      const unitPrice = ctx ? ctx.unitPrice : Number(p.price) || 0;
+      const quantity = Number(p.quantity) || 0;
+      return { unitPrice, quantity };
+    });
+    return computeInvoiceFinance(invoiceLines, parsedShipping, parsedFx);
+  }, [parts, parseContext, parsedShipping, parsedFx]);
+
+  const showBreakdown = parsedShipping > 0 || parsedFx !== 1;
+
+  // Auto-derive the `price` input (landed GBP) for parsed lines the user
+  // hasn't edited. Also align their `currency_id` to GBP. Manually-added
+  // lines and lines in `priceOverrides` are left alone.
+  useEffect(() => {
+    if (!parseContext) return;
+    if (!gbpCurrencyId) return;
+    setParts((prev) => {
+      let changed = false;
+      const next = prev.map((p, i) => {
+        if (i >= parseContext.lines.length) return p;
+        if (priceOverrides.has(i)) return p;
+        const fin = lineFinance.lines[i];
+        if (!fin) return p;
+        const newPrice = fin.landedUnitGbp.toFixed(4);
+        if (p.price === newPrice && p.currency_id === gbpCurrencyId) return p;
+        changed = true;
+        return { ...p, price: newPrice, currency_id: gbpCurrencyId };
+      });
+      return changed ? next : prev;
+    });
+  }, [parseContext, lineFinance, priceOverrides, gbpCurrencyId]);
+
   // --- PDF upload / streaming parse ----------------------------------------
 
   const handleFileUpload = useCallback(
@@ -202,6 +307,13 @@ export function AddReceiptForm({
       setParseSummaryDismissed(false);
       setShowErrors(false);
       setParseProgress(0);
+      // Reset landed-cost state so values from a previous invoice don't leak
+      // into this one.
+      setShippingCost("0");
+      setFxRate("1");
+      setFxManuallyEdited(false);
+      setPriceOverrides(new Set());
+      setCurrencyOverride(null);
 
       clearProgressTicker();
       progressTickerRef.current = setInterval(() => {
@@ -221,11 +333,13 @@ export function AddReceiptForm({
         supplierMatched: boolean;
         reference: string | null;
         currencySymbol: string | null;
+        shippingTotal: number;
       } = {
         supplierName: null,
         supplierMatched: false,
         reference: null,
         currencySymbol: null,
+        shippingTotal: 0,
       };
       let headerCurrencyId = defaultCurrencyId;
 
@@ -235,6 +349,7 @@ export function AddReceiptForm({
           supplierMatched: header.supplierMatched,
           reference: header.reference,
           currencySymbol: header.currencySymbol,
+          shippingTotal: header.shippingTotal,
           lines: [...accumulatedLines],
           createdAt: Date.now(),
         });
@@ -245,17 +360,20 @@ export function AddReceiptForm({
           onHeader: (h) => {
             clearProgressTicker();
             totalLines = h.total_lines ?? 0;
+            const shipping = Math.max(0, Number(h.shipping_total) || 0);
             header = {
               supplierName: h.supplier_name,
               supplierMatched: !!h.matched_supplier_id,
               reference: h.reference,
               currencySymbol: h.currency_symbol,
+              shippingTotal: shipping,
             };
             if (h.matched_supplier_id) setSupplierId(String(h.matched_supplier_id));
             if (h.reference) setReference(h.reference);
             headerCurrencyId =
               currencies?.find((c) => c.name === h.currency_symbol)?.id?.toString() ??
               defaultCurrencyId;
+            setShippingCost(String(shipping));
             setFormKey((k) => k + 1);
             emitContext();
             setParseProgress((p) => Math.max(p, totalLines > 0 ? 65 : 95));
@@ -342,6 +460,11 @@ export function AddReceiptForm({
     setSupplierBannerDismissed(false);
     setParseSummaryDismissed(false);
     setParseProgress(0);
+    setShippingCost("0");
+    setFxRate("1");
+    setFxManuallyEdited(false);
+    setPriceOverrides(new Set());
+    setCurrencyOverride(null);
     clearProgressTicker();
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -358,6 +481,29 @@ export function AddReceiptForm({
     const updated = [...parts];
     updated[index] = { ...updated[index], [field]: value };
     setParts(updated);
+    // A manual edit to Unit Cost opts that line out of landed-cost auto-derivation
+    // so shipping / FX changes no longer clobber it.
+    if (field === "price" && !priceOverrides.has(index)) {
+      setPriceOverrides((prev) => {
+        const next = new Set(prev);
+        next.add(index);
+        return next;
+      });
+    }
+  };
+
+  const handleRemovePart = (removeIndex: number) => {
+    setParts((prev) => prev.filter((_, j) => j !== removeIndex));
+    // Keep override indices aligned after deletion: drop the removed index
+    // and shift higher indices down by one.
+    setPriceOverrides((prev) => {
+      const next = new Set<number>();
+      for (const i of prev) {
+        if (i === removeIndex) continue;
+        next.add(i > removeIndex ? i - 1 : i);
+      }
+      return next;
+    });
   };
 
   // --- Create-new handlers (open prefilled modals) --------------------------
@@ -525,6 +671,35 @@ export function AddReceiptForm({
             </div>
           )}
 
+          {/* Landed Cost & Conversion — shipping allocation + FX controls.
+              Always visible once a PDF has been parsed so the user can tweak
+              shipping or the FX rate. Hidden otherwise to keep the manual-
+              entry flow uncluttered. */}
+          {parseContext && (
+            <LandedCostPanel
+              invoiceSymbol={invoiceIso ? isoToSymbol(invoiceIso) : (parseContext.currencySymbol ?? "")}
+              invoiceIso={invoiceIso}
+              onCurrencyChange={handleCurrencyOverride}
+              shippingCost={shippingCost}
+              onShippingChange={setShippingCost}
+              parsedShippingTotal={parseContext.shippingTotal}
+              needsFx={needsFx}
+              fxRate={fxRate}
+              onFxChange={(v) => { setFxRate(v); setFxManuallyEdited(true); }}
+              onFxRefresh={() => {
+                setFxManuallyEdited(false);
+                fx.refetch();
+              }}
+              fxIsLoading={fx.isFetching}
+              fxManuallyEdited={fxManuallyEdited}
+              fxHasError={!!fx.error}
+              subtotal={lineFinance.subtotal}
+              invoiceTotal={lineFinance.invoiceTotal}
+              grandTotalGbp={lineFinance.grandTotalGbp}
+              fxRateNumeric={parsedFx}
+            />
+          )}
+
           {/* Unmatched supplier banner */}
           {supplierUnresolved && !supplierBannerDismissed && (
             <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-200 bg-amber-50/60 p-3 text-sm dark:border-amber-900/50 dark:bg-amber-950/30">
@@ -602,6 +777,23 @@ export function AddReceiptForm({
 
           {parts.map((part, index) => {
             const invoiceContext = parseContext?.lines[index];
+            const fin = lineFinance.lines[index];
+            const sym = invoiceIso ? isoToSymbol(invoiceIso) : (parseContext?.currencySymbol ?? "");
+            const baseUnit = invoiceContext ? invoiceContext.unitPrice : Number(part.price) || 0;
+            const breakdown =
+              showBreakdown && fin
+                ? (
+                  <LineBreakdown
+                    symbol={sym}
+                    baseUnit={baseUnit}
+                    shipPerUnit={fin.shippingPerUnit}
+                    landedUnitInvoice={fin.landedUnitInvoice}
+                    landedUnitGbp={fin.landedUnitGbp}
+                    convertToGbp={needsFx}
+                    overridden={priceOverrides.has(index)}
+                  />
+                )
+                : null;
             return (
               <PartLineCard
                 key={index}
@@ -616,11 +808,12 @@ export function AddReceiptForm({
                 canRemove={parts.length > 1}
                 onPartSelect={handlePartSelect}
                 onFieldChange={handlePartChange}
-                onRemove={(i) => setParts(parts.filter((_, j) => j !== i))}
+                onRemove={handleRemovePart}
                 partLabel={parsedLabels.get(part.item_id) || (index === 0 && defaultItemLabel ? defaultItemLabel : undefined)}
                 invoiceContext={invoiceContext}
-                invoiceCurrencySymbol={parseContext?.currencySymbol}
+                invoiceCurrencySymbol={invoiceIso ? isoToSymbol(invoiceIso) : parseContext?.currencySymbol}
                 onCreatePartFromInvoice={(i, ctx) => openAddItemForLine(i, ctx)}
+                landedCostBreakdown={breakdown}
                 extraPartActions={
                   <Button
                     type="button"
@@ -691,4 +884,217 @@ export function AddReceiptForm({
       />
     </>
   );
+}
+
+// --- Landed-cost presentation helpers ---------------------------------------
+//
+// Kept co-located with AddReceiptForm (rather than in /components/common)
+// because they are specific to this form's parse state. If the sales or
+// transfer flows ever grow the same feature, lift them to common then.
+
+interface LandedCostPanelProps {
+  invoiceSymbol: string;
+  invoiceIso: "GBP" | "USD" | "EUR" | null;
+  onCurrencyChange: (iso: string) => void;
+  shippingCost: string;
+  onShippingChange: (v: string) => void;
+  parsedShippingTotal: number;
+  needsFx: boolean;
+  fxRate: string;
+  onFxChange: (v: string) => void;
+  onFxRefresh: () => void;
+  fxIsLoading: boolean;
+  fxManuallyEdited: boolean;
+  fxHasError: boolean;
+  subtotal: number;
+  invoiceTotal: number;
+  grandTotalGbp: number;
+  fxRateNumeric: number;
+}
+
+function LandedCostPanel(props: LandedCostPanelProps) {
+  const {
+    invoiceSymbol,
+    invoiceIso,
+    onCurrencyChange,
+    shippingCost,
+    onShippingChange,
+    parsedShippingTotal,
+    needsFx,
+    fxRate,
+    onFxChange,
+    onFxRefresh,
+    fxIsLoading,
+    fxManuallyEdited,
+    fxHasError,
+    subtotal,
+    invoiceTotal,
+    grandTotalGbp,
+    fxRateNumeric,
+  } = props;
+
+  const sym = invoiceSymbol || "£";
+
+  const CURRENCY_OPTIONS = [
+    { iso: "GBP", label: "£ GBP" },
+    { iso: "USD", label: "$ USD" },
+    { iso: "EUR", label: "€ EUR" },
+  ] as const;
+
+  return (
+    <div className="border border-border bg-background">
+      <div className="space-y-3 px-4 py-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <Label className="w-24 shrink-0 text-muted-foreground">Currency:</Label>
+          <select
+            value={invoiceIso ?? "GBP"}
+            onChange={(e) => onCurrencyChange(e.target.value)}
+            className="h-9 w-32 border border-input bg-background pl-3 pr-8 text-right text-sm tabular-nums text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          >
+            {CURRENCY_OPTIONS.map((c) => (
+              <option key={c.iso} value={c.iso}>{c.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4">
+          <Label className="w-24 shrink-0 text-muted-foreground">
+            Shipping ({sym}):
+          </Label>
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            value={shippingCost}
+            onChange={(e) => onShippingChange(e.target.value)}
+            className="w-32 text-right tabular-nums"
+          />
+          {parsedShippingTotal > 0 ? (
+            <span className="text-xs text-muted-foreground">
+              Detected from invoice
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              Enter shipping to allocate across items
+            </span>
+          )}
+        </div>
+
+        {needsFx && (
+          <div className="flex flex-wrap items-center gap-4">
+            <Label className="w-24 shrink-0 text-muted-foreground">
+              {invoiceIso}/GBP rate:
+            </Label>
+            <Input
+              type="number"
+              step="0.0001"
+              min="0"
+              value={fxRate}
+              onChange={(e) => onFxChange(e.target.value)}
+              className="w-32 text-right tabular-nums"
+            />
+            <span className={cn(
+              "text-xs",
+              fxHasError ? "text-destructive" : "text-muted-foreground",
+            )}>
+              {fxHasError
+                ? "Rate unavailable — enter manually"
+                : fxManuallyEdited
+                ? "Manually set"
+                : fxIsLoading
+                ? "Fetching rate…"
+                : "ECB daily rate"}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onFxRefresh}
+              title="Refresh rate"
+              aria-label="Refresh live FX rate"
+              className="h-7 w-7"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", fxIsLoading && "animate-spin")} />
+            </Button>
+          </div>
+        )}
+
+        <div className="mt-1 border-t border-border/60 pt-3 text-sm">
+          <SummaryRow label="Subtotal" value={`${sym}${fmt(subtotal)}`} />
+          <SummaryRow
+            label="Shipping"
+            value={`${sym}${fmt(Math.max(0, Number(shippingCost) || 0))}`}
+          />
+          {needsFx && (
+            <SummaryRow
+              label="Exchange rate"
+              value={`1 ${invoiceIso} = ${fmt(fxRateNumeric, 4)} GBP`}
+            />
+          )}
+          <div className="mt-1.5 flex items-center justify-between border-t border-border/60 pt-1.5">
+            <span className="font-medium">Total (GBP)</span>
+            <span className="tabular-nums font-semibold">£{fmt(grandTotalGbp)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between py-0.5">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="tabular-nums text-foreground/80">{value}</span>
+    </div>
+  );
+}
+
+interface LineBreakdownProps {
+  symbol: string;
+  baseUnit: number;
+  shipPerUnit: number;
+  landedUnitInvoice: number;
+  landedUnitGbp: number;
+  convertToGbp: boolean;
+  overridden: boolean;
+}
+
+function LineBreakdown({
+  symbol,
+  baseUnit,
+  shipPerUnit,
+  landedUnitInvoice,
+  landedUnitGbp,
+  convertToGbp,
+  overridden,
+}: LineBreakdownProps) {
+  const sym = symbol || "£";
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5 tabular-nums">
+      <span>{sym}{fmt(baseUnit, 4)}</span>
+      <span className="text-muted-foreground/60">+</span>
+      <span>{sym}{fmt(shipPerUnit, 4)} shipping</span>
+      <span className="text-muted-foreground/60">=</span>
+      <span>{sym}{fmt(landedUnitInvoice, 4)}</span>
+      {convertToGbp && (
+        <>
+          <span className="text-muted-foreground/60">=</span>
+          <span className="font-medium text-foreground/90">£{fmt(landedUnitGbp, 4)}</span>
+        </>
+      )}
+      {overridden && (
+        <span className="text-muted-foreground/50">(edited)</span>
+      )}
+    </span>
+  );
+}
+
+/** Format a number with up to `maxDigits` decimals and thousand separators. */
+function fmt(v: number, maxDigits = 2): string {
+  if (!Number.isFinite(v)) return String(v);
+  return v.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: maxDigits,
+  });
 }

@@ -55,6 +55,10 @@ interface PartLineCardProps {
    *  part_number and description, and then (via AddItemModal onCreated)
    *  call onPartSelect with the new item id. */
   onCreatePartFromInvoice?: (index: number, context: ParsedLineContext) => void;
+  /** Optional single-line caption rendered beneath the Unit Cost input — used
+   *  by the receipts form to show a landed-cost breakdown
+   *  (base + shipping = landed) without cluttering the main layout. */
+  landedCostBreakdown?: React.ReactNode;
 }
 
 const fallbackCurrencies = [
@@ -85,6 +89,7 @@ export function PartLineCard({
   invoiceContext,
   invoiceCurrencySymbol,
   onCreatePartFromInvoice,
+  landedCostBreakdown,
 }: PartLineCardProps) {
   const { data: itemInventory } = useItemInventory(part.item_id);
 
@@ -191,7 +196,7 @@ export function PartLineCard({
           <div className="flex flex-wrap items-center gap-4 rounded-lg border border-amber-200/80 bg-amber-50/40 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
             <div className="min-w-0 flex-1 space-y-3">
               <div className="text-sm font-medium text-amber-900 dark:text-amber-200">
-                From invoice — not found in database
+                Unidentified part
               </div>
               <dl className="space-y-2 text-sm">
                 <div className="flex items-start gap-4">
@@ -280,23 +285,30 @@ export function PartLineCard({
             </div>
           </div>
 
-          <div className="flex min-w-0 flex-1 items-center gap-4">
-            <Label
-              className={`shrink-0 ${showErrors && errors.includes(priceLabel) ? "text-destructive" : "text-muted-foreground"}`}
-            >
-              {priceLabel}:
-            </Label>
-            <Input
-              type="number"
-              step="0.001"
-              min="0"
-              value={part.price}
-              onChange={(e) => onFieldChange(index, "price", e.target.value)}
-              className={cn(
-                "min-w-0 flex-1",
-                showErrors && errors.includes(priceLabel) && "border-destructive",
-              )}
-            />
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <div className="flex items-center gap-4">
+              <Label
+                className={`shrink-0 ${showErrors && errors.includes(priceLabel) ? "text-destructive" : "text-muted-foreground"}`}
+              >
+                {priceLabel}:
+              </Label>
+              <Input
+                type="number"
+                step="0.001"
+                min="0"
+                value={part.price}
+                onChange={(e) => onFieldChange(index, "price", e.target.value)}
+                className={cn(
+                  "min-w-0 flex-1",
+                  showErrors && errors.includes(priceLabel) && "border-destructive",
+                )}
+              />
+            </div>
+            {landedCostBreakdown && (
+              <div className="pl-0 text-xs text-muted-foreground">
+                {landedCostBreakdown}
+              </div>
+            )}
           </div>
         </div>
 

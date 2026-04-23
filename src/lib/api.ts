@@ -144,6 +144,7 @@ export interface StreamParseCallbacks {
     matched_supplier_id: number | null;
     reference: string | null;
     currency_symbol: string | null;
+    shipping_total?: number | null;
     total_lines?: number;
   }) => void;
   onLine: (line: {

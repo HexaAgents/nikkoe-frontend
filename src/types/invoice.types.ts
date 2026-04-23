@@ -30,6 +30,9 @@ export interface ParseContext {
   reference: string | null;
   /** Currency symbol the parser detected (£, $, €, etc.). */
   currencySymbol: string | null;
+  /** Total shipping/freight/postage cost from the invoice, in the invoice's
+   *  currency. 0 when none detected. */
+  shippingTotal: number;
   /** One entry per parsed line, in invoice order. */
   lines: ParsedLineContext[];
   /** Timestamp of the parse — lets consumers detect a fresh upload. */
