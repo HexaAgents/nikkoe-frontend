@@ -172,8 +172,7 @@ export function AddReceiptForm({
     }, 0);
   }, [parseContext, parts]);
 
-  const supplierUnresolved =
-    !!parseContext?.supplierName && !parseContext.supplierMatched && !supplierId;
+  const supplierUnresolved = !!parseContext && !supplierId;
 
   const issueCount = unresolvedLineCount + (supplierUnresolved ? 1 : 0);
 
@@ -520,21 +519,27 @@ export function AddReceiptForm({
           )}
 
           {/* Unmatched supplier banner */}
-          {supplierUnresolved && !supplierBannerDismissed && parseContext?.supplierName && (
+          {supplierUnresolved && !supplierBannerDismissed && (
             <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-200 bg-amber-50/60 p-3 text-sm dark:border-amber-900/50 dark:bg-amber-950/30">
               <div className="flex-1 text-amber-900 dark:text-amber-100">
-                Supplier{" "}
-                <span className="font-medium">“{parseContext.supplierName}”</span>{" "}
-                from the invoice is not in your database.
+                {parseContext?.supplierName ? (
+                  <>
+                    Supplier{" "}
+                    <span className="font-medium">“{parseContext.supplierName}”</span>{" "}
+                    from the invoice is not in your database.
+                  </>
+                ) : (
+                  "No supplier was detected in the invoice."
+                )}
               </div>
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
                 className="shrink-0"
-                onClick={() => openAddSupplier(parseContext.supplierName || undefined)}
+                onClick={() => openAddSupplier(parseContext?.supplierName || undefined)}
               >
-                Create supplier
+                {parseContext?.supplierName ? "Create supplier" : "Add supplier"}
               </Button>
               <button
                 type="button"

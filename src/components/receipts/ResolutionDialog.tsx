@@ -64,10 +64,8 @@ export function ResolutionDialog({
   const steps: Step[] = useMemo(() => {
     if (!parseContext) return [];
     const out: Step[] = [];
-    const supplierUnresolved =
-      !!parseContext.supplierName && !parseContext.supplierMatched && !supplierId;
-    if (supplierUnresolved && parseContext.supplierName) {
-      out.push({ kind: "supplier", supplierName: parseContext.supplierName });
+    if (!supplierId) {
+      out.push({ kind: "supplier", supplierName: parseContext.supplierName ?? "" });
     }
     parseContext.lines.forEach((ctx, lineIndex) => {
       const partItemId = parts[lineIndex]?.item_id ?? "";
@@ -251,15 +249,19 @@ function StepBody({
     return (
       <div className="space-y-5">
         <SectionHeader
-          title="Unmatched supplier"
+          title={step.supplierName ? "Unmatched supplier" : "Missing supplier"}
           subtitle={
-            <>
-              The invoice was issued by{" "}
-              <span className="font-medium text-foreground">
-                “{step.supplierName}”
-              </span>
-              , which is not in your supplier list.
-            </>
+            step.supplierName ? (
+              <>
+                The invoice was issued by{" "}
+                <span className="font-medium text-foreground">
+                  “{step.supplierName}”
+                </span>
+                , which is not in your supplier list.
+              </>
+            ) : (
+              "No supplier was detected in the invoice. Select or create one."
+            )
           }
         />
 
@@ -280,7 +282,9 @@ function StepBody({
           className="w-full justify-center"
           onClick={() => onCreateSupplier(step.supplierName)}
         >
-          Create supplier “{step.supplierName}”
+          {step.supplierName
+            ? <>Create supplier “{step.supplierName}”</>
+            : "Create new supplier"}
         </Button>
       </div>
     );
