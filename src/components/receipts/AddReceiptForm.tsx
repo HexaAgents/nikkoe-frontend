@@ -20,6 +20,11 @@ import type { PartLine } from "@/components/common/PartLineCard";
 import { ResolutionDialog } from "@/components/receipts/ResolutionDialog";
 import { cn } from "@/lib/utils";
 
+// Feature flag: flip to `true` to restore the PDF-invoice drop zone on the
+// receipts page. All underlying handlers (streamParseInvoice, parse state,
+// ResolutionDialog, etc.) remain wired up — only the UI is hidden.
+const SHOW_PDF_IMPORT = false;
+
 function getPartLineFieldErrors(part: PartLine): string[] {
   const bad: string[] = [];
 
@@ -433,7 +438,8 @@ export function AddReceiptForm({
     <>
       <form onSubmit={handleSubmit} className={cn(className)}>
         <div className={cn("space-y-6", variant === "inline" ? "py-0" : "py-4")}>
-          {/* PDF upload zone */}
+          {/* PDF upload zone -- hidden behind SHOW_PDF_IMPORT feature flag. */}
+          {SHOW_PDF_IMPORT && (
           <div
             className={cn(
               "relative overflow-hidden rounded-lg border-2 border-dashed p-4 text-center transition-colors",
@@ -483,6 +489,7 @@ export function AddReceiptForm({
               </button>
             )}
           </div>
+          )}
 
           {/* Parse summary + Resolve chip */}
           {parseContext && !parseSummaryDismissed && (
