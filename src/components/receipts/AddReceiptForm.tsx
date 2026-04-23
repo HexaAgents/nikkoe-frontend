@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 // Feature flag: flip to `true` to restore the PDF-invoice drop zone on the
 // receipts page. All underlying handlers (streamParseInvoice, parse state,
 // ResolutionDialog, etc.) remain wired up — only the UI is hidden.
-const SHOW_PDF_IMPORT = false;
+const SHOW_PDF_IMPORT = true;
 
 function getPartLineFieldErrors(part: PartLine): string[] {
   const bad: string[] = [];
