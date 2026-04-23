@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { Upload, Loader2, X, RefreshCw } from "lucide-react";
+import { Upload, Loader2, X, RefreshCw, ChevronDown } from "lucide-react";
 import { analytics } from "@/lib/analytics";
 import { useCurrencies, useSuppliers, useLocations } from "@/hooks/queries";
 import { Button } from "@/components/ui/button";
@@ -946,15 +946,18 @@ function LandedCostPanel(props: LandedCostPanelProps) {
       <div className="space-y-3 px-4 py-4">
         <div className="flex flex-wrap items-center gap-4">
           <Label className="w-24 shrink-0 text-muted-foreground">Currency:</Label>
-          <select
-            value={invoiceIso ?? "GBP"}
-            onChange={(e) => onCurrencyChange(e.target.value)}
-            className="h-9 w-32 border border-input bg-background pl-3 pr-8 text-right text-sm tabular-nums text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            {CURRENCY_OPTIONS.map((c) => (
-              <option key={c.iso} value={c.iso}>{c.label}</option>
-            ))}
-          </select>
+          <div className="relative w-32">
+            <ChevronDown className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <select
+              value={invoiceIso ?? "GBP"}
+              onChange={(e) => onCurrencyChange(e.target.value)}
+              className="h-9 w-full appearance-none border border-input bg-background pl-7 pr-6 text-right text-sm tabular-nums text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              {CURRENCY_OPTIONS.map((c) => (
+                <option key={c.iso} value={c.iso}>{c.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
