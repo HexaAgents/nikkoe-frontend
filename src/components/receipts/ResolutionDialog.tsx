@@ -8,6 +8,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { SearchableSupplierPicker } from "@/components/common/SearchableSupplierPicker";
 import { SearchablePartPicker } from "@/components/common/SearchablePartPicker";
@@ -33,6 +34,16 @@ interface ResolutionDialogProps {
   onCreateSupplier: (name: string) => void;
   /** Open the prefilled AddItemModal for a given unresolved line. */
   onCreatePart: (lineIndex: number, ctx: ParsedLineContext) => void;
+  /** Persist `parsedName → supplierId` so future invoices auto-resolve.
+   *  Optional: dialog still works without it. */
+  onCreateSupplierAlias?: (supplierId: number, parsedName: string) => void;
+  /** Persist `(supplierId, parsedPartNumber) → itemId` so future invoices
+   *  from this supplier auto-resolve this line. Optional. */
+  onCreateSupplierPartMapping?: (
+    itemId: number,
+    supplierId: number,
+    parsedPartNumber: string,
+  ) => void;
 }
 
 type Step =
@@ -58,6 +69,8 @@ export function ResolutionDialog({
   onSelectPart,
   onCreateSupplier,
   onCreatePart,
+  onCreateSupplierAlias,
+  onCreateSupplierPartMapping,
 }: ResolutionDialogProps) {
   const { data: suppliers } = useSuppliers();
 
@@ -175,10 +188,19 @@ export function ResolutionDialog({
                 step={step}
                 suppliers={suppliers}
                 currencySymbol={parseContext.currencySymbol}
+                supplierId={supplierId}
+                supplierName={
+                  supplierId
+                    ? suppliers?.find((s) => String(s.id) === supplierId)?.name ?? null
+                    : null
+                }
+                parsedSupplierName={parseContext.supplierName}
                 onSelectSupplier={onSelectSupplier}
                 onSelectPart={onSelectPart}
                 onCreateSupplier={onCreateSupplier}
                 onCreatePart={onCreatePart}
+                onCreateSupplierAlias={onCreateSupplierAlias}
+                onCreateSupplierPartMapping={onCreateSupplierPartMapping}
               />
             )}
           </div>
@@ -230,22 +252,69 @@ interface StepBodyProps {
   step: Step;
   suppliers: { id: number; name: string }[] | undefined;
   currencySymbol: string | null;
+  /** Currently-resolved supplier id from the form (string for picker compat). */
+  supplierId: string;
+  /** Canonical name of the resolved supplier, if any. */
+  supplierName: string | null;
+  /** Supplier name as printed on the invoice. */
+  parsedSupplierName: string | null;
   onSelectSupplier: (id: string) => void;
   onSelectPart: (lineIndex: number, itemId: string) => void;
   onCreateSupplier: (name: string) => void;
   onCreatePart: (lineIndex: number, ctx: ParsedLineContext) => void;
+  onCreateSupplierAlias?: (supplierId: number, parsedName: string) => void;
+  onCreateSupplierPartMapping?: (
+    itemId: number,
+    supplierId: number,
+    parsedPartNumber: string,
+  ) => void;
 }
 
 function StepBody({
   step,
   suppliers,
   currencySymbol,
+  supplierId,
+  supplierName,
+  parsedSupplierName,
   onSelectSupplier,
   onSelectPart,
   onCreateSupplier,
   onCreatePart,
+  onCreateSupplierAlias,
+  onCreateSupplierPartMapping,
 }: StepBodyProps) {
+  // Per-step "remember this mapping" toggle. Default ON because the user has
+  // just told us the truth; the next invoice should benefit immediately.
+  const [rememberMapping, setRememberMapping] = useState(true);
+
+  // Reset the toggle to its default when the user navigates between steps so
+  // their previous step's toggle doesn't silently apply to the next.
+  const stepKey = step.kind === "supplier" ? "supplier" : `line-${step.lineIndex}`;
+  useEffect(() => {
+    setRememberMapping(true);
+  }, [stepKey]);
+
   if (step.kind === "supplier") {
+    const aliasIsRedundant =
+      !!step.supplierName &&
+      !!suppliers &&
+      suppliers.some(
+        (s) => s.name.trim().toLowerCase() === step.supplierName.trim().toLowerCase(),
+      );
+    const canSaveAlias =
+      !!step.supplierName && !!onCreateSupplierAlias && !aliasIsRedundant;
+
+    const handleSelect = (id: string) => {
+      onSelectSupplier(id);
+      if (canSaveAlias && rememberMapping && id) {
+        const numId = Number(id);
+        if (Number.isFinite(numId)) {
+          onCreateSupplierAlias?.(numId, step.supplierName);
+        }
+      }
+    };
+
     return (
       <div className="space-y-5">
         <SectionHeader
@@ -270,8 +339,24 @@ function StepBody({
           <SearchableSupplierPicker
             suppliers={suppliers}
             value=""
-            onSelect={onSelectSupplier}
+            onSelect={handleSelect}
+            disablePortal
           />
+          {canSaveAlias && (
+            <RememberMappingToggle
+              checked={rememberMapping}
+              onCheckedChange={setRememberMapping}
+              label={
+                <>
+                  Always treat{" "}
+                  <span className="font-medium text-foreground">
+                    “{step.supplierName}”
+                  </span>{" "}
+                  as the supplier I pick
+                </>
+              }
+            />
+          )}
         </div>
 
         <OrDivider />
@@ -290,6 +375,23 @@ function StepBody({
     );
   }
 
+  // --- Line step ---
+  const supplierNumId = supplierId ? Number(supplierId) : NaN;
+  const supplierResolved = Number.isFinite(supplierNumId) && supplierNumId > 0;
+  const partNumber = step.context.partNumber || "";
+  const canSaveMapping =
+    supplierResolved && !!partNumber && !!onCreateSupplierPartMapping;
+
+  const handleSelect = (id: string) => {
+    onSelectPart(step.lineIndex, id);
+    if (canSaveMapping && rememberMapping && id) {
+      const itemId = Number(id);
+      if (Number.isFinite(itemId)) {
+        onCreateSupplierPartMapping?.(itemId, supplierNumId, partNumber);
+      }
+    }
+  };
+
   return (
     <div className="space-y-5">
       <SectionHeader
@@ -305,8 +407,33 @@ function StepBody({
         <label className="text-sm font-medium">Choose an existing part</label>
         <SearchablePartPicker
           value=""
-          onSelect={(id) => onSelectPart(step.lineIndex, id)}
+          onSelect={handleSelect}
+          disablePortal
         />
+        {canSaveMapping ? (
+          <RememberMappingToggle
+            checked={rememberMapping}
+            onCheckedChange={setRememberMapping}
+            label={
+              <>
+                Always map{" "}
+                <span className="font-mono text-foreground">“{partNumber}”</span> from{" "}
+                <span className="font-medium text-foreground">
+                  {supplierName || "this supplier"}
+                </span>{" "}
+                to the part I pick
+              </>
+            }
+          />
+        ) : (
+          partNumber && (
+            <p className="text-xs text-muted-foreground">
+              {parsedSupplierName && !supplierResolved
+                ? "Resolve the supplier above to enable saving this part-number mapping for next time."
+                : null}
+            </p>
+          )
+        )}
       </div>
 
       <OrDivider />
@@ -325,6 +452,29 @@ function StepBody({
         )}
       </Button>
     </div>
+  );
+}
+
+interface RememberMappingToggleProps {
+  checked: boolean;
+  onCheckedChange: (next: boolean) => void;
+  label: React.ReactNode;
+}
+
+function RememberMappingToggle({
+  checked,
+  onCheckedChange,
+  label,
+}: RememberMappingToggleProps) {
+  return (
+    <label className="mt-1 flex cursor-pointer items-start gap-2 rounded-md bg-muted/40 p-2 text-xs text-muted-foreground hover:bg-muted/60">
+      <Checkbox
+        checked={checked}
+        onCheckedChange={(v) => onCheckedChange(v === true)}
+        className="mt-0.5"
+      />
+      <span className="leading-snug">{label}</span>
+    </label>
   );
 }
 

@@ -208,6 +208,49 @@ export function useAddSupplier() {
   });
 }
 
+export function useCreateSupplierAlias() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ supplierId, alias }: { supplierId: number; alias: string }) =>
+      api.post(`/suppliers/${supplierId}/aliases`, { alias }),
+    onSuccess: (_, { supplierId }) => {
+      queryClient.invalidateQueries({ queryKey: ["supplier_aliases", String(supplierId)] });
+      toast.success("Supplier alias saved");
+    },
+    onError: (error) => {
+      toast.error(`Failed to save alias: ${error.message}`);
+    },
+  });
+}
+
+export function useCreateSupplierPartMapping() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      itemId,
+      supplierId,
+      supplierPartNumber,
+    }: {
+      itemId: number;
+      supplierId: number;
+      supplierPartNumber: string;
+    }) =>
+      api.post(`/items/${itemId}/supplier-mappings`, {
+        supplier_id: supplierId,
+        supplier_part_number: supplierPartNumber,
+      }),
+    onSuccess: (_, { itemId }) => {
+      queryClient.invalidateQueries({ queryKey: ["supplier_quotes", String(itemId)] });
+      toast.success("Part mapping saved");
+    },
+    onError: (error) => {
+      toast.error(`Failed to save mapping: ${error.message}`);
+    },
+  });
+}
+
 export function useDeleteSupplier() {
   const queryClient = useQueryClient();
 

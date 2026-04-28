@@ -6,7 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useAddReceipt } from "@/hooks/mutations";
+import {
+  useAddReceipt,
+  useCreateSupplierAlias,
+  useCreateSupplierPartMapping,
+} from "@/hooks/mutations";
 import type { ReceiptLineInput, Item, Supplier } from "@/types/domain.types";
 import type { ParseContext, ParsedLineContext } from "@/types/invoice.types";
 import { streamParseInvoice } from "@/lib/api";
@@ -90,6 +94,8 @@ export function AddReceiptForm({
   defaultItemLabel,
 }: AddReceiptFormProps) {
   const addReceipt = useAddReceipt();
+  const createSupplierAlias = useCreateSupplierAlias();
+  const createSupplierPartMapping = useCreateSupplierPartMapping();
   const [isParsing, setIsParsing] = useState(false);
   const { data: suppliers } = useSuppliers();
   const { data: locations } = useLocations();
@@ -880,6 +886,16 @@ export function AddReceiptForm({
         onCreatePart={(lineIndex, ctx) => {
           setResolutionOpen(false);
           openAddItemForLine(lineIndex, ctx);
+        }}
+        onCreateSupplierAlias={(supplierIdNum, parsedName) => {
+          createSupplierAlias.mutate({ supplierId: supplierIdNum, alias: parsedName });
+        }}
+        onCreateSupplierPartMapping={(itemId, supplierIdNum, partNumber) => {
+          createSupplierPartMapping.mutate({
+            itemId,
+            supplierId: supplierIdNum,
+            supplierPartNumber: partNumber,
+          });
         }}
       />
     </>

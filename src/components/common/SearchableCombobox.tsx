@@ -18,6 +18,7 @@ interface SearchableComboboxProps<T> {
   searchPlaceholder?: string;
   emptyMessage?: string;
   hasError?: boolean;
+  disablePortal?: boolean;
 }
 
 export function SearchableCombobox<T extends Record<string, unknown>>({
@@ -29,6 +30,7 @@ export function SearchableCombobox<T extends Record<string, unknown>>({
   placeholder = "Select...",
   emptyMessage = "No results found.",
   hasError,
+  disablePortal = false,
 }: SearchableComboboxProps<T>) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -83,6 +85,7 @@ export function SearchableCombobox<T extends Record<string, unknown>>({
         align="start"
         side="bottom"
         avoidCollisions={false}
+        portalled={!disablePortal}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">

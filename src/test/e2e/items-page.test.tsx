@@ -35,6 +35,8 @@ vi.mock("@/hooks/mutations", () => ({
   useAddLocation: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useAddSupplier: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useTransferStock: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useCreateSupplierAlias: () => ({ mutate: vi.fn(), isPending: false }),
+  useCreateSupplierPartMapping: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
 vi.mock("@/hooks/queries", () => ({

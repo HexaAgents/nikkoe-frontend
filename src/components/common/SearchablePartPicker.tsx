@@ -13,9 +13,16 @@ interface SearchablePartPickerProps {
   hasError?: boolean;
   inStockOnly?: boolean;
   initialLabel?: string;
+  disablePortal?: boolean;
 }
 
-export function SearchablePartPicker({ value, onSelect, hasError, initialLabel }: SearchablePartPickerProps) {
+export function SearchablePartPicker({
+  value,
+  onSelect,
+  hasError,
+  initialLabel,
+  disablePortal = false,
+}: SearchablePartPickerProps) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -113,6 +120,93 @@ export function SearchablePartPicker({ value, onSelect, hasError, initialLabel }
 
   const selectedLabel = labelCacheRef.current.get(value);
 
+  const dropdown = (
+    <div
+      ref={dropdownRef}
+      style={
+        disablePortal
+          ? undefined
+          : { position: "fixed", top: pos.top, left: pos.left, width: pos.width }
+      }
+      className={cn(
+        "z-50 rounded-md border bg-popover shadow-md",
+        disablePortal && "absolute left-0 top-full mt-1 w-full",
+      )}
+    >
+      <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">
+        {isFetching ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : items.length === 0 ? (
+          <div className="py-6 text-center text-sm text-muted-foreground">
+            {debouncedQuery ? "No parts found." : "Start typing to search..."}
+          </div>
+        ) : null}
+
+        {inStock.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={cn(
+              "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+              value === item.id && "bg-accent text-accent-foreground",
+            )}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => handleSelect(item.id)}
+          >
+            <Check
+              className={cn(
+                "mr-2 h-4 w-4 shrink-0",
+                value === item.id ? "opacity-100" : "opacity-0",
+              )}
+            />
+            <span className="truncate">
+              {item.partNumber}
+              {item.description && (
+                <span className="ml-2 text-xs text-muted-foreground">{item.description}</span>
+              )}
+            </span>
+          </button>
+        ))}
+
+        {inStock.length > 0 && outOfStock.length > 0 && <div className="-mx-1 h-px bg-border" />}
+
+        {outOfStock.length > 0 && (
+          <>
+            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">No stock</div>
+            {outOfStock.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={cn(
+                  "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground",
+                  value === item.id && "bg-accent text-accent-foreground",
+                )}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => handleSelect(item.id)}
+              >
+                <Check
+                  className={cn(
+                    "mr-2 h-4 w-4 shrink-0",
+                    value === item.id ? "opacity-100" : "opacity-0",
+                  )}
+                />
+                <span className="min-w-0 flex-1 truncate">
+                  {item.partNumber}
+                  {item.description && (
+                    <span className="ml-2 text-xs">{item.description}</span>
+                  )}
+                </span>
+                <span className="ml-2 shrink-0 text-xs text-destructive">No stock</span>
+              </button>
+            ))}
+          </>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="relative min-w-0 flex-1">
       <Input
@@ -129,86 +223,7 @@ export function SearchablePartPicker({ value, onSelect, hasError, initialLabel }
       />
       <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
 
-      {open && createPortal(
-        <div
-          ref={dropdownRef}
-          style={{ position: "fixed", top: pos.top, left: pos.left, width: pos.width }}
-          className="z-50 rounded-md border bg-popover shadow-md"
-        >
-          <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">
-            {isFetching ? (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              </div>
-            ) : items.length === 0 ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                {debouncedQuery ? "No parts found." : "Start typing to search..."}
-              </div>
-            ) : null}
-
-            {inStock.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={cn(
-                  "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
-                  value === item.id && "bg-accent text-accent-foreground",
-                )}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => handleSelect(item.id)}
-              >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4 shrink-0",
-                    value === item.id ? "opacity-100" : "opacity-0",
-                  )}
-                />
-                <span className="truncate">
-                  {item.partNumber}
-                  {item.description && (
-                    <span className="ml-2 text-xs text-muted-foreground">{item.description}</span>
-                  )}
-                </span>
-              </button>
-            ))}
-
-            {inStock.length > 0 && outOfStock.length > 0 && <div className="-mx-1 h-px bg-border" />}
-
-            {outOfStock.length > 0 && (
-              <>
-                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">No stock</div>
-                {outOfStock.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={cn(
-                      "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground",
-                      value === item.id && "bg-accent text-accent-foreground",
-                    )}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => handleSelect(item.id)}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4 shrink-0",
-                        value === item.id ? "opacity-100" : "opacity-0",
-                      )}
-                    />
-                    <span className="min-w-0 flex-1 truncate">
-                      {item.partNumber}
-                      {item.description && (
-                        <span className="ml-2 text-xs">{item.description}</span>
-                      )}
-                    </span>
-                    <span className="ml-2 shrink-0 text-xs text-destructive">No stock</span>
-                  </button>
-                ))}
-              </>
-            )}
-          </div>
-        </div>,
-        document.body
-      )}
+      {open && (disablePortal ? dropdown : createPortal(dropdown, document.body))}
     </div>
   );
 }

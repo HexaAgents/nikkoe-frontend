@@ -10,9 +10,16 @@ interface SearchableSupplierPickerProps {
   value: string;
   onSelect: (supplierId: string) => void;
   hasError?: boolean;
+  disablePortal?: boolean;
 }
 
-export function SearchableSupplierPicker({ suppliers, value, onSelect, hasError }: SearchableSupplierPickerProps) {
+export function SearchableSupplierPicker({
+  suppliers,
+  value,
+  onSelect,
+  hasError,
+  disablePortal,
+}: SearchableSupplierPickerProps) {
   return (
     <SearchableCombobox
       items={suppliers}
@@ -24,6 +31,7 @@ export function SearchableSupplierPicker({ suppliers, value, onSelect, hasError 
       searchPlaceholder="Search suppliers..."
       emptyMessage="No suppliers found."
       hasError={hasError}
+      disablePortal={disablePortal}
     />
   );
 }
