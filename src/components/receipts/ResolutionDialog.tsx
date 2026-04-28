@@ -287,12 +287,17 @@ function StepBody({
   // Per-step "remember this mapping" toggle. Default ON because the user has
   // just told us the truth; the next invoice should benefit immediately.
   const [rememberMapping, setRememberMapping] = useState(true);
+  // Tentative selection: the user has highlighted an option in the picker but
+  // hasn't yet confirmed it. Nothing is written to the form or saved as a
+  // mapping until they click the explicit "Save & continue" button.
+  const [tentativeId, setTentativeId] = useState<string>("");
 
-  // Reset the toggle to its default when the user navigates between steps so
-  // their previous step's toggle doesn't silently apply to the next.
+  // Reset state when the user navigates between steps so a previous step's
+  // pending choice / toggle doesn't silently apply to the next.
   const stepKey = step.kind === "supplier" ? "supplier" : `line-${step.lineIndex}`;
   useEffect(() => {
     setRememberMapping(true);
+    setTentativeId("");
   }, [stepKey]);
 
   if (step.kind === "supplier") {
@@ -305,10 +310,11 @@ function StepBody({
     const canSaveAlias =
       !!step.supplierName && !!onCreateSupplierAlias && !aliasIsRedundant;
 
-    const handleSelect = (id: string) => {
-      onSelectSupplier(id);
-      if (canSaveAlias && rememberMapping && id) {
-        const numId = Number(id);
+    const handleConfirm = () => {
+      if (!tentativeId) return;
+      onSelectSupplier(tentativeId);
+      if (canSaveAlias && rememberMapping) {
+        const numId = Number(tentativeId);
         if (Number.isFinite(numId)) {
           onCreateSupplierAlias?.(numId, step.supplierName);
         }
@@ -338,8 +344,8 @@ function StepBody({
           <label className="text-sm font-medium">Choose an existing supplier</label>
           <SearchableSupplierPicker
             suppliers={suppliers}
-            value=""
-            onSelect={handleSelect}
+            value={tentativeId}
+            onSelect={setTentativeId}
             disablePortal
           />
           {canSaveAlias && (
@@ -358,6 +364,17 @@ function StepBody({
             />
           )}
         </div>
+
+        <Button
+          type="button"
+          className="w-full justify-center"
+          disabled={!tentativeId}
+          onClick={handleConfirm}
+        >
+          {canSaveAlias && rememberMapping
+            ? "Save mapping & continue"
+            : "Confirm supplier"}
+        </Button>
 
         <OrDivider />
 
@@ -382,10 +399,11 @@ function StepBody({
   const canSaveMapping =
     supplierResolved && !!partNumber && !!onCreateSupplierPartMapping;
 
-  const handleSelect = (id: string) => {
-    onSelectPart(step.lineIndex, id);
-    if (canSaveMapping && rememberMapping && id) {
-      const itemId = Number(id);
+  const handleConfirm = () => {
+    if (!tentativeId) return;
+    onSelectPart(step.lineIndex, tentativeId);
+    if (canSaveMapping && rememberMapping) {
+      const itemId = Number(tentativeId);
       if (Number.isFinite(itemId)) {
         onCreateSupplierPartMapping?.(itemId, supplierNumId, partNumber);
       }
@@ -406,8 +424,8 @@ function StepBody({
       <div className="space-y-2">
         <label className="text-sm font-medium">Choose an existing part</label>
         <SearchablePartPicker
-          value=""
-          onSelect={handleSelect}
+          value={tentativeId}
+          onSelect={setTentativeId}
           disablePortal
         />
         {canSaveMapping ? (
@@ -435,6 +453,17 @@ function StepBody({
           )
         )}
       </div>
+
+      <Button
+        type="button"
+        className="w-full justify-center"
+        disabled={!tentativeId}
+        onClick={handleConfirm}
+      >
+        {canSaveMapping && rememberMapping
+          ? "Save mapping & continue"
+          : "Confirm part"}
+      </Button>
 
       <OrDivider />
 
