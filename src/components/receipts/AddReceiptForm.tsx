@@ -292,7 +292,7 @@ export function AddReceiptForm({
         if (priceOverrides.has(i)) return p;
         const fin = lineFinance.lines[i];
         if (!fin) return p;
-        const newPrice = fin.landedUnitGbp.toFixed(4);
+        const newPrice = fin.landedUnitGbp.toFixed(3);
         if (p.price === newPrice && p.currency_id === gbpCurrencyId) return p;
         changed = true;
         return { ...p, price: newPrice, currency_id: gbpCurrencyId };
