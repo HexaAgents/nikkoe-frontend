@@ -12,7 +12,7 @@ import {
   useCreateSupplierPartMapping,
 } from "@/hooks/mutations";
 import type { ReceiptLineInput, Item, Supplier } from "@/types/domain.types";
-import type { ParseContext, ParsedLineContext } from "@/types/invoice.types";
+import type { ParseContext, ParsedLineContext, PrintedTotals } from "@/types/invoice.types";
 import { streamParseInvoice } from "@/lib/api";
 import { toast } from "sonner";
 import { AddItemModal } from "@/components/modals/AddItemModal";
@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { symbolToIso, isoToSymbol } from "@/lib/fx";
 import { useFxRate } from "@/hooks/useFxRate";
 import { computeInvoiceFinance } from "@/lib/landed-cost";
+import { computeVatBreakdown, hasVatInfo, type VatBreakdown } from "@/lib/vat";
 
 // Feature flag: flip to `true` to restore the PDF-invoice drop zone on the
 // receipts page. All underlying handlers (streamParseInvoice, parse state,
@@ -277,6 +278,39 @@ export function AddReceiptForm({
     return computeInvoiceFinance(invoiceLines, parsedShipping, parsedFx);
   }, [parts, parseContext, parsedShipping, parsedFx]);
 
+  // VAT breakdown is independent of landed cost: it uses the per-line NET
+  // prices the parser extracted (not the gross derived unitPrice). When the
+  // invoice has no VAT info at all (e.g. a USD overseas proforma) `vat` is
+  // null and the UI hides the breakdown rows.
+  const vat: VatBreakdown | null = useMemo(() => {
+    if (!parseContext) return null;
+    if (
+      !hasVatInfo(
+        parseContext.lines.map((l) => ({
+          quantity: l.quantity,
+          unitNet: l.unitPriceNet ?? 0,
+          vatRate: l.vatRate,
+        })),
+        parseContext.shippingVatRate,
+      )
+    ) {
+      return null;
+    }
+    const vatLines = parts.map((p, i) => {
+      const ctx = parseContext.lines[i];
+      return {
+        quantity: Number(p.quantity) || 0,
+        unitNet: ctx?.unitPriceNet ?? 0,
+        vatRate: ctx?.vatRate ?? null,
+      };
+    });
+    return computeVatBreakdown(
+      vatLines,
+      parseContext.shippingNet ?? Math.max(0, Number(shippingCost) || 0),
+      parseContext.shippingVatRate,
+    );
+  }, [parseContext, parts, shippingCost]);
+
   const showBreakdown = parsedShipping > 0 || parsedFx !== 1;
 
   // Auto-derive the `price` input (landed GBP) for parsed lines the user
@@ -340,12 +374,18 @@ export function AddReceiptForm({
         reference: string | null;
         currencySymbol: string | null;
         shippingTotal: number;
+        shippingNet: number | null;
+        shippingVatRate: number | null;
+        printedTotals: PrintedTotals | null;
       } = {
         supplierName: null,
         supplierMatched: false,
         reference: null,
         currencySymbol: null,
         shippingTotal: 0,
+        shippingNet: null,
+        shippingVatRate: null,
+        printedTotals: null,
       };
       let headerCurrencyId = defaultCurrencyId;
 
@@ -356,6 +396,9 @@ export function AddReceiptForm({
           reference: header.reference,
           currencySymbol: header.currencySymbol,
           shippingTotal: header.shippingTotal,
+          shippingNet: header.shippingNet,
+          shippingVatRate: header.shippingVatRate,
+          printedTotals: header.printedTotals,
           lines: [...accumulatedLines],
           createdAt: Date.now(),
         });
@@ -367,12 +410,26 @@ export function AddReceiptForm({
             clearProgressTicker();
             totalLines = h.total_lines ?? 0;
             const shipping = Math.max(0, Number(h.shipping_total) || 0);
+            const shippingNet =
+              h.shipping_net == null ? null : Math.max(0, Number(h.shipping_net) || 0);
+            const shippingVatRate =
+              h.shipping_vat_rate == null ? null : Number(h.shipping_vat_rate);
+            const printed = h.printed_totals
+              ? {
+                  net: Number(h.printed_totals.net) || 0,
+                  vat: Number(h.printed_totals.vat) || 0,
+                  gross: Number(h.printed_totals.gross) || 0,
+                }
+              : null;
             header = {
               supplierName: h.supplier_name,
               supplierMatched: !!h.matched_supplier_id,
               reference: h.reference,
               currencySymbol: h.currency_symbol,
               shippingTotal: shipping,
+              shippingNet,
+              shippingVatRate,
+              printedTotals: printed,
             };
             if (h.matched_supplier_id) setSupplierId(String(h.matched_supplier_id));
             if (h.reference) setReference(h.reference);
@@ -392,6 +449,8 @@ export function AddReceiptForm({
               description: line.description,
               quantity: line.quantity,
               unitPrice: line.unit_price,
+              unitPriceNet: line.unit_price_net == null ? null : Number(line.unit_price_net),
+              vatRate: line.vat_rate == null ? null : Number(line.vat_rate),
               matchedItemId: line.matched_item_id,
               matchedItemName: line.matched_item_name,
             };
@@ -703,6 +762,8 @@ export function AddReceiptForm({
               invoiceTotal={lineFinance.invoiceTotal}
               grandTotalGbp={lineFinance.grandTotalGbp}
               fxRateNumeric={parsedFx}
+              vat={vat}
+              printedTotals={parseContext.printedTotals}
             />
           )}
 
@@ -786,20 +847,36 @@ export function AddReceiptForm({
             const fin = lineFinance.lines[index];
             const sym = invoiceIso ? isoToSymbol(invoiceIso) : (parseContext?.currencySymbol ?? "");
             const baseUnit = invoiceContext ? invoiceContext.unitPrice : Number(part.price) || 0;
+            const showLandedRow = showBreakdown && !!fin;
+            const showVatRow =
+              !!invoiceContext &&
+              invoiceContext.vatRate != null &&
+              invoiceContext.vatRate > 0 &&
+              invoiceContext.unitPriceNet != null;
             const breakdown =
-              showBreakdown && fin
-                ? (
-                  <LineBreakdown
-                    symbol={sym}
-                    baseUnit={baseUnit}
-                    shipPerUnit={fin.shippingPerUnit}
-                    landedUnitInvoice={fin.landedUnitInvoice}
-                    landedUnitGbp={fin.landedUnitGbp}
-                    convertToGbp={needsFx}
-                    overridden={priceOverrides.has(index)}
-                  />
-                )
-                : null;
+              showLandedRow || showVatRow ? (
+                <span className="flex flex-col gap-0.5">
+                  {showVatRow && invoiceContext && invoiceContext.unitPriceNet != null && invoiceContext.vatRate != null && (
+                    <VatLineBreakdown
+                      symbol={sym}
+                      unitNet={invoiceContext.unitPriceNet}
+                      vatRate={invoiceContext.vatRate}
+                      unitGross={invoiceContext.unitPrice}
+                    />
+                  )}
+                  {showLandedRow && fin && (
+                    <LineBreakdown
+                      symbol={sym}
+                      baseUnit={baseUnit}
+                      shipPerUnit={fin.shippingPerUnit}
+                      landedUnitInvoice={fin.landedUnitInvoice}
+                      landedUnitGbp={fin.landedUnitGbp}
+                      convertToGbp={needsFx}
+                      overridden={priceOverrides.has(index)}
+                    />
+                  )}
+                </span>
+              ) : null;
             return (
               <PartLineCard
                 key={index}
@@ -926,6 +1003,8 @@ interface LandedCostPanelProps {
   invoiceTotal: number;
   grandTotalGbp: number;
   fxRateNumeric: number;
+  vat: VatBreakdown | null;
+  printedTotals: { net: number; vat: number; gross: number } | null;
 }
 
 function LandedCostPanel(props: LandedCostPanelProps) {
@@ -947,9 +1026,21 @@ function LandedCostPanel(props: LandedCostPanelProps) {
     invoiceTotal,
     grandTotalGbp,
     fxRateNumeric,
+    vat,
+    printedTotals,
   } = props;
 
   const sym = invoiceSymbol || "£";
+
+  // Discrepancy warning: when the invoice prints its own totals block,
+  // compare it against our computed gross. >1p difference signals either
+  // accumulated rounding in per-line nets or a missed line item.
+  const printedGross = printedTotals?.gross ?? null;
+  const computedGross = vat?.total.gross ?? invoiceTotal;
+  const discrepancy =
+    printedGross != null && Math.abs(computedGross - printedGross) > 0.01
+      ? printedGross - computedGross
+      : null;
 
   const CURRENCY_OPTIONS = [
     { iso: "GBP", label: "£ GBP" },
@@ -1039,11 +1130,17 @@ function LandedCostPanel(props: LandedCostPanelProps) {
         )}
 
         <div className="mt-1 border-t border-border/60 pt-3 text-sm">
-          <SummaryRow label="Subtotal" value={`${sym}${fmt(subtotal)}`} />
-          <SummaryRow
-            label="Shipping"
-            value={`${sym}${fmt(Math.max(0, Number(shippingCost) || 0))}`}
-          />
+          {vat ? (
+            <VatSummaryTable vat={vat} symbol={sym} />
+          ) : (
+            <>
+              <SummaryRow label="Subtotal" value={`${sym}${fmt(subtotal)}`} />
+              <SummaryRow
+                label="Shipping"
+                value={`${sym}${fmt(Math.max(0, Number(shippingCost) || 0))}`}
+              />
+            </>
+          )}
           {needsFx && (
             <SummaryRow
               label="Exchange rate"
@@ -1054,8 +1151,78 @@ function LandedCostPanel(props: LandedCostPanelProps) {
             <span className="font-medium">Total (GBP)</span>
             <span className="tabular-nums font-semibold">£{fmt(grandTotalGbp)}</span>
           </div>
+          {printedTotals && (
+            <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
+              <span>Printed on invoice</span>
+              <span className="tabular-nums">
+                {sym}{fmt(printedTotals.net)} net &middot; {sym}{fmt(printedTotals.vat)} VAT &middot;{" "}
+                <span className="font-medium">{sym}{fmt(printedTotals.gross)} gross</span>
+              </span>
+            </div>
+          )}
+          {discrepancy != null && (
+            <div className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+              Computed total differs from printed total by {sym}
+              {fmt(Math.abs(discrepancy))} — line prices may be slightly rounded.
+            </div>
+          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+interface VatSummaryTableProps {
+  vat: VatBreakdown;
+  symbol: string;
+}
+
+/** Three-column Net / VAT / Gross summary covering Subtotal, Shipping, Total. */
+function VatSummaryTable({ vat, symbol }: VatSummaryTableProps) {
+  return (
+    <div className="space-y-1">
+      <div className="grid grid-cols-[1fr_repeat(3,minmax(0,80px))] items-center gap-x-3 text-xs uppercase tracking-wide text-muted-foreground">
+        <span></span>
+        <span className="text-right">Net</span>
+        <span className="text-right">VAT</span>
+        <span className="text-right">Gross</span>
+      </div>
+      <VatRow label="Subtotal" totals={vat.subtotal} symbol={symbol} />
+      <VatRow
+        label="Shipping"
+        totals={vat.shipping}
+        symbol={symbol}
+        rateBadge={vat.shipping.rate != null && vat.shipping.net > 0 ? `${vat.shipping.rate}%` : null}
+      />
+      <div className="grid grid-cols-[1fr_repeat(3,minmax(0,80px))] items-center gap-x-3 border-t border-border/60 pt-1 font-medium">
+        <span>Total</span>
+        <span className="text-right tabular-nums">{symbol}{fmt(vat.total.net)}</span>
+        <span className="text-right tabular-nums">{symbol}{fmt(vat.total.vat)}</span>
+        <span className="text-right tabular-nums">{symbol}{fmt(vat.total.gross)}</span>
+      </div>
+    </div>
+  );
+}
+
+interface VatRowProps {
+  label: string;
+  totals: { net: number; vat: number; gross: number };
+  symbol: string;
+  rateBadge?: string | null;
+}
+
+function VatRow({ label, totals, symbol, rateBadge }: VatRowProps) {
+  return (
+    <div className="grid grid-cols-[1fr_repeat(3,minmax(0,80px))] items-center gap-x-3">
+      <span className="text-muted-foreground">
+        {label}
+        {rateBadge && (
+          <span className="ml-1 text-xs text-muted-foreground/70">({rateBadge})</span>
+        )}
+      </span>
+      <span className="text-right tabular-nums text-foreground/80">{symbol}{fmt(totals.net)}</span>
+      <span className="text-right tabular-nums text-foreground/80">{symbol}{fmt(totals.vat)}</span>
+      <span className="text-right tabular-nums text-foreground/80">{symbol}{fmt(totals.gross)}</span>
     </div>
   );
 }
@@ -1105,6 +1272,30 @@ function LineBreakdown({
       {overridden && (
         <span className="text-muted-foreground/50">(edited)</span>
       )}
+    </span>
+  );
+}
+
+interface VatLineBreakdownProps {
+  symbol: string;
+  unitNet: number;
+  vatRate: number;
+  unitGross: number;
+}
+
+/** Per-line breakdown: "£0.873 net + 20% VAT = £1.0476 gross". */
+function VatLineBreakdown({ symbol, unitNet, vatRate, unitGross }: VatLineBreakdownProps) {
+  const sym = symbol || "£";
+  const vatAmount = unitGross - unitNet;
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-1.5 tabular-nums">
+      <span>{sym}{fmt(unitNet, 4)} net</span>
+      <span className="text-muted-foreground/60">+</span>
+      <span>
+        {sym}{fmt(vatAmount, 4)} ({fmt(vatRate, 2)}% VAT)
+      </span>
+      <span className="text-muted-foreground/60">=</span>
+      <span className="font-medium text-foreground/90">{sym}{fmt(unitGross, 4)} gross</span>
     </span>
   );
 }

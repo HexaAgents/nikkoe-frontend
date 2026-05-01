@@ -145,6 +145,9 @@ export interface StreamParseCallbacks {
     reference: string | null;
     currency_symbol: string | null;
     shipping_total?: number | null;
+    shipping_net?: number | null;
+    shipping_vat_rate?: number | null;
+    printed_totals?: { net: number; vat: number; gross: number } | null;
     total_lines?: number;
   }) => void;
   onLine: (line: {
@@ -152,6 +155,8 @@ export interface StreamParseCallbacks {
     description: string | null;
     quantity: number;
     unit_price: number;
+    unit_price_net?: number | null;
+    vat_rate?: number | null;
     matched_item_id: number | null;
     matched_item_name: string | null;
     matched_location_id: number | null;

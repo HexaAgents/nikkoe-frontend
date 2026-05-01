@@ -285,27 +285,25 @@ export function PartLineCard({
             </div>
           </div>
 
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <div className="flex items-center gap-4">
-              <Label
-                className={`shrink-0 ${showErrors && errors.includes(priceLabel) ? "text-destructive" : "text-muted-foreground"}`}
-              >
-                {priceLabel}:
-              </Label>
-              <Input
-                type="number"
-                step="0.001"
-                min="0"
-                value={part.price}
-                onChange={(e) => onFieldChange(index, "price", e.target.value)}
-                className={cn(
-                  "min-w-0 flex-1",
-                  showErrors && errors.includes(priceLabel) && "border-destructive",
-                )}
-              />
-            </div>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1">
+            <Label
+              className={`shrink-0 ${showErrors && errors.includes(priceLabel) ? "text-destructive" : "text-muted-foreground"}`}
+            >
+              {priceLabel}:
+            </Label>
+            <Input
+              type="number"
+              step="0.001"
+              min="0"
+              value={part.price}
+              onChange={(e) => onFieldChange(index, "price", e.target.value)}
+              className={cn(
+                "w-28 shrink-0",
+                showErrors && errors.includes(priceLabel) && "border-destructive",
+              )}
+            />
             {landedCostBreakdown && (
-              <div className="pl-0 text-xs text-muted-foreground">
+              <div className="min-w-0 flex-1 text-xs text-muted-foreground">
                 {landedCostBreakdown}
               </div>
             )}
