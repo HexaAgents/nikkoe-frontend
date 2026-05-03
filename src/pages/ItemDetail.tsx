@@ -42,6 +42,7 @@ import { TransferStockModal } from "@/components/modals/TransferStockModal";
 import { AddSaleModal } from "@/components/modals/AddSaleModal";
 import { AddReceiptModal } from "@/components/modals/AddReceiptModal";
 import { toast } from "sonner";
+import { summarizeInventory } from "@/lib/inventory-summary";
 import type { ItemReceiptHistory, ItemSaleHistory, ItemTransferHistory, StockWithLocation } from "@/types/domain.types";
 
 export default function ItemDetailPage() {
@@ -73,6 +74,9 @@ export default function ItemDetailPage() {
   const [showAllTransfers, setShowAllTransfers] = useState(false);
 
   const PREVIEW_ROWS = 5;
+
+  const inventorySummary = summarizeInventory(inventory);
+  const { total: inventoryTotal, negativeOffset: inventoryNegativeTotal, hasNegative: hasNegativeStock, visible: visibleInventory } = inventorySummary;
 
   const handleDeleteQuote = async (quoteId: number) => {
     if (!confirm("Are you sure you want to delete this quote?")) return;
@@ -247,9 +251,19 @@ export default function ItemDetailPage() {
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Total Quantity</Label>
-                <p className="text-[13px]">
-                  {inventory?.reduce((sum, inv) => sum + (inv.quantity ?? 0), 0) ?? "-"}
-                </p>
+                <p className="text-[13px]">{inventory ? inventoryTotal : "-"}</p>
+                {hasNegativeStock && (
+                  <p
+                    className="flex items-start gap-1 text-[12px] text-destructive"
+                    title="At least one location holds negative stock. This usually means a sale was recorded against a location that had no on-hand (often via the eBay sync). The negative rows are highlighted in the Locations panel and need reconciliation."
+                  >
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>
+                      Stock issue: {inventoryNegativeTotal} unit{inventoryNegativeTotal === 1 ? "" : "s"} are in
+                      negative location rows, usually from a historical sale logged against the wrong location.
+                    </span>
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Current Supplier Price</Label>
@@ -379,30 +393,46 @@ export default function ItemDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {inventory?.filter((inv) => inv.quantity > 0).length === 0 ? (
+                  {visibleInventory.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={3} className="text-center text-muted-foreground">
                         No inventory records
                       </TableCell>
                     </TableRow>
                   ) : (
-                    inventory?.filter((inv) => inv.quantity > 0).map((inv) => (
-                      <TableRow key={`${inv.item_id}-${inv.location_id}`}>
-                        <TableCell>{inv.location?.code ?? "-"}</TableCell>
-                        <TableCell>{inv.quantity}</TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            disabled={inv.quantity <= 0}
-                            onClick={() => setTransferStock(inv)}
-                            title="Transfer stock"
+                    visibleInventory.map((inv) => {
+                      const isNegative = (inv.quantity ?? 0) < 0;
+                      return (
+                        <TableRow key={`${inv.item_id}-${inv.location_id}`} className={isNegative ? "bg-destructive/5" : undefined}>
+                          <TableCell className={isNegative ? "text-destructive" : undefined}>
+                            {isNegative && (
+                              <AlertTriangle
+                                className="mr-1.5 inline h-3.5 w-3.5 align-text-bottom"
+                                aria-label="Negative on-hand"
+                              />
+                            )}
+                            {inv.location?.code ?? "-"}
+                          </TableCell>
+                          <TableCell
+                            className={isNegative ? "font-medium text-destructive" : undefined}
+                            title={isNegative ? "Negative on-hand: this location was sold from when it had no stock (often the eBay sync). Reconcile by transferring in stock or correcting the source records." : undefined}
                           >
-                            <ArrowRightLeft className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                            {inv.quantity}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              disabled={(inv.quantity ?? 0) <= 0}
+                              onClick={() => setTransferStock(inv)}
+                              title={isNegative ? "Cannot transfer from a negative-stock location" : "Transfer stock"}
+                            >
+                              <ArrowRightLeft className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
