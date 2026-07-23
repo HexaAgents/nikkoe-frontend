@@ -45,7 +45,32 @@ vi.mock("@/hooks/queries", () => ({
     isLoading: false,
   }),
   useCategories: () => ({ data: [{ id: 1, name: "Electronics" }] }),
-  useItemSupplierQuotes: () => ({ data: [] }),
+  useItemSupplierQuotes: () => ({
+    data: [
+      {
+        id: 103636,
+        item_id: 1,
+        supplier_id: 16,
+        cost: null,
+        currency_id: null,
+        date_time: null,
+        note: null,
+        supplier: { name: "Mapping-only supplier" },
+        currency: null,
+      },
+      {
+        id: 95005,
+        item_id: 1,
+        supplier_id: 1,
+        cost: 2.1,
+        currency_id: 1,
+        date_time: "2026-06-08T00:00:00+00:00",
+        note: null,
+        supplier: { name: "Supplier A" },
+        currency: { name: "GBP" },
+      },
+    ],
+  }),
   useItemInventory: () => ({ data: [] }),
   useItemReceipts: () => ({ data: [], isLoading: false }),
   useItemSales: () => ({ data: [], isLoading: false }),
@@ -89,5 +114,13 @@ describe("Item Detail Page — Sale & Receipt Modals", () => {
   it("shows the item part number in the page heading", () => {
     renderWithProviders(<ItemDetailPage />, { auth: createLoggedInAuthContext() });
     expect(screen.getByText("PART-001")).toBeInTheDocument();
+  });
+
+  it("ignores mapping-only supplier rows and renders the latest priced quote", () => {
+    renderWithProviders(<ItemDetailPage />, { auth: createLoggedInAuthContext() });
+
+    expect(screen.getByText("2.100")).toBeInTheDocument();
+    expect(screen.getByText("1 quote")).toBeInTheDocument();
+    expect(screen.queryByText("Mapping-only supplier")).not.toBeInTheDocument();
   });
 });

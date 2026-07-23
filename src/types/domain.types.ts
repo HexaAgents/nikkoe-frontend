@@ -213,8 +213,8 @@ export interface ItemSupplierQuote {
   id: number;
   item_id: number;
   supplier_id: number;
-  cost: number;
-  currency_id: number;
+  cost: number | null;
+  currency_id: number | null;
   date_time: string | null;
   note: string | null;
   supplier: { name: string } | null;

@@ -43,7 +43,27 @@ import { AddSaleModal } from "@/components/modals/AddSaleModal";
 import { AddReceiptModal } from "@/components/modals/AddReceiptModal";
 import { toast } from "sonner";
 import { summarizeInventory } from "@/lib/inventory-summary";
-import type { ItemReceiptHistory, ItemSaleHistory, ItemTransferHistory, StockWithLocation } from "@/types/domain.types";
+import type {
+  ItemReceiptHistory,
+  ItemSaleHistory,
+  ItemSupplierQuote,
+  ItemTransferHistory,
+  StockWithLocation,
+} from "@/types/domain.types";
+
+type PricedSupplierQuote = ItemSupplierQuote & {
+  cost: number;
+  currency_id: number;
+};
+
+function isPricedSupplierQuote(quote: ItemSupplierQuote): quote is PricedSupplierQuote {
+  return (
+    typeof quote.cost === "number"
+    && Number.isFinite(quote.cost)
+    && typeof quote.currency_id === "number"
+    && Number.isFinite(quote.currency_id)
+  );
+}
 
 export default function ItemDetailPage() {
   const { id } = useParams();
@@ -60,6 +80,8 @@ export default function ItemDetailPage() {
   const updateItem = useUpdateItem();
   const deleteItem = useDeleteItem();
   const deleteQuote = useDeleteSupplierQuote();
+  const pricedSupplierQuotes = (supplierQuotes ?? []).filter(isPricedSupplierQuote);
+  const currentSupplierQuote = pricedSupplierQuotes[0];
 
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -267,12 +289,12 @@ export default function ItemDetailPage() {
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Current Supplier Price</Label>
-                {supplierQuotes && supplierQuotes.length > 0 ? (
+                {currentSupplierQuote ? (
                   <div className="text-[13px]">
-                    <span className="font-medium">{supplierQuotes[0].cost.toFixed(3)}</span>
+                    <span className="font-medium">{currentSupplierQuote.cost.toFixed(3)}</span>
                     {" "}
-                    <span className="text-muted-foreground">{supplierQuotes[0].currency?.name ?? ""}</span>
-                    <span className="text-muted-foreground"> from {supplierQuotes[0].supplier?.name ?? "Unknown"}</span>
+                    <span className="text-muted-foreground">{currentSupplierQuote.currency?.name ?? ""}</span>
+                    <span className="text-muted-foreground"> from {currentSupplierQuote.supplier?.name ?? "Unknown"}</span>
                   </div>
                 ) : (
                   <p className="text-[13px] text-muted-foreground">No quotes</p>
@@ -304,9 +326,9 @@ export default function ItemDetailPage() {
             <CardHeader className="flex flex-row items-center justify-between border-b pb-6">
               <div className="flex items-center gap-3">
                 <CardTitle>Supplier Quotes</CardTitle>
-                {supplierQuotes && supplierQuotes.length > 0 && (
+                {pricedSupplierQuotes.length > 0 && (
                   <span className="text-sm font-normal text-muted-foreground">
-                    {supplierQuotes.length} quote{supplierQuotes.length !== 1 ? "s" : ""}
+                    {pricedSupplierQuotes.length} quote{pricedSupplierQuotes.length !== 1 ? "s" : ""}
                   </span>
                 )}
               </div>
@@ -327,14 +349,14 @@ export default function ItemDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {!supplierQuotes || supplierQuotes.length === 0 ? (
+                  {pricedSupplierQuotes.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-muted-foreground">
                         No supplier quotes
                       </TableCell>
                     </TableRow>
                   ) : (
-                    (showAllQuotes ? supplierQuotes : supplierQuotes.slice(0, PREVIEW_ROWS)).map((quote) => (
+                    (showAllQuotes ? pricedSupplierQuotes : pricedSupplierQuotes.slice(0, PREVIEW_ROWS)).map((quote) => (
                       <TableRow key={quote.id}>
                         <TableCell>{quote.date_time ? new Date(quote.date_time).toLocaleDateString("en-GB", { timeZone: "Europe/London" }) : "-"}</TableCell>
                         <TableCell className="font-medium">{quote.supplier?.name ?? "-"}</TableCell>
@@ -354,7 +376,7 @@ export default function ItemDetailPage() {
                   )}
                 </TableBody>
               </Table>
-              {supplierQuotes && supplierQuotes.length > PREVIEW_ROWS && (
+              {pricedSupplierQuotes.length > PREVIEW_ROWS && (
                 <div className="border-t px-4 py-3">
                   <Button
                     variant="ghost"
@@ -370,7 +392,7 @@ export default function ItemDetailPage() {
                     ) : (
                       <>
                         <ChevronDown className="mr-2 h-4 w-4" />
-                        See all {supplierQuotes.length} quotes
+                        See all {pricedSupplierQuotes.length} quotes
                       </>
                     )}
                   </Button>
@@ -742,7 +764,7 @@ export default function ItemDetailPage() {
         open={isAddQuoteModalOpen}
         onOpenChange={setIsAddQuoteModalOpen}
         itemId={itemId}
-        latestQuote={supplierQuotes?.[0]}
+        latestQuote={currentSupplierQuote}
       />
       {transferStock && (
         <TransferStockModal
