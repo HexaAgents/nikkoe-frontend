@@ -159,16 +159,35 @@ test("deployed frontend uses the deployed backend for auth, item rendering, and 
     expect(refreshToken).not.toBe("");
 
     const api = async (path: string, options: { method?: string; data?: unknown } = {}) => {
-      const response = await page.request.fetch(`${apiBase}${path}`, {
-        method: options.method ?? "GET",
-        data: options.data,
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-          "x-vercel-protection-bypass": backendBypass,
-        },
-      });
-      return responseJson(response);
+      const method = options.method ?? "GET";
+      const attempts = method === "GET" ? 3 : 1;
+      let lastError: unknown;
+
+      for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        try {
+          const response = await page.request.fetch(`${apiBase}${path}`, {
+            method,
+            data: options.data,
+            timeout: 45_000,
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+              "x-vercel-protection-bypass": backendBypass,
+            },
+          });
+          if (method === "GET" && response.status() >= 500 && attempt < attempts) {
+            await new Promise((resolve) => setTimeout(resolve, attempt * 1_000));
+            continue;
+          }
+          return responseJson(response);
+        } catch (error) {
+          lastError = error;
+          if (attempt === attempts) throw error;
+          await new Promise((resolve) => setTimeout(resolve, attempt * 1_000));
+        }
+      }
+
+      throw lastError;
     };
 
     const me = await api("/auth/me") as JsonRecord;
@@ -214,7 +233,13 @@ test("deployed frontend uses the deployed backend for auth, item rendering, and 
 
     await page.getByRole("button", { name: "Edit Item" }).click();
     await page.locator("textarea:visible").fill("Persisted through deployed backend");
+    const updateResponsePromise = page.waitForResponse(
+      (response) => response.url() === `${apiBase}/items/${itemId}` && response.request().method() === "PUT",
+    );
     await page.getByRole("button", { name: "Save Changes" }).click();
+    const updateResponse = await updateResponsePromise;
+    expect(updateResponse.ok()).toBe(true);
+    await expect(page.getByRole("button", { name: "Edit Item" })).toBeVisible();
     await expect(page.getByText("Persisted through deployed backend", { exact: true })).toBeVisible();
     await page.reload();
     await expect(page.getByText("Persisted through deployed backend", { exact: true })).toBeVisible();
