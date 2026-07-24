@@ -295,8 +295,8 @@ test("deployed frontend uses the deployed backend for auth, item rendering, and 
       },
     });
     await page.reload();
-    await expect(page.getByText("E2E-A", { exact: true })).toBeVisible();
-    await expect(page.getByText("E2E-B", { exact: true })).toBeVisible();
+    await expect(page.getByRole("cell", { name: "E2E-A", exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("cell", { name: "E2E-B", exact: true }).first()).toBeVisible();
 
     inventory = await api(`/items/${itemId}/inventory`) as JsonRecord[];
     const stockB = inventory.find((row) => (row.location as JsonRecord)?.code === "E2E-B")!;
