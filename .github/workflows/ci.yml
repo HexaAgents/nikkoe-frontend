@@ -84,4 +84,27 @@ jobs:
       - run: npm ci
 
       - name: Production dependency audit
-        run: npm audit --omit=dev --audit-level=high
+        run: |
+          for attempt in 1 2 3; do
+            set +e
+            output=$(npm audit --omit=dev --audit-level=high 2>&1)
+            status=$?
+            set -e
+            printf '%s\n' "$output"
+
+            if [ "$status" -eq 0 ]; then
+              exit 0
+            fi
+
+            case "$output" in
+              *"audit endpoint returned an error"*|*"522: Connection timed out"*)
+                if [ "$attempt" -lt 3 ]; then
+                  echo "npm audit transport failure; retrying in $((attempt * 20)) seconds"
+                  sleep $((attempt * 20))
+                  continue
+                fi
+                ;;
+            esac
+
+            exit "$status"
+          done
