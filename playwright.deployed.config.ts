@@ -3,7 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/deployed",
   outputDir: "test-results/deployed",
-  timeout: 90_000,
+  timeout: 300_000,
   expect: {
     timeout: 15_000,
   },

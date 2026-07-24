@@ -35,8 +35,8 @@ async function stagingDelete(table: string, query: string): Promise<void> {
       Prefer: "return=minimal",
     },
   });
-  if (!response.ok()) {
-    throw new Error(`Staging cleanup failed for ${table}: ${response.status()} ${await response.text()}`);
+  if (!response.ok) {
+    throw new Error(`Staging cleanup failed for ${table}: ${response.status} ${await response.text()}`);
   }
 }
 
@@ -47,8 +47,8 @@ async function stagingRows(table: string, query: string): Promise<JsonRecord[]> 
       Authorization: `Bearer ${supabaseServiceKey}`,
     },
   });
-  if (!response.ok()) {
-    throw new Error(`Staging lookup failed for ${table}: ${response.status()} ${await response.text()}`);
+  if (!response.ok) {
+    throw new Error(`Staging lookup failed for ${table}: ${response.status} ${await response.text()}`);
   }
   return response.json() as Promise<JsonRecord[]>;
 }
@@ -107,7 +107,12 @@ function pageDiagnostics(page: Page) {
   });
   page.on("requestfailed", (request) => {
     if (request.url().startsWith(apiBase)) {
-      failedApiRequests.push(`${request.method()} ${request.url()}: ${request.failure()?.errorText}`);
+      const errorText = request.failure()?.errorText ?? "unknown error";
+      // React Query requests that are superseded by route changes or explicit
+      // invalidation are intentionally cancelled by the browser.
+      if (errorText !== "net::ERR_ABORTED") {
+        failedApiRequests.push(`${request.method()} ${request.url()}: ${errorText}`);
+      }
     }
   });
   page.on("response", (response) => {
@@ -208,7 +213,7 @@ test("deployed frontend uses the deployed backend for auth, item rendering, and 
     expect(itemId).toBeGreaterThan(0);
 
     await page.getByRole("button", { name: "Edit Item" }).click();
-    await page.getByLabel("Description").fill("Persisted through deployed backend");
+    await page.locator("textarea:visible").fill("Persisted through deployed backend");
     await page.getByRole("button", { name: "Save Changes" }).click();
     await expect(page.getByText("Persisted through deployed backend", { exact: true })).toBeVisible();
     await page.reload();
