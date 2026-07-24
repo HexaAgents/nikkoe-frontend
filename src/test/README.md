@@ -2,6 +2,13 @@
 
 This document explains the structure, purpose, and reasoning behind every test file and test category in the frontend test suite.
 
+> **Deployment wiring:** `src/test/integration/` is a legacy direct-Supabase
+> suite for an obsolete schema and is not a release gate. It bypasses FastAPI
+> and therefore cannot prove the deployed application works. The supported
+> end-to-end gate is `tests/deployed/wiring.spec.ts`, which drives a real
+> browser through Vercel frontend/backend previews and isolated Supabase
+> staging.
+
 ---
 
 ## Overview
