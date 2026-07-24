@@ -21,7 +21,7 @@ type JsonRecord = Record<string, unknown>;
 async function responseJson(response: APIResponse): Promise<unknown> {
   const text = await response.text();
   if (!response.ok()) {
-    throw new Error(`${response.request().method()} ${response.url()} returned ${response.status()}: ${text}`);
+    throw new Error(`${response.url()} returned ${response.status()}: ${text}`);
   }
   return text ? JSON.parse(text) : null;
 }
