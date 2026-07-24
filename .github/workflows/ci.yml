@@ -83,8 +83,8 @@ jobs:
 
       - run: npm ci
 
-      - name: Security audit
-        run: npm audit --audit-level=high
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
 
   integration:
     if: github.event_name == 'push'

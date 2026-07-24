@@ -1,0 +1,56 @@
+name: Deployed E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      frontend_url:
+        description: Protected Vercel frontend preview URL
+        required: true
+        type: string
+      api_url:
+        description: Protected Vercel backend preview API URL including /api
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deployed-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run deployed wiring test
+        run: npm run test:deployed
+        env:
+          E2E_FRONTEND_URL: ${{ inputs.frontend_url }}
+          E2E_API_URL: ${{ inputs.api_url }}
+          E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+          E2E_FRONTEND_BYPASS: ${{ secrets.E2E_FRONTEND_BYPASS }}
+          E2E_BACKEND_BYPASS: ${{ secrets.E2E_BACKEND_BYPASS }}
+          E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+          E2E_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Upload Playwright diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployed-e2e-diagnostics
+          path: |
+            playwright-report/deployed
+            test-results/deployed
+          if-no-files-found: ignore
+          retention-days: 7
