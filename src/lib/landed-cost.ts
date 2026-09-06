@@ -46,7 +46,7 @@ export interface InvoiceFinance {
  *
  * Edge cases:
  * - Empty `lines` -> zeroed totals, no per-line rows.
- * - `subtotal === 0` -> no shipping allocated (shares stay 0).
+ * - `subtotal === 0` -> allocate shipping by quantity (e.g. free samples).
  * - `quantity <= 0` -> `shippingPerUnit === 0` (no division by zero) but
  *   the share is still counted so the remainder gets spread across other
  *   lines proportionally.
@@ -67,9 +67,12 @@ export function computeInvoiceFinance(
   });
 
   const subtotal = lineTotals.reduce((s, l) => s + l.lineTotal, 0);
+  // Free samples still incur freight. *(2026-09-06 · Codex)*
+  const totalQuantity = lineTotals.reduce((s, l) => s + l.qty, 0);
 
   const perLine: LineFinance[] = lineTotals.map(({ qty, unit, lineTotal }) => {
-    const share = subtotal > 0 ? (lineTotal / subtotal) * safeShipping : 0;
+    const share = subtotal > 0 ? (lineTotal / subtotal) * safeShipping
+      : totalQuantity > 0 ? (qty / totalQuantity) * safeShipping : 0;
     const shipPerUnit = qty > 0 ? share / qty : 0;
     const landedUnitInvoice = unit + shipPerUnit;
     const landedUnitGbp = landedUnitInvoice * safeFx;

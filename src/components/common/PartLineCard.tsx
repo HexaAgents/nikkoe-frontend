@@ -293,7 +293,7 @@ export function PartLineCard({
             </Label>
             <Input
               type="number"
-              step="0.001"
+              step="0.0001" /* Invoice parser precision. *(2026-09-06 · Codex)* */
               min="0"
               value={part.price}
               onChange={(e) => onFieldChange(index, "price", e.target.value)}

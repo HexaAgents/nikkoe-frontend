@@ -26,6 +26,8 @@ import { cn } from "@/lib/utils";
 import { symbolToIso, isoToSymbol } from "@/lib/fx";
 import { useFxRate } from "@/hooks/useFxRate";
 import { computeInvoiceFinance } from "@/lib/landed-cost";
+// General GBP invoice cost correction. *(2026-09-06 · Codex)*
+import { invoiceUnitCost, invoiceShippingCost, hasUnknownNetCosts, validAmount } from "@/lib/invoice-cost";
 import { computeVatBreakdown, hasVatInfo, type VatBreakdown } from "@/lib/vat";
 
 // Feature flag: flip to `true` to restore the PDF-invoice drop zone on the
@@ -98,6 +100,7 @@ export function AddReceiptForm({
   const createSupplierAlias = useCreateSupplierAlias();
   const createSupplierPartMapping = useCreateSupplierPartMapping();
   const [isParsing, setIsParsing] = useState(false);
+  const [incompleteImport, setIncompleteImport] = useState(false);
   const { data: suppliers } = useSuppliers();
   const { data: locations } = useLocations();
   const { data: currencies } = useCurrencies();
@@ -126,6 +129,7 @@ export function AddReceiptForm({
   // new upload, we seed shippingCost from the parser and (if non-GBP) seed
   // fxRate from the live ECB rate. Users can override either freely.
   const [shippingCost, setShippingCost] = useState("0");
+  const [shippingManuallyEdited, setShippingManuallyEdited] = useState(false);
   const [fxRate, setFxRate] = useState("1");
   const [fxManuallyEdited, setFxManuallyEdited] = useState(false);
   // Set of line indices whose Unit Cost the user has manually edited — we
@@ -233,6 +237,13 @@ export function AddReceiptForm({
     [currencyOverride, parseContext?.currencySymbol],
   );
   const needsFx = invoiceIso !== null && invoiceIso !== "GBP";
+
+  // Re-select freight when the detected currency is corrected, preserving edits.
+  useEffect(() => {
+    if (!parseContext || shippingManuallyEdited) return;
+    const amount = invoiceShippingCost(parseContext, invoiceIso);
+    setShippingCost(validAmount(amount) ? String(amount) : "");
+  }, [parseContext, invoiceIso, shippingManuallyEdited]);
   const fx = useFxRate(needsFx ? invoiceIso : null);
 
   const handleCurrencyOverride = (iso: string) => {
@@ -265,18 +276,20 @@ export function AddReceiptForm({
 
   // Align the finance math to the line order of the current parts. For lines
   // that came from the PDF we use the parsed unit price as the base (the raw
-  // invoice-currency cost before allocation). For manually-added lines we
-  // interpret the typed `price` as the invoice-currency base — useful when a
-  // user wants to allocate their own freight cost across ad-hoc lines.
+  // invoice-currency cost before allocation). Manually added lines contain
+  // a final cost and do not participate in automatic freight allocation.
   const lineFinance = useMemo(() => {
     const invoiceLines = parts.map((p, i) => {
       const ctx = parseContext?.lines[i];
-      const unitPrice = ctx ? ctx.unitPrice : Number(p.price) || 0;
+      // Manually added rows already contain a final GBP unit cost. They must
+      // not consume freight that the form only adds to imported rows.
+      if (parseContext && !ctx) return { unitPrice: 0, quantity: 0 };
+      const unitPrice = ctx ? invoiceUnitCost(ctx, invoiceIso) : Number(p.price) || 0;
       const quantity = Number(p.quantity) || 0;
       return { unitPrice, quantity };
     });
     return computeInvoiceFinance(invoiceLines, parsedShipping, parsedFx);
-  }, [parts, parseContext, parsedShipping, parsedFx]);
+  }, [parts, parseContext, parsedShipping, parsedFx, invoiceIso]);
 
   // VAT breakdown is independent of landed cost: it uses the per-line NET
   // prices the parser extracted (not the gross derived unitPrice). When the
@@ -300,16 +313,18 @@ export function AddReceiptForm({
       const ctx = parseContext.lines[i];
       return {
         quantity: Number(p.quantity) || 0,
-        unitNet: ctx?.unitPriceNet ?? 0,
+        unitNet: ctx ? invoiceUnitCost(ctx, "GBP") : 0,
         vatRate: ctx?.vatRate ?? null,
       };
     });
     return computeVatBreakdown(
       vatLines,
-      parseContext.shippingNet ?? Math.max(0, Number(shippingCost) || 0),
+      invoiceIso === "GBP"
+        ? parsedShipping
+        : parsedShipping / (1 + (validAmount(parseContext.shippingVatRate) ? parseContext.shippingVatRate : 0) / 100),
       parseContext.shippingVatRate,
     );
-  }, [parseContext, parts, shippingCost]);
+  }, [parseContext, parts, parsedShipping, invoiceIso]);
 
   const showBreakdown = parsedShipping > 0 || parsedFx !== 1;
 
@@ -326,14 +341,15 @@ export function AddReceiptForm({
         if (priceOverrides.has(i)) return p;
         const fin = lineFinance.lines[i];
         if (!fin) return p;
-        const newPrice = fin.landedUnitGbp.toFixed(3);
+        const newPrice = validAmount(invoiceUnitCost(parseContext.lines[i], invoiceIso))
+          ? fin.landedUnitGbp.toFixed(4) : "";
         if (p.price === newPrice && p.currency_id === gbpCurrencyId) return p;
         changed = true;
         return { ...p, price: newPrice, currency_id: gbpCurrencyId };
       });
       return changed ? next : prev;
     });
-  }, [parseContext, lineFinance, priceOverrides, gbpCurrencyId]);
+  }, [parseContext, lineFinance, priceOverrides, gbpCurrencyId, invoiceIso]);
 
   // --- PDF upload / streaming parse ----------------------------------------
 
@@ -341,6 +357,7 @@ export function AddReceiptForm({
     async (file: File) => {
       if (file.type !== "application/pdf") return;
       setIsParsing(true);
+      setIncompleteImport(true);
       setParseContext(null);
       setParsedLabels(new Map());
       setSupplierBannerDismissed(false);
@@ -350,6 +367,7 @@ export function AddReceiptForm({
       // Reset landed-cost state so values from a previous invoice don't leak
       // into this one.
       setShippingCost("0");
+      setShippingManuallyEdited(false);
       setFxRate("1");
       setFxManuallyEdited(false);
       setPriceOverrides(new Set());
@@ -409,9 +427,9 @@ export function AddReceiptForm({
           onHeader: (h) => {
             clearProgressTicker();
             totalLines = h.total_lines ?? 0;
-            const shipping = Math.max(0, Number(h.shipping_total) || 0);
+            const shipping = h.shipping_total == null ? 0 : Number(h.shipping_total);
             const shippingNet =
-              h.shipping_net == null ? null : Math.max(0, Number(h.shipping_net) || 0);
+              h.shipping_net == null || !validAmount(Number(h.shipping_net)) ? null : Number(h.shipping_net);
             const shippingVatRate =
               h.shipping_vat_rate == null ? null : Number(h.shipping_vat_rate);
             const printed = h.printed_totals
@@ -466,7 +484,7 @@ export function AddReceiptForm({
               item_id: itemId,
               location_id: line.matched_location_id ? String(line.matched_location_id) : "",
               quantity: String(line.quantity),
-              price: String(line.unit_price),
+              price: validAmount(line.unit_price) ? String(line.unit_price) : "",
               currency_id: headerCurrencyId,
             };
 
@@ -480,17 +498,20 @@ export function AddReceiptForm({
             setParseProgress((p) => Math.max(p, computeLineProgress()));
           },
 
-          onDone: () => {
+          onDone: ({ total }) => {
+            setIncompleteImport(total === 0 || total !== accumulatedLines.length || (totalLines > 0 && total !== totalLines));
             clearProgressTicker();
             emitContext();
             setParseProgress(100);
           },
 
           onError: (msg) => {
+            setIncompleteImport(true);
             toast.error(`Failed to parse invoice: ${msg}`);
           },
         });
       } catch (err) {
+        setIncompleteImport(true);
         toast.error(`Failed to parse invoice: ${err instanceof Error ? err.message : "Unknown error"}`);
       } finally {
         clearProgressTicker();
@@ -521,11 +542,13 @@ export function AddReceiptForm({
     setParts([defaultItemId ? { ...emptyPart, item_id: defaultItemId, currency_id: defaultCurrencyId } : { ...emptyPart, currency_id: defaultCurrencyId }]);
     setShowErrors(false);
     setParseContext(null);
+    setIncompleteImport(false);
     setParsedLabels(new Map());
     setSupplierBannerDismissed(false);
     setParseSummaryDismissed(false);
     setParseProgress(0);
     setShippingCost("0");
+    setShippingManuallyEdited(false);
     setFxRate("1");
     setFxManuallyEdited(false);
     setPriceOverrides(new Set());
@@ -559,6 +582,10 @@ export function AddReceiptForm({
 
   const handleRemovePart = (removeIndex: number) => {
     setParts((prev) => prev.filter((_, j) => j !== removeIndex));
+    // Keep source metadata aligned with the surviving item, not its old index.
+    setParseContext((prev) => prev ? {
+      ...prev, lines: prev.lines.filter((_, j) => j !== removeIndex),
+    } : prev);
     // Keep override indices aligned after deletion: drop the removed index
     // and shift higher indices down by one.
     setPriceOverrides((prev) => {
@@ -612,7 +639,25 @@ export function AddReceiptForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setShowErrors(true);
-    if (!validation.isValid) return;
+    if (!validation.isValid || isParsing || parts.length === 0) return;
+    if (incompleteImport) {
+      toast.error("Invoice import is incomplete. Upload again, or clear the form to enter it manually.");
+      return;
+    }
+    if (parseContext && !invoiceIso) {
+      toast.error("Choose the invoice currency before saving.");
+      return;
+    }
+    if (parseContext && needsFx &&
+        (!validAmount(Number(fxRate)) || Number(fxRate) <= 0 || fxRate.trim() === "" ||
+          (!fxManuallyEdited && (!validAmount(fx.rate) || fx.rate <= 0)))) {
+      toast.error("Enter a valid exchange rate or wait for the live rate before saving.");
+      return;
+    }
+    if (parseContext && (shippingCost.trim() === "" || !validAmount(Number(shippingCost)))) {
+      toast.error("Enter a valid shipping amount, or 0 for no shipping.");
+      return;
+    }
 
     const lines: ReceiptLineInput[] = parts.map((p) => partLineToInput(p));
 
@@ -703,6 +748,9 @@ export function AddReceiptForm({
           )}
 
           {/* Parse summary + Resolve chip */}
+          {incompleteImport && !isParsing && <p role="alert" className="text-sm text-destructive">
+            Invoice import is incomplete. Upload again, or clear the form to enter it manually.
+          </p>}
           {parseContext && !parseSummaryDismissed && (
             <div className="flex flex-wrap items-center gap-3 rounded-md border border-muted-foreground/20 bg-muted/50 p-3 dark:border-muted-foreground/30 dark:bg-muted/30">
               <div className="flex-1 text-sm text-foreground/80">
@@ -746,7 +794,7 @@ export function AddReceiptForm({
               invoiceIso={invoiceIso}
               onCurrencyChange={handleCurrencyOverride}
               shippingCost={shippingCost}
-              onShippingChange={setShippingCost}
+              onShippingChange={(v) => { setShippingCost(v); setShippingManuallyEdited(true); }}
               parsedShippingTotal={parseContext.shippingTotal}
               needsFx={needsFx}
               fxRate={fxRate}
@@ -760,10 +808,13 @@ export function AddReceiptForm({
               fxHasError={!!fx.error}
               subtotal={lineFinance.subtotal}
               invoiceTotal={lineFinance.invoiceTotal}
-              grandTotalGbp={lineFinance.grandTotalGbp}
+              grandTotalGbp={parts.every((p) => p.currency_id === gbpCurrencyId && validAmount(Number(p.price)))
+                ? parts.reduce((sum, p) => sum + Number(p.price) * Number(p.quantity), 0)
+                : null}
               fxRateNumeric={parsedFx}
               vat={vat}
               printedTotals={parseContext.printedTotals}
+              unknownNetCosts={invoiceIso === "GBP" && hasUnknownNetCosts(parseContext)}
             />
           )}
 
@@ -846,8 +897,8 @@ export function AddReceiptForm({
             const invoiceContext = parseContext?.lines[index];
             const fin = lineFinance.lines[index];
             const sym = invoiceIso ? isoToSymbol(invoiceIso) : (parseContext?.currencySymbol ?? "");
-            const baseUnit = invoiceContext ? invoiceContext.unitPrice : Number(part.price) || 0;
-            const showLandedRow = showBreakdown && !!fin;
+            const baseUnit = invoiceContext ? invoiceUnitCost(invoiceContext, invoiceIso) : Number(part.price) || 0;
+            const showLandedRow = showBreakdown && !!fin && !!invoiceContext;
             const showVatRow =
               !!invoiceContext &&
               invoiceContext.vatRate != null &&
@@ -917,7 +968,7 @@ export function AddReceiptForm({
         </div>
 
         <div className="flex flex-wrap justify-center gap-2 pt-6">
-          <Button type="submit" disabled={addReceipt.isPending}>
+          <Button type="submit" disabled={addReceipt.isPending || isParsing}>
             {addReceipt.isPending ? "Creating..." : variant === "inline" ? "Create receipt" : "Create"}
           </Button>
           <Button type="button" variant="outline" onClick={() => setParts([...parts, { ...emptyPart, currency_id: defaultCurrencyId }])}>
@@ -1001,7 +1052,8 @@ interface LandedCostPanelProps {
   fxHasError: boolean;
   subtotal: number;
   invoiceTotal: number;
-  grandTotalGbp: number;
+  grandTotalGbp: number | null;
+  unknownNetCosts: boolean;
   fxRateNumeric: number;
   vat: VatBreakdown | null;
   printedTotals: { net: number; vat: number; gross: number } | null;
@@ -1025,6 +1077,7 @@ function LandedCostPanel(props: LandedCostPanelProps) {
     subtotal,
     invoiceTotal,
     grandTotalGbp,
+    unknownNetCosts,
     fxRateNumeric,
     vat,
     printedTotals,
@@ -1056,10 +1109,11 @@ function LandedCostPanel(props: LandedCostPanelProps) {
           <div className="relative w-32">
             <ChevronDown className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <select
-              value={invoiceIso ?? "GBP"}
+              value={invoiceIso ?? ""}
               onChange={(e) => onCurrencyChange(e.target.value)}
               className="h-9 w-full appearance-none border border-input bg-background pl-7 pr-6 text-right text-sm tabular-nums text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
             >
+              <option value="" disabled>Select currency</option>
               {CURRENCY_OPTIONS.map((c) => (
                 <option key={c.iso} value={c.iso}>{c.label}</option>
               ))}
@@ -1069,11 +1123,11 @@ function LandedCostPanel(props: LandedCostPanelProps) {
 
         <div className="flex flex-wrap items-center gap-4">
           <Label className="w-24 shrink-0 text-muted-foreground">
-            Shipping ({sym}):
+            Shipping {invoiceIso === "GBP" ? "ex VAT " : ""}({sym}):
           </Label>
           <Input
             type="number"
-            step="0.01"
+            step="any"
             min="0"
             value={shippingCost}
             onChange={(e) => onShippingChange(e.target.value)}
@@ -1097,7 +1151,7 @@ function LandedCostPanel(props: LandedCostPanelProps) {
             </Label>
             <Input
               type="number"
-              step="0.0001"
+              step="any"
               min="0"
               value={fxRate}
               onChange={(e) => onFxChange(e.target.value)}
@@ -1129,9 +1183,20 @@ function LandedCostPanel(props: LandedCostPanelProps) {
           </div>
         )}
 
+        <p className="text-xs text-muted-foreground">
+          {invoiceIso === "GBP"
+            ? "Stock cost uses net item prices plus net shipping. VAT and invoice totals are shown separately. Manually added rows use the final cost you enter."
+            : "Stock cost uses invoice prices plus shipping, converted to GBP. Review any foreign tax before saving."}
+        </p>
+        {unknownNetCosts && <p role="alert" className="text-xs text-amber-700 dark:text-amber-400">
+          Some net amounts are unavailable. Their original charges are retained. Check Unit Cost and Shipping before saving.
+        </p>}
         <div className="mt-1 border-t border-border/60 pt-3 text-sm">
           {vat ? (
-            <VatSummaryTable vat={vat} symbol={sym} />
+            <>
+              <p className="mb-1 text-xs text-muted-foreground">Invoice price breakdown</p>
+              <VatSummaryTable vat={vat} symbol={sym} />
+            </>
           ) : (
             <>
               <SummaryRow label="Subtotal" value={`${sym}${fmt(subtotal)}`} />
@@ -1148,8 +1213,8 @@ function LandedCostPanel(props: LandedCostPanelProps) {
             />
           )}
           <div className="mt-1.5 flex items-center justify-between border-t border-border/60 pt-1.5">
-            <span className="font-medium">Total (GBP)</span>
-            <span className="tabular-nums font-semibold">£{fmt(grandTotalGbp)}</span>
+            <span className="font-medium">Stock cost to save (GBP)</span>
+            <span className="tabular-nums font-semibold">{grandTotalGbp == null ? "Check line currencies" : `£${fmt(grandTotalGbp)}`}</span>
           </div>
           {printedTotals && (
             <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
@@ -1163,7 +1228,7 @@ function LandedCostPanel(props: LandedCostPanelProps) {
           {discrepancy != null && (
             <div className="mt-1 text-xs text-amber-700 dark:text-amber-400">
               Computed total differs from printed total by {sym}
-              {fmt(Math.abs(discrepancy))} — line prices may be slightly rounded.
+              {fmt(Math.abs(discrepancy))}. Check quantities, prices and shipping against the invoice.
             </div>
           )}
         </div>

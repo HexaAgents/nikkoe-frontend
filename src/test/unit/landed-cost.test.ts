@@ -70,7 +70,8 @@ describe("computeInvoiceFinance", () => {
     expect(r.lines[0].landedLineGbp).toBeCloseTo(10.2, 10);
   });
 
-  it("subtotal=0 => no shipping allocated per line (shipping still in invoice total)", () => {
+  // Free samples must not lose freight from saved cost. *(2026-09-06 · Codex)*
+  it("subtotal=0 => shipping is allocated by quantity", () => {
     const r = computeInvoiceFinance(
       [{ unitPrice: 0, quantity: 5 }],
       7.5,
@@ -78,9 +79,9 @@ describe("computeInvoiceFinance", () => {
     );
     expect(r.subtotal).toBe(0);
     expect(r.invoiceTotal).toBe(7.5);
-    expect(r.lines[0].shippingShare).toBe(0);
-    expect(r.lines[0].shippingPerUnit).toBe(0);
-    expect(r.lines[0].landedUnitInvoice).toBe(0);
+    expect(r.lines[0].shippingShare).toBe(7.5);
+    expect(r.lines[0].shippingPerUnit).toBe(1.5);
+    expect(r.lines[0].landedUnitInvoice).toBe(1.5);
   });
 
   it("qty<=0 => shippingPerUnit=0 without crashing", () => {
